@@ -34,40 +34,17 @@ namespace panda_torque_mpc {
 
 bool ModelPinocchioVsFrankaController::init(hardware_interface::RobotHW* robot_hw,
                                   ros::NodeHandle& node_handle) {
-  franka_state_interface_ = robot_hw->get<franka_hw::FrankaStateInterface>();
-  if (franka_state_interface_ == nullptr) {
-    ROS_ERROR("ModelPinocchioVsFrankaController: Could not get Franka state interface from hardware");
-    return false;
-  }
+
+  ///////////////////
+  // Load parameters
+  ///////////////////
   std::string arm_id;
   if (!node_handle.getParam("arm_id", arm_id)) {
     ROS_ERROR("ModelPinocchioVsFrankaController: Could not read parameter arm_id");
     return false;
   }
-  model_interface_ = robot_hw->get<franka_hw::FrankaModelInterface>();
-  if (model_interface_ == nullptr) {
-    ROS_ERROR_STREAM("ModelPinocchioVsFrankaController: Error getting model interface from hardware");
-    return false;
-  }
 
-  try {
-    franka_state_handle_ = std::make_unique<franka_hw::FrankaStateHandle>(
-        franka_state_interface_->getHandle(arm_id + "_robot"));
-  } catch (const hardware_interface::HardwareInterfaceException& ex) {
-    ROS_ERROR_STREAM(
-        "ModelPinocchioVsFrankaController: Exception getting franka state handle: " << ex.what());
-    return false;
-  }
-
-  try {
-    model_handle_ = std::make_unique<franka_hw::FrankaModelHandle>(
-        model_interface_->getHandle(arm_id + "_model"));
-  } catch (hardware_interface::HardwareInterfaceException& ex) {
-    ROS_ERROR_STREAM(
-        "ModelPinocchioVsFrankaController: Exception getting model handle from interface: " << ex.what());
-    return false;
-  }
-
+  // Load Pinocchio urdf
   std::string urdf_path;
   if (!node_handle.getParam("urdf_path", urdf_path)) {
     ROS_ERROR("ModelPinocchioVsFrankaController: Could not read parameter urdf_path");
@@ -84,6 +61,35 @@ bool ModelPinocchioVsFrankaController::init(hardware_interface::RobotHW* robot_h
     return false;
   }
 
+  ///////////////////
+  // Claim interfaces
+  ///////////////////
+  // Retrieve resource FrankaStateHandle
+  auto* franka_state_interface = robot_hw->get<franka_hw::FrankaStateInterface>();
+  if (franka_state_interface == nullptr) {
+    ROS_ERROR("ModelPinocchioVsFrankaController: Could not get Franka state interface from hardware");
+    return false;
+  }
+  try {
+    franka_state_handle_ = std::make_unique<franka_hw::FrankaStateHandle>(franka_state_interface->getHandle(arm_id + "_robot"));
+  } catch (const hardware_interface::HardwareInterfaceException& ex) {
+    ROS_ERROR_STREAM("ModelPinocchioVsFrankaController: Exception getting franka state handle: " << ex.what());
+    return false;
+  }
+
+  // Retrieve resource FrankaModelHandle
+  auto* model_interface = robot_hw->get<franka_hw::FrankaModelInterface>();
+  if (model_interface == nullptr) {
+    ROS_ERROR_STREAM("ModelPinocchioVsFrankaController: Error getting model interface from hardware");
+    return false;
+  }
+  try {
+    franka_model_handle_ = std::make_unique<franka_hw::FrankaModelHandle>(model_interface->getHandle(arm_id + "_model"));
+  } catch (hardware_interface::HardwareInterfaceException& ex) {
+    ROS_ERROR_STREAM("ModelPinocchioVsFrankaController: Exception getting model handle from interface: " << ex.what());
+    return false;
+  }
+
   return true;
 }
 
@@ -93,14 +99,14 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     // -Frank Rigid Body Dynamics computations are done on "Control" computer, libfranka only communicates
     // with it to retrieve data.
     // - What is the definition of franka::Frame::kEndEffector?
-    std::array<double, 49> mass = model_handle_->getMass();
-    std::array<double, 7> gravity = model_handle_->getGravity();
-    std::array<double, 7> coriolis = model_handle_->getCoriolis();
-    std::array<double, 16> pose_j4 = model_handle_->getPose(franka::Frame::kJoint4);
-    std::array<double, 16> pose_j7 = model_handle_->getPose(franka::Frame::kJoint7);
-    // std::array<double, 16> pose_ee = model_handle_->getPose(franka::Frame::kEndEffector);  
-    std::array<double, 42> joint4_body_jacobian = model_handle_->getBodyJacobian(franka::Frame::kJoint4);
-    std::array<double, 42> joint7_zero_jacobian = model_handle_->getZeroJacobian(franka::Frame::kJoint7);
+    std::array<double, 49> mass = franka_model_handle_->getMass();
+    std::array<double, 7> gravity = franka_model_handle_->getGravity();
+    std::array<double, 7> coriolis = franka_model_handle_->getCoriolis();
+    std::array<double, 16> pose_j4 = franka_model_handle_->getPose(franka::Frame::kJoint4);
+    std::array<double, 16> pose_j7 = franka_model_handle_->getPose(franka::Frame::kJoint7);
+    // std::array<double, 16> pose_ee = franka_model_handle_->getPose(franka::Frame::kEndEffector);  
+    std::array<double, 42> joint4_body_jacobian = franka_model_handle_->getBodyJacobian(franka::Frame::kJoint4);
+    std::array<double, 42> joint7_zero_jacobian = franka_model_handle_->getZeroJacobian(franka::Frame::kJoint7);
 
     // Retrieve current robot state from state handle
     franka::RobotState robot_state = franka_state_handle_->getRobotState();

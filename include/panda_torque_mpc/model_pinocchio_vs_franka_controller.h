@@ -38,10 +38,10 @@ class ModelPinocchioVsFrankaController
   void update(const ros::Time&, const ros::Duration&) override;
 
  private:
-  franka_hw::FrankaStateInterface* franka_state_interface_;
+  // Handles  
   std::unique_ptr<franka_hw::FrankaStateHandle> franka_state_handle_;
-  franka_hw::FrankaModelInterface* model_interface_;
-  std::unique_ptr<franka_hw::FrankaModelHandle> model_handle_;
+  std::unique_ptr<franka_hw::FrankaModelHandle> franka_model_handle_;
+
   franka_hw::TriggerRate rate_trigger_{1.0};
 
   // Pinocchio objects

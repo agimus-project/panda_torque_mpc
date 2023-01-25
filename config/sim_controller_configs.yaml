@@ -1,0 +1,4 @@
+model_pinocchio_vs_franka_controller:
+    type: panda_torque_mpc/ModelPinocchioVsFrankaController
+    arm_id: $(arg arm_id)
+    urdf_path: /home/mfourmy/Desktop/panda_inertias_nohand.urdf

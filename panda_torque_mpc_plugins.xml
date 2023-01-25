@@ -1,0 +1,7 @@
+<library path="lib/libpanda_torque_mpc">
+  <class name="panda_torque_mpc/ModelPinocchioVsFrankaController" type="panda_torque_mpc::ModelPinocchioVsFrankaController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller that only compares Rigib Body Dynamics Algorithm values computed from Franka and pinocchio. 
+    </description>
+  </class>
+</library>

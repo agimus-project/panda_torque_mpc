@@ -1,0 +1,13 @@
+<launch>
+  <rosparam file="$(find panda_torque_mpc)/config/sim_controller_configs.yaml" subst_value="true" />
+  <arg name="controller"  default=" " doc="Choose controller to be launched. Check config/sim_controller_configs.yaml to see which one are available." />
+
+  <!-- spawns the controller after "initialized" topic tells us the robot is initialized  -->
+  <node pkg="controller_manager"
+        type="spawner"
+        name="$(arg arm_id)_torque_controller_spawner"
+        respawn="false" output="screen"
+        args="--wait-for initialized $(arg controller)"
+  >
+  </node>
+</launch>

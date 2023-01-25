@@ -112,7 +112,8 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     franka::RobotState robot_state = franka_state_handle_->getRobotState();
     Eigen::Map<Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
     Eigen::Map<Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
-
+    Eigen::Matrix<double, 7, 1> ddq = Eigen::Matrix<double, 7, 1>::Zero();
+    
     // pinocchio computations (stored in data_pin_)
     // M(q)*ddq + C(q,dq)*dq + g(q) = tau + J^T*fext
     pin::forwardKinematics(model_pin_, data_pin_, q, dq);      // joint frame placements
@@ -120,6 +121,7 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     pin::computeCoriolisMatrix(model_pin_, data_pin_, q, dq);  // C(q, dq)
     pin::computeGeneralizedGravity(model_pin_, data_pin_, q);  // g(q)
     pin::crba(model_pin_, data_pin_, q);                       // M(q)
+    pin::rnea(model_pin_, data_pin_, q, dq, ddq);              // data.tau
 
     
     // Pinocchio frame ids: joints are a subset of all frames, their ids correspond to the kinematic chain ordee.
@@ -171,6 +173,7 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     ROS_INFO_STREAM("\ndiff gravity :\n" << (g_fra - g_pin).transpose());
     // ROS_INFO_STREAM("\ngravity fra:\n" << g_fra.transpose());
     // ROS_INFO_STREAM("\ngravity pin:\n" << g_pin.transpose());
+    ROS_INFO_STREAM("\ndiff data_pin_.tau - (C_pin*dq + g_pin) :\n" << (data_pin_.tau - (C_pin*dq + g_pin)).transpose());
     ROS_INFO_STREAM("\ndiff oM4 :\n" << oM4_fra - oM4_pin);
     ROS_INFO_STREAM("\ndiff oM7 :\n" << oM7_fra - oM7_pin);
     ROS_INFO_STREAM("\ndiff coriolis vector :\n" << (cor_fra - C_pin*dq).transpose());

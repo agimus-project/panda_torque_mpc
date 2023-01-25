@@ -63,19 +63,8 @@ catkin_package(
 
 add_library(panda_torque_mpc
   src/model_pinocchio_vs_franka_controller.cpp
+  src/pdp_joint_tracking_controller.cpp
 )
-
-# add_library(panda_torque_mpc
-#   src/joint_configuration_tracking.cpp
-# )
-
-# add_dependencies(panda_torque_mpc
-#   ${${PROJECT_NAME}_EXPORTED_TARGETS}
-#   ${catkin_EXPORTED_TARGETS}
-#   ${PROJECT_NAME}_generate_messages_cpp
-#   ${PROJECT_NAME}_gencpp
-#   ${PROJECT_NAME}_gencfg
-# )
 
 target_link_libraries(panda_torque_mpc PUBLIC
   ${Franka_LIBRARIES}
@@ -94,23 +83,3 @@ target_include_directories(panda_torque_mpc PUBLIC
 
 target_include_directories(panda_torque_mpc PUBLIC ${PINOCCHIO_INCLUDE_DIRS})
 target_link_libraries(panda_torque_mpc PUBLIC ${PINOCCHIO_LIBRARIES}  )
-
-
-## Installation
-install(TARGETS panda_torque_mpc
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
-install(DIRECTORY launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-install(DIRECTORY config
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-install(FILES panda_torque_mpc_plugins.xml
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)

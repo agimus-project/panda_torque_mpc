@@ -6,4 +6,11 @@
       A controller that only compares Rigib Body Dynamics Algorithm values computed from Franka and pinocchio. 
     </description>
   </class>
+  <class name="panda_torque_mpc/PDPJointTrackingController" 
+         type="panda_torque_mpc::PDPJointTrackingController" 
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller that tracks a self generated joint trajectory using PD+ control. 
+    </description>
+  </class>
 </library>

@@ -1,4 +1,5 @@
 <launch>
+  <arg name="arm_id" default="panda"/>
   <rosparam file="$(find panda_torque_mpc)/config/sim_controller_configs.yaml" subst_value="true" />
   <arg name="controller"  default=" " doc="Choose controller to be launched. Check config/sim_controller_configs.yaml to see which one are available." />
 

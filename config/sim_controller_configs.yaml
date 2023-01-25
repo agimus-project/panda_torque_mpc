@@ -2,3 +2,52 @@ model_pinocchio_vs_franka_controller:
   type: panda_torque_mpc/ModelPinocchioVsFrankaController
   arm_id: $(arg arm_id)
   urdf_path: /home/mfourmy/Desktop/panda_inertias_nohand.urdf
+
+
+pdp_joint_tracking_controller:
+    type: panda_torque_mpc/PDPJointTrackingController
+    arm_id: $(arg arm_id)
+    urdf_path: /home/mfourmy/Desktop/panda_inertias_nohand.urdf
+    joint_names:
+        - $(arg arm_id)_joint1
+        - $(arg arm_id)_joint2
+        - $(arg arm_id)_joint3
+        - $(arg arm_id)_joint4
+        - $(arg arm_id)_joint5
+        - $(arg arm_id)_joint6
+        - $(arg arm_id)_joint7
+    k_gains:
+        - 60.0
+        - 60.0
+        - 60.0
+        - 60.0
+        - 20.0
+        - 10.0
+        - 5.0
+    d_gains:
+        - 5.0
+        - 5.0
+        - 5.0
+        - 2.0
+        - 2.0
+        - 2.0
+        - 1.0
+    delta_q:
+        - -0.5
+        - 0.5
+        - 0.5
+        - 0.5
+        - 0.5
+        - 0.5
+        - 0.5
+    period_q:
+        - 5.0
+        - 5.0
+        - 5.0
+        - 5.0
+        - 5.0
+        - 5.0
+        - 5.0
+    publish_rate: 10.0
+    use_pinocchio: true
+    alpha_dq_filter: 0.99 # should be close to 1 and <= 1.0

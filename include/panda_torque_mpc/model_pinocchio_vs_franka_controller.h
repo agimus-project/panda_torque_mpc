@@ -26,9 +26,10 @@
 #include <franka_hw/trigger_rate.h>
 
 
-namespace pin = pinocchio;
 
 namespace panda_torque_mpc {
+
+namespace pin = pinocchio;
 
 class ModelPinocchioVsFrankaController
     : public controller_interface::MultiInterfaceController<franka_hw::FrankaModelInterface,

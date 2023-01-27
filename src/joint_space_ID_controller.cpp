@@ -170,9 +170,7 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   Vector7d zero7 = Vector7d::Zero();
 
   // filter the joint velocity measurements
-  for (size_t i = 0; i < 7; i++) {
-    dq_filtered_[i] = (1 - alpha_dq_filter_) * dq_filtered_[i] + alpha_dq_filter_ * dq_m[i];
-  }
+  dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
 
   /** 
    * Lagrangian dynamics
@@ -206,22 +204,19 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
 
   
 
-  // PD+ computation
-  Vector7d tau_d_calculated;
-  double tau_ff = 0.0;  // should NOT include gravity terms since taken care of by internal Franka controller
-  for (size_t i = 0; i < 7; ++i) {
-    if (use_pinocchio_){
-      // substract the gravity term from rnea torque to get only centrifugal + Coriolis 
-      tau_ff = data_pin_.tau[i] - data_pin_.g[i];
-    }
-    else {
-      tau_ff = coriolis_fra[i];
-    }
-    double e = q_m[i] - q_r[i];
-    double de = dq_filtered_[i] - dq_r[i];
-
-    tau_d_calculated[i] = tau_ff -kp_gains_[i] * e -kd_gains_[i] * de;
+  Vector7d tau_ff;  // should NOT include gravity terms since taken care of by internal Franka controller
+  if (use_pinocchio_){
+    // substract the gravity term from rnea torque to get only centrifugal + Coriolis 
+    tau_ff = data_pin_.tau - data_pin_.g;
   }
+  else {
+    tau_ff = coriolis_fra;
+  }
+  // task error and derivative (joint tracking error)
+  Vector7d e = q_m - q_r;
+  Vector7d de = dq_filtered_ - dq_r;
+  // torque command: tau = feedforward - Kp * e - Kd * de
+  Vector7d tau_d_calculated = tau_ff - kp_gains_.cwiseProduct(e) - kd_gains_.cwiseProduct(de);
 
   // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
   // 1000 * (1 / sampling_time).
@@ -232,29 +227,19 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
     joint_handles_[i].setCommand(tau_d_saturated[i]);
   }
 
-  ROS_INFO_STREAM(tau_d_calculated[0] - robot_state.tau_J_d[0]);
-
 
   ///////////////////
   // Publish logs
   if (rate_trigger_() && torques_publisher_.trylock()) {
-    Vector7d q_error;
-    Vector7d dq_error;
-    Vector7d tau_error;
-
     Vector7d tau_m = Eigen::Map<Vector7d>(robot_state.tau_J.data());
-    double q_error_rms(0.0);
-    double dq_error_rms(0.0);
-    double tau_error_rms(0.0);
-    for (size_t i = 0; i < 7; ++i) {
-      q_error[i] = last_q_r_[i] - q_m[i];
-      dq_error[i] = last_dq_r_[i] - dq_m[i];
-      tau_error[i] = last_tau_d_[i] - tau_m[i];
 
-      q_error_rms += std::sqrt(std::pow(q_error[i], 2.0)) / 7.0;
-      dq_error_rms += std::sqrt(std::pow(dq_error[i], 2.0)) / 7.0;
-      tau_error_rms += std::sqrt(std::pow(tau_error[i], 2.0)) / 7.0;
-    }
+    Vector7d q_error = last_q_r_ - q_m;
+    Vector7d dq_error = last_dq_r_ - dq_m;
+    Vector7d tau_error = last_tau_d_ - tau_m;
+
+    double q_error_rms = std::sqrt(q_error.array().square().sum()) / 7.0;
+    double dq_error_rms = std::sqrt(q_error.array().square().sum()) / 7.0;
+    double tau_error_rms = std::sqrt(q_error.array().square().sum()) / 7.0;
     configurations_publisher_.msg_.root_mean_square_error = q_error_rms;
     velocities_publisher_.msg_.root_mean_square_error = dq_error_rms;
     torques_publisher_.msg_.root_mean_square_error = tau_error_rms;

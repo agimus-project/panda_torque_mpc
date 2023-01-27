@@ -69,31 +69,31 @@ class JointSpaceIDController :
   std::vector<hardware_interface::JointHandle> joint_handles_;
   
   // Torque saturation
-  std::array<double, 7> saturateTorqueRate(
-      const std::array<double, 7>& tau_d_calculated,
-      const std::array<double, 7>& tau_J_d);  // NOLINT (readability-identifier-naming)
+  Vector7d saturateTorqueRate(
+      const Vector7d& tau_d_calculated,
+      const Vector7d& tau_J_d);  // NOLINT (readability-identifier-naming)
   const double kDeltaTauMax{1.0};  // using static constexpr creates an undefined symbol error
 
   // Controller parameters
-  std::vector<double> k_gains_;
-  std::vector<double> d_gains_;
-  std::vector<double> delta_q_;
-  std::vector<double> period_q_;
+  Vector7d kp_gains_;
+  Vector7d kd_gains_;
+  Vector7d delta_q_;
+  Vector7d period_q_;
   bool use_pinocchio_;
   double alpha_dq_filter_;
   Variant control_variant_;
 
   // Current update state
-  std::array<double, 7> last_q_r_;
-  std::array<double, 7> last_dq_r_;
-  std::array<double, 7> dq_filtered_;
+  Vector7d last_q_r_;
+  Vector7d last_dq_r_;
+  Vector7d dq_filtered_;
 
   // initial values
   ros::Time t_init_;
-  std::array<double, 7> q_init_;   
+  Vector7d q_init_;   
 
   franka_hw::TriggerRate rate_trigger_{1.0};
-  std::array<double, 7> last_tau_d_{};
+  Vector7d last_tau_d_{};
   realtime_tools::RealtimePublisher<JointConfigurationComparison> configurations_publisher_;
   realtime_tools::RealtimePublisher<JointVelocityComparison> velocities_publisher_;
   realtime_tools::RealtimePublisher<JointTorqueComparison> torques_publisher_;
@@ -102,8 +102,8 @@ class JointSpaceIDController :
   pin::Model model_pin_;
   pin::Data data_pin_;
 
-  void compute_sinusoid_joint_reference(const std::vector<double>& delta_q, const std::vector<double>& period_q, const std::array<double, 7>& q0, double t,
-                                        std::array<double, 7>& q_r, std::array<double, 7>& dq_r, std::array<double, 7>& ddq_r);
+  void compute_sinusoid_joint_reference(const Vector7d& delta_q, const Vector7d& period_q, const Vector7d& q0, double t,
+                                        Vector7d& q_r, Vector7d& dq_r, Vector7d& ddq_r);
 
 };
 

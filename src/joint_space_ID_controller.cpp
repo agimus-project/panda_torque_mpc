@@ -29,25 +29,33 @@ bool JointSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
     return false;
   }
 
-  if (!node_handle.getParam("k_gains", k_gains_) || k_gains_.size() != 7) {
-    ROS_ERROR("JointSpaceIDController:  Invalid or no k_gains parameters provided, aborting controller init!");
+  std::vector<double> kp_gains;
+  if (!node_handle.getParam("kp_gains", kp_gains) || kp_gains.size() != 7) {
+    ROS_ERROR("JointSpaceIDController:  Invalid or no kp_gains parameters provided, aborting controller init!");
     return false;
   }
+  kp_gains_ = Eigen::Map<Vector7d>(kp_gains.data());
 
-    if (!node_handle.getParam("d_gains", d_gains_) || k_gains_.size() != 7) {
-    ROS_ERROR("JointSpaceIDController:  Invalid or no d_gains parameters provided, aborting controller init!");
+  std::vector<double> kd_gains;
+  if (!node_handle.getParam("kd_gains", kd_gains) || kd_gains_.size() != 7) {
+    ROS_ERROR("JointSpaceIDController:  Invalid or no kd_gains parameters provided, aborting controller init!");
     return false;
   }
+  kd_gains_ = Eigen::Map<Vector7d>(kd_gains.data());
 
-  if (!node_handle.getParam("delta_q", delta_q_) || delta_q_.size() != 7) {
+  std::vector<double> delta_q;
+  if (!node_handle.getParam("delta_q", delta_q) || delta_q_.size() != 7) {
     ROS_ERROR("JointSpaceIDController:  Invalid or no delta_q parameters provided, aborting controller init!");
     return false;
   }
+  delta_q_ = Eigen::Map<Vector7d>(delta_q.data());
 
-  if (!node_handle.getParam("period_q", period_q_) || period_q_.size() != 7) {
+  std::vector<double> period_q;
+  if (!node_handle.getParam("period_q", period_q) || period_q_.size() != 7) {
     ROS_ERROR("JointSpaceIDController:  Invalid or no period_q parameters provided, aborting controller init!");
     return false;
   }
+  period_q_ = Eigen::Map<Vector7d>(period_q.data());
 
   double publish_rate(30.0);
   if (!node_handle.getParam("publish_rate", publish_rate)) {
@@ -134,7 +142,7 @@ bool JointSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
   velocities_publisher_.init(node_handle, "joint_velocities_comparison", 1);
   torques_publisher_.init(node_handle, "joint_torques_comparison", 1);
 
-  std::fill(dq_filtered_.begin(), dq_filtered_.end(), 0);
+  dq_filtered_ = Vector7d::Zero();
 
   return true;
 }
@@ -142,7 +150,7 @@ bool JointSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
 void JointSpaceIDController::starting(const ros::Time& t0) {
   ROS_INFO_STREAM("JointSpaceIDController::starting");
   t_init_ = t0;
-  q_init_ = franka_state_handle_->getRobotState().q;
+  q_init_ = Eigen::Map<const Vector7d>(franka_state_handle_->getRobotState().q.data());
 }
 
 
@@ -152,21 +160,18 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   double Dt = (t - t_init_).toSec();
 
   // compute desired configuration and configuration velocity
-  std::array<double, 7> q_r, dq_r, ddq_r;
+  Vector7d q_r, dq_r, ddq_r;
   compute_sinusoid_joint_reference(delta_q_, period_q_, q_init_, Dt, q_r, dq_r, ddq_r);
 
-  // Retrieve current robot state
+  // Retrieve current measured robot state
   franka::RobotState robot_state = franka_state_handle_->getRobotState();
-  std::array<double, 7> q = robot_state.q;
-  std::array<double, 7> dq = robot_state.dq;
-  Eigen::Map<Vector7d> q_pin(q.data());
-  Eigen::Map<Vector7d> dq_pin(dq.data());
-  Vector7d ddq_pin_r(ddq_r.data());  // reference joint acceleration
+  Eigen::Map<const Vector7d> q_m(robot_state.q.data());
+  Eigen::Map<const Vector7d> dq_m(robot_state.dq.data());
   Vector7d zero7 = Vector7d::Zero();
 
   // filter the joint velocity measurements
   for (size_t i = 0; i < 7; i++) {
-    dq_filtered_[i] = (1 - alpha_dq_filter_) * dq_filtered_[i] + alpha_dq_filter_ * dq[i];
+    dq_filtered_[i] = (1 - alpha_dq_filter_) * dq_filtered_[i] + alpha_dq_filter_ * dq_m[i];
   }
 
   /** 
@@ -175,14 +180,14 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
    * M*ddq + C(q,dq)*dq + g(q) = tau + J^T*f
    */
   // libfranka dynamics
-  std::array<double, 7> coriolis_fra = franka_model_handle_->getCoriolis();
-  std::array<double, 7> gravity_fra = franka_model_handle_->getGravity();
+  Vector7d coriolis_fra = Eigen::Map<Vector7d>(franka_model_handle_->getCoriolis().data());
+  Vector7d gravity_fra  = Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 
   // pinocchio dynamics
-  pin::forwardKinematics(model_pin_, data_pin_, q_pin, dq_pin);  // data.oMi, joint frame placements
-  pin::rnea(model_pin_, data_pin_, q_pin, dq_pin, ddq_pin_r);      // data.tau (but not data.g), joint torques
-  pin::computeGeneralizedGravity(model_pin_, data_pin_, q_pin);  // data.g == generalized gravity
-  pin::crba(model_pin_, data_pin_, q_pin);                       // data.M == mass matrix
+  pin::forwardKinematics(model_pin_, data_pin_, q_m, dq_m);  // data.oMi, joint frame placements
+  pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_r);      // data.tau (but not data.g), joint torques
+  pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);  // data.g == generalized gravity
+  pin::crba(model_pin_, data_pin_, q_m);                       // data.M == mass matrix
 
 
   // switch (control_variant_) {
@@ -202,7 +207,7 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   
 
   // PD+ computation
-  std::array<double, 7> tau_d_calculated;
+  Vector7d tau_d_calculated;
   double tau_ff = 0.0;  // should NOT include gravity terms since taken care of by internal Franka controller
   for (size_t i = 0; i < 7; ++i) {
     if (use_pinocchio_){
@@ -212,37 +217,39 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
     else {
       tau_ff = coriolis_fra[i];
     }
-    double e = q[i] - q_r[i];
+    double e = q_m[i] - q_r[i];
     double de = dq_filtered_[i] - dq_r[i];
 
-    tau_d_calculated[i] = tau_ff -k_gains_[i] * e -d_gains_[i] * de;
+    tau_d_calculated[i] = tau_ff -kp_gains_[i] * e -kd_gains_[i] * de;
   }
 
   // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
   // 1000 * (1 / sampling_time).
-  std::array<double, 7> tau_d_saturated = saturateTorqueRate(tau_d_calculated, robot_state.tau_J_d);
+  Vector7d tau_d_saturated = saturateTorqueRate(tau_d_calculated, Eigen::Map<Vector7d>(robot_state.tau_J_d.data()));
 
   // Send Torque Command
   for (size_t i = 0; i < 7; ++i) {
     joint_handles_[i].setCommand(tau_d_saturated[i]);
   }
 
+  ROS_INFO_STREAM(tau_d_calculated[0] - robot_state.tau_J_d[0]);
+
 
   ///////////////////
   // Publish logs
   if (rate_trigger_() && torques_publisher_.trylock()) {
-    std::array<double, 7> q_error;
-    std::array<double, 7> dq_error;
-    std::array<double, 7> tau_error;
+    Vector7d q_error;
+    Vector7d dq_error;
+    Vector7d tau_error;
 
-    std::array<double, 7> tau_j = robot_state.tau_J;
+    Vector7d tau_m = Eigen::Map<Vector7d>(robot_state.tau_J.data());
     double q_error_rms(0.0);
     double dq_error_rms(0.0);
     double tau_error_rms(0.0);
     for (size_t i = 0; i < 7; ++i) {
-      q_error[i] = last_q_r_[i] - q[i];
-      dq_error[i] = last_dq_r_[i] - dq[i];
-      tau_error[i] = last_tau_d_[i] - tau_j[i];
+      q_error[i] = last_q_r_[i] - q_m[i];
+      dq_error[i] = last_dq_r_[i] - dq_m[i];
+      tau_error[i] = last_tau_d_[i] - tau_m[i];
 
       q_error_rms += std::sqrt(std::pow(q_error[i], 2.0)) / 7.0;
       dq_error_rms += std::sqrt(std::pow(dq_error[i], 2.0)) / 7.0;
@@ -256,20 +263,20 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
       // Joint config
       configurations_publisher_.msg_.q_commanded[i] = last_q_r_[i];
       configurations_publisher_.msg_.q_error[i] = q_error[i];
-      configurations_publisher_.msg_.q_measured[i] = q[i];
+      configurations_publisher_.msg_.q_measured[i] = q_m[i];
 
       // Joint velocities
       velocities_publisher_.msg_.dq_commanded[i] = last_dq_r_[i];
       velocities_publisher_.msg_.dq_error[i] = dq_error[i];
-      velocities_publisher_.msg_.dq_measured[i] = dq[i];
+      velocities_publisher_.msg_.dq_measured[i] = dq_m[i];
 
       // Joint torque
       torques_publisher_.msg_.tau_commanded[i] = last_tau_d_[i];
       torques_publisher_.msg_.tau_error[i] = tau_error[i];
-      torques_publisher_.msg_.tau_measured[i] = tau_j[i];
+      torques_publisher_.msg_.tau_measured[i] = tau_m[i];
     }
     // ROS_INFO_STREAM("last_tau_j[1]: " << last_tau_d_[1]);
-    // ROS_INFO_STREAM("tau_j[1]     : " << tau_j[1]);
+    // ROS_INFO_STREAM("tau_m[1]     : " << tau_m[1]);
     configurations_publisher_.unlockAndPublish();
     velocities_publisher_.unlockAndPublish();
     torques_publisher_.unlockAndPublish();
@@ -286,8 +293,8 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   }
 }
 
-void JointSpaceIDController::compute_sinusoid_joint_reference(const std::vector<double>& delta_q, const std::vector<double>& period_q, const std::array<double, 7>& q0, double t,
-                                                             std::array<double, 7>& q_r, std::array<double, 7>& dq_r, std::array<double, 7>& ddq_r){ 
+void JointSpaceIDController::compute_sinusoid_joint_reference(const Vector7d& delta_q, const Vector7d& period_q, const Vector7d& q0, double t,
+                                                             Vector7d& q_r, Vector7d& dq_r, Vector7d& ddq_r){ 
   for (size_t i = 0; i < 7; i++) {
     double omg = 2*M_PI/period_q[i];
     double A = - 0.5 * delta_q[i];
@@ -300,10 +307,10 @@ void JointSpaceIDController::compute_sinusoid_joint_reference(const std::vector<
 
 }
 
-std::array<double, 7> JointSpaceIDController::saturateTorqueRate(
-    const std::array<double, 7>& tau_d_calculated,
-    const std::array<double, 7>& tau_J_d) {  // NOLINT (readability-identifier-naming)
-  std::array<double, 7> tau_d_saturated{};
+Vector7d JointSpaceIDController::saturateTorqueRate(
+    const Vector7d& tau_d_calculated,
+    const Vector7d& tau_J_d) {  // NOLINT (readability-identifier-naming)
+  Vector7d tau_d_saturated{};
   for (size_t i = 0; i < 7; i++) {
     double difference = tau_d_calculated[i] - tau_J_d[i];
     tau_d_saturated[i] = tau_J_d[i] + std::max(std::min(difference, kDeltaTauMax), -kDeltaTauMax);

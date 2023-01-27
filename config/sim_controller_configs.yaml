@@ -16,7 +16,7 @@ joint_space_ID_controller:
         - $(arg arm_id)_joint5
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
-    k_gains:
+    kp_gains:
         - 60.0
         - 60.0
         - 60.0
@@ -24,7 +24,7 @@ joint_space_ID_controller:
         - 20.0
         - 10.0
         - 5.0
-    d_gains:
+    kd_gains:
         - 5.0
         - 5.0
         - 5.0

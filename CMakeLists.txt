@@ -32,6 +32,8 @@ endif()
 find_package(pinocchio REQUIRED)
 
 add_message_files(FILES
+  JointConfigurationComparison.msg
+  JointVelocityComparison.msg
   JointTorqueComparison.msg
 )
 

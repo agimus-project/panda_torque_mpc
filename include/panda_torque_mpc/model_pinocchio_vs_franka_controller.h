@@ -25,6 +25,7 @@
 #include <franka_hw/franka_state_interface.h>
 #include <franka_hw/trigger_rate.h>
 
+#include "panda_torque_mpc/common.h"
 
 
 namespace panda_torque_mpc {

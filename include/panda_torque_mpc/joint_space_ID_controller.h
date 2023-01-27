@@ -32,10 +32,16 @@
 #include <franka_hw/franka_model_interface.h>
 #include <franka_hw/trigger_rate.h>
 
+#include "panda_torque_mpc/JointConfigurationComparison.h"
+#include "panda_torque_mpc/JointVelocityComparison.h"
 #include "panda_torque_mpc/JointTorqueComparison.h"
+
+#include "panda_torque_mpc/common.h"
 
 
 namespace panda_torque_mpc {
+
+
 
 namespace pin = pinocchio;
 
@@ -49,6 +55,12 @@ class JointSpaceIDController :
   void starting(const ros::Time&) override;
   void update(const ros::Time&, const ros::Duration& period) override;
   void stopping(const ros::Time&) override;
+
+  enum Variant {
+    IDControl,
+    IDControlSimplified,
+    PDGravity
+  };
 
  private:
   // Handles  
@@ -69,10 +81,11 @@ class JointSpaceIDController :
   std::vector<double> period_q_;
   bool use_pinocchio_;
   double alpha_dq_filter_;
+  Variant control_variant_;
 
   // Current update state
-  std::array<double, 7> q_arr_;
-  std::array<double, 7> dq_arr_;
+  std::array<double, 7> last_q_r_;
+  std::array<double, 7> last_dq_r_;
   std::array<double, 7> dq_filtered_;
 
   // initial values
@@ -81,11 +94,17 @@ class JointSpaceIDController :
 
   franka_hw::TriggerRate rate_trigger_{1.0};
   std::array<double, 7> last_tau_d_{};
+  realtime_tools::RealtimePublisher<JointConfigurationComparison> configurations_publisher_;
+  realtime_tools::RealtimePublisher<JointVelocityComparison> velocities_publisher_;
   realtime_tools::RealtimePublisher<JointTorqueComparison> torques_publisher_;
 
   // Pinocchio objects
   pin::Model model_pin_;
   pin::Data data_pin_;
+
+  void compute_sinusoid_joint_reference(const std::vector<double>& delta_q, const std::vector<double>& period_q, const std::array<double, 7>& q0, double t,
+                                        std::array<double, 7>& q_r, std::array<double, 7>& dq_r, std::array<double, 7>& ddq_r);
+
 };
 
 } // namespace panda_torque_mpc

@@ -107,9 +107,9 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
 
     // Retrieve current robot state from state handle
     franka::RobotState robot_state = franka_state_handle_->getRobotState();
-    Eigen::Map<Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
-    Eigen::Map<Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
-    Eigen::Matrix<double, 7, 1> ddq = Eigen::Matrix<double, 7, 1>::Zero();
+    Eigen::Map<Vector7d> q(robot_state.q.data());
+    Eigen::Map<Vector7d> dq(robot_state.dq.data());
+    Vector7d ddq = Vector7d::Zero();
     
     // pinocchio computations (stored in data_pin_)
     // M(q)*ddq + C(q,dq)*dq + g(q) = tau + J^T*fext
@@ -146,11 +146,11 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     Eigen::Map<Eigen::Matrix<double, 6, 7>> lJ4_fra_j(joint4_body_jacobian.data()); 
     Eigen::Map<Eigen::Matrix<double, 6, 7>> oJ7_fra_j(joint7_zero_jacobian.data()); 
     // Lagrangian dynamics equation elements
-    Eigen::Matrix<double, 7, 1> g_pin = data_pin_.g;
+    Vector7d g_pin = data_pin_.g;
     Eigen::Matrix<double, 7, 7> C_pin = data_pin_.C;
     Eigen::Matrix<double, 7, 7> M_pin = data_pin_.M;
-    Eigen::Map<Eigen::Matrix<double, 7, 1>> g_fra(gravity.data()); 
-    Eigen::Map<Eigen::Matrix<double, 7, 1>> cor_fra(coriolis.data()); 
+    Eigen::Map<Vector7d> g_fra(gravity.data()); 
+    Eigen::Map<Vector7d> cor_fra(coriolis.data()); 
     Eigen::Map<Eigen::Matrix<double, 7, 7>> M_fra(mass.data()); 
     
     

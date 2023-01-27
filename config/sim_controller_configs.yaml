@@ -4,7 +4,7 @@ model_pinocchio_vs_franka_controller:
   urdf_path: /home/mfourmy/Desktop/panda_inertias.urdf
 
 
-pdp_joint_tracking_controller:
+joint_space_ID_controller:
     type: panda_torque_mpc/JointSpaceIDController
     arm_id: $(arg arm_id)
     urdf_path: /home/mfourmy/Desktop/panda_inertias.urdf
@@ -51,3 +51,7 @@ pdp_joint_tracking_controller:
     publish_rate: 10.0
     use_pinocchio: true
     alpha_dq_filter: 0.99 # should be close to 1 and <= 1.0
+    # 0: IDControl
+    # 1: IDControlSimplified
+    # 2: PDGravity
+    control_variant: 0

@@ -1,6 +1,4 @@
-// Copyright (c) 2017 Franka Emika GmbH
-// Use of this source code is governed by the Apache-2.0 license, see LICENSE
-#include <panda_torque_mpc/pdp_joint_tracking_controller.h>
+#include <panda_torque_mpc/joint_space_ID_controller.h>
 
 #include <cmath>
 #include <memory>
@@ -13,7 +11,7 @@
 
 namespace panda_torque_mpc {
 
-bool PDPJointTrackingController::init(hardware_interface::RobotHW* robot_hw,
+bool JointSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
                                            ros::NodeHandle& node_handle) {
 
   ///////////////////
@@ -21,54 +19,54 @@ bool PDPJointTrackingController::init(hardware_interface::RobotHW* robot_hw,
   ///////////////////
   std::string arm_id;
   if (!node_handle.getParam("arm_id", arm_id)) {
-    ROS_ERROR("PDPJointTrackingController: Could not read parameter arm_id");
+    ROS_ERROR("JointSpaceIDController: Could not read parameter arm_id");
     return false;
   }
 
   std::vector<std::string> joint_names;
   if (!node_handle.getParam("joint_names", joint_names) || joint_names.size() != 7) {
-    ROS_ERROR("PDPJointTrackingController: Invalid or no joint_names parameters provided, aborting controller init!");
+    ROS_ERROR("JointSpaceIDController: Invalid or no joint_names parameters provided, aborting controller init!");
     return false;
   }
 
   if (!node_handle.getParam("k_gains", k_gains_) || k_gains_.size() != 7) {
-    ROS_ERROR("PDPJointTrackingController:  Invalid or no k_gains parameters provided, aborting controller init!");
+    ROS_ERROR("JointSpaceIDController:  Invalid or no k_gains parameters provided, aborting controller init!");
     return false;
   }
 
     if (!node_handle.getParam("d_gains", d_gains_) || k_gains_.size() != 7) {
-    ROS_ERROR("PDPJointTrackingController:  Invalid or no d_gains parameters provided, aborting controller init!");
+    ROS_ERROR("JointSpaceIDController:  Invalid or no d_gains parameters provided, aborting controller init!");
     return false;
   }
 
   if (!node_handle.getParam("delta_q", delta_q_) || delta_q_.size() != 7) {
-    ROS_ERROR("PDPJointTrackingController:  Invalid or no delta_q parameters provided, aborting controller init!");
+    ROS_ERROR("JointSpaceIDController:  Invalid or no delta_q parameters provided, aborting controller init!");
     return false;
   }
 
   if (!node_handle.getParam("period_q", period_q_) || period_q_.size() != 7) {
-    ROS_ERROR("PDPJointTrackingController:  Invalid or no period_q parameters provided, aborting controller init!");
+    ROS_ERROR("JointSpaceIDController:  Invalid or no period_q parameters provided, aborting controller init!");
     return false;
   }
 
   double publish_rate(30.0);
   if (!node_handle.getParam("publish_rate", publish_rate)) {
-    ROS_INFO_STREAM("PDPJointTrackingController: publish_rate not found. Defaulting to " << publish_rate);
+    ROS_INFO_STREAM("JointSpaceIDController: publish_rate not found. Defaulting to " << publish_rate);
   }
   rate_trigger_ = franka_hw::TriggerRate(publish_rate);
 
   if (!node_handle.getParam("use_pinocchio", use_pinocchio_)) {
-    ROS_ERROR_STREAM("PDPJointTrackingController: use_pinocchio not found. Defaulting to " << use_pinocchio_);
+    ROS_ERROR_STREAM("JointSpaceIDController: use_pinocchio not found. Defaulting to " << use_pinocchio_);
   }
 
   if (!node_handle.getParam("alpha_dq_filter", alpha_dq_filter_)) {
-    ROS_ERROR_STREAM("PDPJointTrackingController: alpha_dq_filter not found. Defaulting to " << alpha_dq_filter_);
+    ROS_ERROR_STREAM("JointSpaceIDController: alpha_dq_filter not found. Defaulting to " << alpha_dq_filter_);
   }
 
   // Load panda model with pinocchio
   std::string urdf_path;
   if (!node_handle.getParam("urdf_path", urdf_path)) {
-    ROS_ERROR("PDPJointTrackingController: Could not read parameter urdf_path");
+    ROS_ERROR("JointSpaceIDController: Could not read parameter urdf_path");
     return false;
   }
   pin::urdf::buildModel(urdf_path, model_pin_);
@@ -114,14 +112,14 @@ bool PDPJointTrackingController::init(hardware_interface::RobotHW* robot_hw,
   // Retrieve resource FrankaModelHandle
   auto* effort_joint_interface = robot_hw->get<hardware_interface::EffortJointInterface>();
   if (effort_joint_interface == nullptr) {
-    ROS_ERROR_STREAM("PDPJointTrackingController: Error getting effort joint interface from hardware");
+    ROS_ERROR_STREAM("JointSpaceIDController: Error getting effort joint interface from hardware");
     return false;
   }
   for (size_t i = 0; i < 7; ++i) {
     try {
       joint_handles_.push_back(effort_joint_interface->getHandle(joint_names[i]));
     } catch (const hardware_interface::HardwareInterfaceException& ex) {
-      ROS_ERROR_STREAM("PDPJointTrackingController: Exception getting joint handles: " << ex.what());
+      ROS_ERROR_STREAM("JointSpaceIDController: Exception getting joint handles: " << ex.what());
       return false;
     }
   }
@@ -133,13 +131,13 @@ bool PDPJointTrackingController::init(hardware_interface::RobotHW* robot_hw,
   return true;
 }
 
-void PDPJointTrackingController::starting(const ros::Time& t0) {
-  ROS_INFO_STREAM("PDPJointTrackingController::starting");
+void JointSpaceIDController::starting(const ros::Time& t0) {
+  ROS_INFO_STREAM("JointSpaceIDController::starting");
   t_init_ = t0;
   q_init_ = franka_state_handle_->getRobotState().q;
 }
 
-void PDPJointTrackingController::update(const ros::Time& t,
+void JointSpaceIDController::update(const ros::Time& t,
                                         const ros::Duration& period) {
 
   // Time since start of the controller
@@ -158,7 +156,6 @@ void PDPJointTrackingController::update(const ros::Time& t,
   }
 
   // Retrieve current robot state
-  franka_state_handle_
   franka::RobotState robot_state = franka_state_handle_->getRobotState();
   q_arr_ = robot_state.q;
   dq_arr_ = robot_state.dq;
@@ -231,7 +228,7 @@ void PDPJointTrackingController::update(const ros::Time& t,
   }
 }
 
-std::array<double, 7> PDPJointTrackingController::saturateTorqueRate(
+std::array<double, 7> JointSpaceIDController::saturateTorqueRate(
     const std::array<double, 7>& tau_d_calculated,
     const std::array<double, 7>& tau_J_d) {  // NOLINT (readability-identifier-naming)
   std::array<double, 7> tau_d_saturated{};
@@ -243,11 +240,11 @@ std::array<double, 7> PDPJointTrackingController::saturateTorqueRate(
 }
 
 
-void PDPJointTrackingController::stopping(const ros::Time& t0) {
-  ROS_INFO_STREAM("PDPJointTrackingController::stopping");
+void JointSpaceIDController::stopping(const ros::Time& t0) {
+  ROS_INFO_STREAM("JointSpaceIDController::stopping");
 }
 
 }  // namespace panda_torque_mpc
 
-PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::PDPJointTrackingController,
+PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::JointSpaceIDController,
                        controller_interface::ControllerBase)

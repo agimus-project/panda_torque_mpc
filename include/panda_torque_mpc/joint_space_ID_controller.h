@@ -21,7 +21,6 @@
 #include <pinocchio/algorithm/frames.hpp>
 
 
-
 #include <controller_interface/multi_interface_controller.h>
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/robot_hw.h>
@@ -40,7 +39,7 @@ namespace panda_torque_mpc {
 
 namespace pin = pinocchio;
 
-class PDPJointTrackingController : 
+class JointSpaceIDController : 
     public controller_interface::MultiInterfaceController<franka_hw::FrankaModelInterface,
                                                           franka_hw::FrankaStateInterface,
                                                           hardware_interface::EffortJointInterface> {

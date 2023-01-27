@@ -15,4 +15,4 @@ TODO
 
 ### Available controllers
 * `model_pinocchio_vs_franka_controller`: compare Rigid Body Dynamics computation between pinocchio and libfranka
-* `pdp_joint_tracking_controller`: Joint impedance control tracking a predefined sinusoidal configuration trajectory 
+* `joint_space_ID_controller`: follow joint trajectory reference using different flavors of joint space Inverse Dynamics 

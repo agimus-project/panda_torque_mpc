@@ -5,7 +5,7 @@ model_pinocchio_vs_franka_controller:
 
 
 pdp_joint_tracking_controller:
-    type: panda_torque_mpc/PDPJointTrackingController
+    type: panda_torque_mpc/JointSpaceIDController
     arm_id: $(arg arm_id)
     urdf_path: /home/mfourmy/Desktop/panda_inertias.urdf
     joint_names:

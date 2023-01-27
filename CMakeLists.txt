@@ -63,7 +63,7 @@ catkin_package(
 
 add_library(panda_torque_mpc
   src/model_pinocchio_vs_franka_controller.cpp
-  src/pdp_joint_tracking_controller.cpp
+  src/joint_space_ID_controller.cpp
 )
 
 target_link_libraries(panda_torque_mpc PUBLIC

@@ -134,6 +134,7 @@ bool PDPJointTrackingController::init(hardware_interface::RobotHW* robot_hw,
 }
 
 void PDPJointTrackingController::starting(const ros::Time& t0) {
+  ROS_INFO_STREAM("PDPJointTrackingController::starting");
   t_init_ = t0;
   q_init_ = franka_state_handle_->getRobotState().q;
 }
@@ -156,36 +157,42 @@ void PDPJointTrackingController::update(const ros::Time& t,
     dq_d[i] = -omg*A*sin(omg*Dt);
   }
 
-
+  // Retrieve current robot state
+  franka_state_handle_
   franka::RobotState robot_state = franka_state_handle_->getRobotState();
-  Eigen::Map<Eigen::Matrix<double, 7, 1>> q_pin(robot_state.q.data());
-  Eigen::Map<Eigen::Matrix<double, 7, 1>> dq_pin(robot_state.dq.data());
+  q_arr_ = robot_state.q;
+  dq_arr_ = robot_state.dq;
+  Eigen::Map<Eigen::Matrix<double, 7, 1>> q_pin(q_arr_.data());
+  Eigen::Map<Eigen::Matrix<double, 7, 1>> dq_pin(dq_arr_.data());
   Eigen::Matrix<double, 7, 1> ddq_pin = Eigen::Matrix<double, 7, 1>::Zero();  // let's neglect the inertia terms for now
 
-  pin::forwardKinematics(model_pin_, data_pin_, q_pin, dq_pin);  // joint frame placements
-  pin::rnea(model_pin_, data_pin_, q_pin, dq_pin, ddq_pin);      // data.tau  == nonlinear terms
-
-
-  // libfranka dynamics
-  std::array<double, 7> coriolis = franka_model_handle_->getCoriolis();
-  std::array<double, 7> gravity = franka_model_handle_->getGravity();
-
   for (size_t i = 0; i < 7; i++) {
-    dq_filtered_[i] = (1 - alpha_dq_filter_) * dq_filtered_[i] + alpha_dq_filter_ * robot_state.dq[i];
+    dq_filtered_[i] = (1 - alpha_dq_filter_) * dq_filtered_[i] + alpha_dq_filter_ * dq_arr_[i];
   }
 
+  // pinocchio dynamics
+  pin::forwardKinematics(model_pin_, data_pin_, q_pin, dq_pin);  // joint frame placements
+  pin::rnea(model_pin_, data_pin_, q_pin, dq_pin, ddq_pin);      // data.tau (but not data.g)
+  pin::computeGeneralizedGravity(model_pin_, data_pin_, q_pin);  // data.g
+
+  // libfranka dynamics
+  std::array<double, 7> coriolis_fra = franka_model_handle_->getCoriolis();
+  std::array<double, 7> gravity_fra = franka_model_handle_->getGravity();
+  
+
+  // PD+ computation
   std::array<double, 7> tau_d_calculated;
   double tau_ff = 0.0;  // should NOT include gravity terms since taken care of by internal Franka controller
   for (size_t i = 0; i < 7; ++i) {
     if (use_pinocchio_){
-      tau_ff = coriolis[i]; // franka method
+      // substract the gravity term from rnea torque to get only centrifugal + Coriolis 
+      tau_ff = data_pin_.tau[i] - data_pin_.g[i];
     }
     else {
-      // substract the gravity term from rnea computed torque to get only centrifugal + Coriolis 
-      tau_ff = data_pin_.tau[i] - data_pin_.g[i]; // pinocchio method
+      tau_ff = coriolis_fra[i];
     }
     tau_d_calculated[i] = tau_ff +
-                          k_gains_[i] * (q_d[i] - robot_state.q[i]) +
+                          k_gains_[i] * (q_d[i]  - q_arr_[i]) +
                           d_gains_[i] * (dq_d[i] - dq_filtered_[i]);
   }
 
@@ -197,6 +204,8 @@ void PDPJointTrackingController::update(const ros::Time& t,
     joint_handles_[i].setCommand(tau_d_saturated[i]);
   }
 
+
+  // Publish logs
   if (rate_trigger_() && torques_publisher_.trylock()) {
     std::array<double, 7> tau_j = robot_state.tau_J;
     std::array<double, 7> tau_error;
@@ -211,11 +220,14 @@ void PDPJointTrackingController::update(const ros::Time& t,
       torques_publisher_.msg_.tau_error[i] = tau_error[i];
       torques_publisher_.msg_.tau_measured[i] = tau_j[i];
     }
+    // ROS_INFO_STREAM("last_tau_j[1]: " << last_tau_d_[1]);
+    // ROS_INFO_STREAM("tau_j[1]     : " << tau_j[1]);
     torques_publisher_.unlockAndPublish();
   }
 
   for (size_t i = 0; i < 7; ++i) {
-    last_tau_d_[i] = tau_d_saturated[i] + gravity[i];
+    // last_tau_d_[i] = tau_d_saturated[i] + gravity_fra[i];
+    last_tau_d_[i] = -(tau_d_saturated[i] + gravity_fra[i]);  // WHY is there a change of sign??
   }
 }
 
@@ -228,6 +240,11 @@ std::array<double, 7> PDPJointTrackingController::saturateTorqueRate(
     tau_d_saturated[i] = tau_J_d[i] + std::max(std::min(difference, kDeltaTauMax), -kDeltaTauMax);
   }
   return tau_d_saturated;
+}
+
+
+void PDPJointTrackingController::stopping(const ros::Time& t0) {
+  ROS_INFO_STREAM("PDPJointTrackingController::stopping");
 }
 
 }  // namespace panda_torque_mpc

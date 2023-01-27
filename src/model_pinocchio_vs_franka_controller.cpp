@@ -170,6 +170,8 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
 
     // ROS_INFO_STREAM("\ndiff mass:\n" << mass);
     // ROS_INFO_STREAM("\ndiff coriolis: \n" << coriolis);
+    ROS_INFO_STREAM("\ngravity_fra :\n" << (g_fra).transpose());
+    ROS_INFO_STREAM("\ngravity_pin :\n" << (g_pin).transpose());
     ROS_INFO_STREAM("\ndiff gravity :\n" << (g_fra - g_pin).transpose());
     // ROS_INFO_STREAM("\ngravity fra:\n" << g_fra.transpose());
     // ROS_INFO_STREAM("\ngravity pin:\n" << g_pin.transpose());

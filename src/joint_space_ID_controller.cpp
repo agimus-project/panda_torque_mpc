@@ -29,6 +29,16 @@ bool JointSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
     return false;
   }
 
+  if (!node_handle.getParam("Kp", Kp_)) {
+    ROS_ERROR("JointSpaceIDController: Could not read parameter Kp");
+    return false;
+  }
+
+  if (!node_handle.getParam("Kd", Kd_)) {
+    ROS_ERROR("JointSpaceIDController: Could not read parameter Kd");
+    return false;
+  }
+
   std::vector<double> kp_gains;
   if (!node_handle.getParam("kp_gains", kp_gains) || kp_gains.size() != 7) {
     ROS_ERROR("JointSpaceIDController:  Invalid or no kp_gains parameters provided, aborting controller init!");
@@ -164,9 +174,10 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   compute_sinusoid_joint_reference(delta_q_, period_q_, q_init_, Dt, q_r, dq_r, ddq_r);
 
   // Retrieve current measured robot state
-  franka::RobotState robot_state = franka_state_handle_->getRobotState();
-  Eigen::Map<const Vector7d> q_m(robot_state.q.data());
-  Eigen::Map<const Vector7d> dq_m(robot_state.dq.data());
+  franka::RobotState robot_state = franka_state_handle_->getRobotState();  // return a const& of RobotState object -> not going to be modified
+  Eigen::Map<Vector7d> q_m(robot_state.q.data());
+  Eigen::Map<Vector7d> dq_m(robot_state.dq.data());
+  Eigen::Map<Vector7d> tau_m(robot_state.tau_J.data());  // measured torques -> naturally contains gravity torque
   Vector7d zero7 = Vector7d::Zero();
 
   // filter the joint velocity measurements
@@ -178,49 +189,85 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
    * M*ddq + C(q,dq)*dq + g(q) = tau + J^T*f
    */
   // libfranka dynamics
-  Vector7d coriolis_fra = Eigen::Map<Vector7d>(franka_model_handle_->getCoriolis().data());
-  Vector7d gravity_fra  = Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
+  std::array<double, 7> coriolis_fra_arr = franka_model_handle_->getCoriolis();
+  std::array<double, 7> gravity_fra_arr = franka_model_handle_->getGravity();
+  std::array<double, 49> M_fra_arr = franka_model_handle_->getMass();
+  // Eigen and Franka use Column-Major storage order (see model_pinocchio_vs_frank_controller)
+  Eigen::Map<Vector7d> coriolis_fra(coriolis_fra_arr.data());
+  Eigen::Map<Vector7d> gravity_fra(gravity_fra_arr.data());
+  Eigen::Map<Matrix7d> M_fra(M_fra_arr.data()); 
 
-  // pinocchio dynamics
-  pin::forwardKinematics(model_pin_, data_pin_, q_m, dq_m);  // data.oMi, joint frame placements
-  pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_r);      // data.tau (but not data.g), joint torques
-  pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);  // data.g == generalized gravity
-  pin::crba(model_pin_, data_pin_, q_m);                       // data.M == mass matrix
-
-
-  // switch (control_variant_) {
-  //   case Variant::IDControl:
-  //     //
-  //     break;
-  //   case Variant::IDControlSimplified:
-  //     //
-  //     break;
-  //   case Variant::PDGravity:
-  //     //
-  //     break;
-  //   default:
-  //     // ?
-  // }
-
-  
-
-  Vector7d tau_ff;  // should NOT include gravity terms since taken care of by internal Franka controller
-  if (use_pinocchio_){
-    // substract the gravity term from rnea torque to get only centrifugal + Coriolis 
-    tau_ff = data_pin_.tau - data_pin_.g;
-  }
-  else {
-    tau_ff = coriolis_fra;
-  }
-  // task error and derivative (joint tracking error)
+  // Common to all flavors variants
   Vector7d e = q_m - q_r;
   Vector7d de = dq_filtered_ - dq_r;
-  // torque command: tau = feedforward - Kp * e - Kd * de
-  Vector7d tau_d_calculated = tau_ff - kp_gains_.cwiseProduct(e) - kd_gains_.cwiseProduct(de);
+
+  // Compute desired torque
+  //  -> should NOT include gravity terms since taken care of by internal Franka controller
+  Vector7d tau_d;
+  switch (control_variant_) {
+    case Variant::IDControl:
+      ROS_INFO_STREAM("Variant::IDControl, pinocchio: " << use_pinocchio_);
+      /**
+       * tau_cmd = M * ddq_r + h(q_m, dq_m) + M * (- kp_arr * e - kd_arr * de)
+       *         = M * (ddq_r - kp_arr * e - kd_arr * de) + h(q_m, dq_m)
+       *         = rnea(q_m, dq_m, ddq_r - kp_arr * e - kd_arr * de)
+       * 
+       * Use gain arrays to way the gains according to the inertia the 
+       *    -> need higher gains at the root of the robot
+       * The best way to compute these relative scalings is to use the mass matrix like in IDControl
+       * unless the model is not accurate enough
+      */
+      pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_r - Kp_ * e - Kd_ * de); // data.tau (but not data.g), joint torques
+      pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);  // data.g == generalized gravity
+
+      // For pinocchio, substract the gravity term from rnea torque to get only centrifugal + Coriolis
+      // For pinocchio, feedback is taken into account in rnea computation
+      if(use_pinocchio_)
+        tau_d = data_pin_.tau - data_pin_.g;
+      else
+        tau_d = M_fra * (ddq_r - Kp_*e - Kd_ * de) + coriolis_fra;
+      
+      break;
+    case Variant::IDControlSimplified:
+    {
+      ROS_INFO_STREAM("Variant::IDControlSimplified, pinocchio: " << use_pinocchio_);
+      /**
+       * tau_cmd = (M*ddq_r + h(q_m, dq_m)) - kp_arr * e - kd_arr * de
+       *         = rnea(q_m, dq_m, ddq_r) - kp_arr * e - kd_arr * de
+       * 
+       * Use gain arrays to way the gains according to the inertia the 
+       *    -> need higher gains at the root of the robot
+       * The best way to compute these relative scalings is to use the mass matrix like in IDControl
+       * unless the model is not accurate enough
+      */
+
+      pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_r); // data.tau (but not data.g), joint torques
+      pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);  // data.g == generalized gravity
+
+      // For pinocchio, substract the gravity term from rnea torque to get only centrifugal + Coriolis
+      Vector7d tau_feedback = - kp_gains_.cwiseProduct(e) - kd_gains_.cwiseProduct(de); 
+      if(use_pinocchio_)
+        tau_d = data_pin_.tau - data_pin_.g + tau_feedback;
+      else
+        tau_d = M_fra * ddq_r + coriolis_fra + tau_feedback;
+      
+      break;
+    }
+    case Variant::PDGravity:
+      ROS_INFO_STREAM("Variant::PDGravity, pinocchio: " << use_pinocchio_);
+      /** 
+       * tau_cmd = (g(q)) - kp_arr * e - kd_arr * de
+       * 
+       * Rely on the gravity compensation implemented in Panda + feedback torque
+      */
+      tau_d = - kp_gains_.cwiseProduct(e) - kd_gains_.cwiseProduct(de); 
+
+      break;
+  }
 
   // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
   // 1000 * (1 / sampling_time).
-  Vector7d tau_d_saturated = saturateTorqueRate(tau_d_calculated, Eigen::Map<Vector7d>(robot_state.tau_J_d.data()));
+  Vector7d tau_d_saturated = saturateTorqueRate(tau_d, Eigen::Map<Vector7d>(robot_state.tau_J_d.data()));
 
   // Send Torque Command
   for (size_t i = 0; i < 7; ++i) {
@@ -231,7 +278,12 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   ///////////////////
   // Publish logs
   if (rate_trigger_() && torques_publisher_.trylock()) {
-    Vector7d tau_m = Eigen::Map<Vector7d>(robot_state.tau_J.data());
+
+    /**
+     * It seems the conventions are flipped between measured and commanded torques (action/reaction?)
+     * So we artificially flip the measured torques values to be able to compare them with commanded torques.
+     */
+    tau_m = -tau_m;
 
     Vector7d q_error = last_q_r_ - q_m;
     Vector7d dq_error = last_dq_r_ - dq_m;
@@ -260,8 +312,7 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
       torques_publisher_.msg_.tau_error[i] = tau_error[i];
       torques_publisher_.msg_.tau_measured[i] = tau_m[i];
     }
-    // ROS_INFO_STREAM("last_tau_j[1]: " << last_tau_d_[1]);
-    // ROS_INFO_STREAM("tau_m[1]     : " << tau_m[1]);
+
     configurations_publisher_.unlockAndPublish();
     velocities_publisher_.unlockAndPublish();
     torques_publisher_.unlockAndPublish();
@@ -272,10 +323,7 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   last_q_r_ = q_r; 
   last_dq_r_ = dq_r; 
 
-  for (size_t i = 0; i < 7; ++i) {
-    // last_tau_d_[i] = tau_d_saturated[i] + gravity_fra[i];
-    last_tau_d_[i] = -(tau_d_saturated[i] + gravity_fra[i]);  // WHY is there a change of sign??
-  }
+  last_tau_d_ = tau_d_saturated + gravity_fra;
 }
 
 void JointSpaceIDController::compute_sinusoid_joint_reference(const Vector7d& delta_q, const Vector7d& period_q, const Vector7d& q0, double t,
@@ -293,11 +341,11 @@ void JointSpaceIDController::compute_sinusoid_joint_reference(const Vector7d& de
 }
 
 Vector7d JointSpaceIDController::saturateTorqueRate(
-    const Vector7d& tau_d_calculated,
+    const Vector7d& tau_d,
     const Vector7d& tau_J_d) {  // NOLINT (readability-identifier-naming)
   Vector7d tau_d_saturated{};
   for (size_t i = 0; i < 7; i++) {
-    double difference = tau_d_calculated[i] - tau_J_d[i];
+    double difference = tau_d[i] - tau_J_d[i];
     tau_d_saturated[i] = tau_J_d[i] + std::max(std::min(difference, kDeltaTauMax), -kDeltaTauMax);
   }
   return tau_d_saturated;

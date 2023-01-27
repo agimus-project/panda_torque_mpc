@@ -147,11 +147,13 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     Eigen::Map<Eigen::Matrix<double, 6, 7>> oJ7_fra_j(joint7_zero_jacobian.data()); 
     // Lagrangian dynamics equation elements
     Vector7d g_pin = data_pin_.g;
-    Eigen::Matrix<double, 7, 7> C_pin = data_pin_.C;
-    Eigen::Matrix<double, 7, 7> M_pin = data_pin_.M;
+    Matrix7d C_pin = data_pin_.C;
+    Matrix7d M_pin = data_pin_.M;
+    // crba only fills upper triangular part of the mass matrix, let's fill the lower triangular part
+    M_pin.triangularView<Eigen::StrictlyLower>() = M_pin.transpose().triangularView<Eigen::StrictlyLower>();
     Eigen::Map<Vector7d> g_fra(gravity.data()); 
     Eigen::Map<Vector7d> cor_fra(coriolis.data()); 
-    Eigen::Map<Eigen::Matrix<double, 7, 7>> M_fra(mass.data()); 
+    Eigen::Map<Matrix7d> M_fra(mass.data()); 
     
     
 
@@ -165,7 +167,6 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     // ROS_INFO_STREAM("joint_zero_jacobian :" << endeffector_zero_jacobian);
 
 
-    // ROS_INFO_STREAM("\ndiff mass:\n" << mass);
     // ROS_INFO_STREAM("\ndiff coriolis: \n" << coriolis);
     ROS_INFO_STREAM("\ngravity_fra :\n" << (g_fra).transpose());
     ROS_INFO_STREAM("\ngravity_pin :\n" << (g_pin).transpose());
@@ -177,7 +178,8 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     ROS_INFO_STREAM("\ndiff oM7 :\n" << oM7_fra - oM7_pin);
     ROS_INFO_STREAM("\ndiff coriolis vector :\n" << (cor_fra - C_pin*dq).transpose());
     ROS_INFO_STREAM("\ndiff mass matrix :\n" << M_fra - M_pin);
-    ROS_INFO_STREAM("\nM_pin ONLY :\n" << M_pin);
+    ROS_INFO_STREAM("\nM_pin :\n" << M_pin);
+    // ROS_INFO_STREAM("\ndiff M_fra:\n" << M_fra);
     // ROS_INFO_STREAM("\nM_fra :\n" << M_fra);
     // ROS_INFO_STREAM("\nM_pin :\n" << M_pin);
     ROS_INFO_STREAM("\ndiff oM4 :\n" << oM4_fra - oM4_pin);

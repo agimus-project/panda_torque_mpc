@@ -75,6 +75,8 @@ class JointSpaceIDController :
   const double kDeltaTauMax{1.0};  // using static constexpr creates an undefined symbol error
 
   // Controller parameters
+  double Kp_;
+  double Kd_;
   Vector7d kp_gains_;
   Vector7d kd_gains_;
   Vector7d delta_q_;

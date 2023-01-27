@@ -16,6 +16,13 @@ joint_space_ID_controller:
         - $(arg arm_id)_joint5
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
+
+    # Gains for IDControl
+    # Kp: 500  # Stiff
+    # Kd: 50  # Stiff
+    Kp: 50
+    Kd: 5
+    # Gains for IDControlSimplified
     kp_gains:
         - 60.0
         - 60.0
@@ -32,6 +39,7 @@ joint_space_ID_controller:
         - 2.0
         - 2.0
         - 1.0
+    # Trajectory simulation
     delta_q:
         - -0.5
         - 0.5
@@ -41,13 +49,13 @@ joint_space_ID_controller:
         - 0.5
         - 0.5
     period_q:
-        - 5.0
-        - 5.0
-        - 5.0
-        - 5.0
-        - 5.0
-        - 5.0
-        - 5.0
+        - 3.0
+        - 3.0
+        - 3.0
+        - 3.0
+        - 3.0
+        - 3.0
+        - 3.0
     publish_rate: 10.0
     use_pinocchio: true
     alpha_dq_filter: 0.99 # should be close to 1 and <= 1.0

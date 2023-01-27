@@ -8,6 +8,7 @@ namespace panda_torque_mpc {
 
 // Eigen Typedef
 using Vector7d = Eigen::Matrix<double, 7, 1>;
+using Matrix7d = Eigen::Matrix<double, 7, 7>;
 
 
 

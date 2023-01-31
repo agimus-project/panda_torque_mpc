@@ -56,7 +56,7 @@ class JointSpaceIDController :
   void update(const ros::Time&, const ros::Duration& period) override;
   void stopping(const ros::Time&) override;
 
-  enum Variant {
+  enum JSIDVariant {
     IDControl,
     IDControlSimplified,
     PDGravity
@@ -75,15 +75,12 @@ class JointSpaceIDController :
   const double kDeltaTauMax{1.0};  // using static constexpr creates an undefined symbol error
 
   // Controller parameters
-  double Kp_;
-  double Kd_;
-  Vector7d kp_gains_;
-  Vector7d kd_gains_;
-  Vector7d delta_q_;
-  Vector7d period_q_;
+  double Kp_, Kd_;                // IDControl
+  Vector7d kp_gains_, kd_gains_;  // IDControlSimplified
+  Vector7d delta_q_, period_q_;   // trajectory specification
+  JSIDVariant control_variant_;
   bool use_pinocchio_;
   double alpha_dq_filter_;
-  Variant control_variant_;
 
   // Current update state
   Vector7d last_q_r_;
@@ -104,6 +101,36 @@ class JointSpaceIDController :
   pin::Model model_pin_;
   pin::Data data_pin_;
 
+  /**
+   * \brief Compute torque required to achieved trajectory tracking.
+   * 
+   * Implement the different JSIDVariant which parameters are stored as class attributes.
+   * 
+   * @param[in] q_m: measured joint configuration 
+   * @param[in] dq_m: measured joint velocity 
+   * @param[in] dq_filtered: filtered joint velocity 
+   * @param[in] q_r: target joint configuration
+   * @param[in] dq_r: target joint velocity
+   * @param[in] ddq_r: target joint acceleration 
+   * @param[in] control_variant: selection of the type of controller 
+   * @param[in] use_pinocchio: use pinocchio for Rigid Body Dynamics Algorithms if true (else libfranka) 
+  */
+  Vector7d compute_desired_torque(
+      const Vector7d& q_m, const Vector7d& dq_m, const Vector7d& dq_filtered, 
+      const Vector7d& q_r, const Vector7d& dq_r, const Vector7d& ddq_r, 
+      JSIDVariant control_variant, bool use_pinocchio);
+
+  /**
+   * \brief Generate a (cos)sinusoidal target trajectory of joint configurations.
+   * 
+   * @param[in] delta_q: trajectory parameter: vector (size 7) of configuration difference for each joint   
+   * @param[in] period_q: trajectory parameter: vector (size 7) of movement period for each joint   
+   * @param[in] q0: initial configuration 
+   * @param[in] t: current time with q(0) = q0
+   * @param[out] q_r: target joint configuration
+   * @param[out] dq_r: target joint velocity
+   * @param[out] ddq_r: target joint acceleration 
+  */
   void compute_sinusoid_joint_reference(const Vector7d& delta_q, const Vector7d& period_q, const Vector7d& q0, double t,
                                         Vector7d& q_r, Vector7d& dq_r, Vector7d& ddq_r);
 

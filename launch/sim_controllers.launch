@@ -19,8 +19,7 @@
         name="$(arg arm_id)_torque_controller_spawner"
         respawn="false" output="screen"
         args="--wait-for initialized $(arg controller)"
-  >
-  </node>
+  />
 
   <!-- record some topics (should be specified in yaml as well?)  -->
   <node pkg="rosbag" type="record" name="rosbag_record_controller"

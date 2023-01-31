@@ -20,6 +20,8 @@ joint_space_ID_controller:
     # Gains for IDControl
     # Kp: 500  # Stiff
     # Kd: 50  # Stiff
+    # Kp: 100 
+    # Kd: 10 
     Kp: 50
     Kd: 5
     # Gains for IDControlSimplified
@@ -57,7 +59,7 @@ joint_space_ID_controller:
         - 3.0
         - 3.0
     publish_rate: 10.0
-    use_pinocchio: true
+    use_pinocchio: false
     alpha_dq_filter: 0.99 # should be close to 1 and <= 1.0
     # 0: IDControl
     # 1: IDControlSimplified

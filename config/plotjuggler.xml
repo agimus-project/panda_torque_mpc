@@ -3,44 +3,44 @@
  <tabbed_widget name="Main Window" parent="main_window">
   <Tab containers="1" tab_name="tab1">
    <Container>
-    <DockSplitter sizes="0.333709;0.332582;0.333709" orientation="-" count="3">
+    <DockSplitter sizes="0.333709;0.332582;0.333709" count="3" orientation="-">
      <DockArea name="...">
-      <plot flip_y="false" style="Lines" mode="TimeSeries" flip_x="false">
-       <range left="-9.286000" bottom="-0.006860" top="0.007388" right="-4.336000"/>
+      <plot style="Lines" flip_x="false" mode="TimeSeries" flip_y="false">
+       <range bottom="-0.038042" right="7.980000" top="0.069172" left="3.030000"/>
        <limitY/>
-       <curve color="#1f77b4" name="/joint_space_ID_controller/joint_configurations_comparison/q_error.0"/>
-       <curve color="#d62728" name="/joint_space_ID_controller/joint_configurations_comparison/q_error.1"/>
-       <curve color="#1ac938" name="/joint_space_ID_controller/joint_configurations_comparison/q_error.2"/>
-       <curve color="#ff7f0e" name="/joint_space_ID_controller/joint_configurations_comparison/q_error.3"/>
-       <curve color="#f14cc1" name="/joint_space_ID_controller/joint_configurations_comparison/q_error.4"/>
-       <curve color="#9467bd" name="/joint_space_ID_controller/joint_configurations_comparison/q_error.5"/>
-       <curve color="#17becf" name="/joint_space_ID_controller/joint_configurations_comparison/q_error.6"/>
+       <curve name="/joint_space_ID_controller/joint_configurations_comparison/error.0" color="#1f77b4"/>
+       <curve name="/joint_space_ID_controller/joint_configurations_comparison/error.1" color="#d62728"/>
+       <curve name="/joint_space_ID_controller/joint_configurations_comparison/error.2" color="#1ac938"/>
+       <curve name="/joint_space_ID_controller/joint_configurations_comparison/error.3" color="#ff7f0e"/>
+       <curve name="/joint_space_ID_controller/joint_configurations_comparison/error.4" color="#f14cc1"/>
+       <curve name="/joint_space_ID_controller/joint_configurations_comparison/error.5" color="#9467bd"/>
+       <curve name="/joint_space_ID_controller/joint_configurations_comparison/error.6" color="#17becf"/>
       </plot>
      </DockArea>
      <DockArea name="...">
-      <plot flip_y="false" style="Lines" mode="TimeSeries" flip_x="false">
-       <range left="-9.286000" bottom="-0.016815" top="0.027081" right="-4.336000"/>
+      <plot style="Lines" flip_x="false" mode="TimeSeries" flip_y="false">
+       <range bottom="-0.094475" right="7.980000" top="0.091573" left="3.030000"/>
        <limitY/>
-       <curve color="#bcbd22" name="/joint_space_ID_controller/joint_velocities_comparison/dq_error.0"/>
-       <curve color="#1f77b4" name="/joint_space_ID_controller/joint_velocities_comparison/dq_error.1"/>
-       <curve color="#d62728" name="/joint_space_ID_controller/joint_velocities_comparison/dq_error.2"/>
-       <curve color="#1ac938" name="/joint_space_ID_controller/joint_velocities_comparison/dq_error.3"/>
-       <curve color="#ff7f0e" name="/joint_space_ID_controller/joint_velocities_comparison/dq_error.4"/>
-       <curve color="#f14cc1" name="/joint_space_ID_controller/joint_velocities_comparison/dq_error.5"/>
-       <curve color="#9467bd" name="/joint_space_ID_controller/joint_velocities_comparison/dq_error.6"/>
+       <curve name="/joint_space_ID_controller/joint_velocities_comparison/error.0" color="#bcbd22"/>
+       <curve name="/joint_space_ID_controller/joint_velocities_comparison/error.1" color="#1f77b4"/>
+       <curve name="/joint_space_ID_controller/joint_velocities_comparison/error.2" color="#d62728"/>
+       <curve name="/joint_space_ID_controller/joint_velocities_comparison/error.3" color="#1ac938"/>
+       <curve name="/joint_space_ID_controller/joint_velocities_comparison/error.4" color="#ff7f0e"/>
+       <curve name="/joint_space_ID_controller/joint_velocities_comparison/error.5" color="#f14cc1"/>
+       <curve name="/joint_space_ID_controller/joint_velocities_comparison/error.6" color="#9467bd"/>
       </plot>
      </DockArea>
      <DockArea name="...">
-      <plot flip_y="false" style="Lines" mode="TimeSeries" flip_x="false">
-       <range left="-9.286000" bottom="-0.018799" top="0.024047" right="-4.336000"/>
+      <plot style="Lines" flip_x="false" mode="TimeSeries" flip_y="false">
+       <range bottom="-0.020613" right="7.980000" top="0.024239" left="3.030000"/>
        <limitY/>
-       <curve color="#17becf" name="/joint_space_ID_controller/joint_torques_comparison/tau_error.0"/>
-       <curve color="#bcbd22" name="/joint_space_ID_controller/joint_torques_comparison/tau_error.1"/>
-       <curve color="#1f77b4" name="/joint_space_ID_controller/joint_torques_comparison/tau_error.2"/>
-       <curve color="#d62728" name="/joint_space_ID_controller/joint_torques_comparison/tau_error.3"/>
-       <curve color="#1ac938" name="/joint_space_ID_controller/joint_torques_comparison/tau_error.4"/>
-       <curve color="#ff7f0e" name="/joint_space_ID_controller/joint_torques_comparison/tau_error.5"/>
-       <curve color="#f14cc1" name="/joint_space_ID_controller/joint_torques_comparison/tau_error.6"/>
+       <curve name="/joint_space_ID_controller/joint_torques_comparison/error.0" color="#17becf"/>
+       <curve name="/joint_space_ID_controller/joint_torques_comparison/error.1" color="#bcbd22"/>
+       <curve name="/joint_space_ID_controller/joint_torques_comparison/error.2" color="#1f77b4"/>
+       <curve name="/joint_space_ID_controller/joint_torques_comparison/error.3" color="#d62728"/>
+       <curve name="/joint_space_ID_controller/joint_torques_comparison/error.4" color="#1ac938"/>
+       <curve name="/joint_space_ID_controller/joint_torques_comparison/error.5" color="#ff7f0e"/>
+       <curve name="/joint_space_ID_controller/joint_torques_comparison/error.6" color="#f14cc1"/>
       </plot>
      </DockArea>
     </DockSplitter>
@@ -53,7 +53,7 @@
  <!-- - - - - - - - - - - - - - - -->
  <Plugins>
   <plugin ID="DataLoad CSV">
-   <default delimiter="0" time_axis=""/>
+   <default time_axis="" delimiter="0"/>
   </plugin>
   <plugin ID="DataLoad MCAP"/>
   <plugin ID="DataLoad ROS bags">

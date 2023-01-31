@@ -199,7 +199,7 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   // Publish logs
   if (rate_trigger_() && torques_publisher_.trylock()) {
 
-    publish_logs(q_m, dq_m, tau_m)
+    // Refactor to: publish_logs(q_m, dq_m, tau_m, ...)
 
     /**
      * It seems the conventions are flipped between measured and commanded torques (action/reaction?)
@@ -220,19 +220,19 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
     
     for (size_t i = 0; i < 7; ++i) {
       // Joint config
-      configurations_publisher_.msg_.q_commanded[i] = last_q_r_[i];
-      configurations_publisher_.msg_.q_error[i] = q_error[i];
-      configurations_publisher_.msg_.q_measured[i] = q_m[i];
+      configurations_publisher_.msg_.commanded[i] = last_q_r_[i];
+      configurations_publisher_.msg_.measured[i] = q_m[i];
+      configurations_publisher_.msg_.error[i] = q_error[i];
 
       // Joint velocities
-      velocities_publisher_.msg_.dq_commanded[i] = last_dq_r_[i];
-      velocities_publisher_.msg_.dq_error[i] = dq_error[i];
-      velocities_publisher_.msg_.dq_measured[i] = dq_m[i];
+      velocities_publisher_.msg_.commanded[i] = last_dq_r_[i];
+      velocities_publisher_.msg_.measured[i] = dq_m[i];
+      velocities_publisher_.msg_.error[i] = dq_error[i];
 
       // Joint torque
-      torques_publisher_.msg_.tau_commanded[i] = last_tau_d_[i];
-      torques_publisher_.msg_.tau_error[i] = tau_error[i];
-      torques_publisher_.msg_.tau_measured[i] = tau_m[i];
+      torques_publisher_.msg_.commanded[i] = last_tau_d_[i];
+      torques_publisher_.msg_.measured[i] = tau_m[i];
+      torques_publisher_.msg_.error[i] = tau_error[i];
     }
 
     configurations_publisher_.unlockAndPublish();
@@ -279,7 +279,7 @@ Vector7d JointSpaceIDController::compute_desired_torque(
   Vector7d tau_d;
   switch (control_variant) {
     case JSIDVariant::IDControl:
-      // ROS_INFO_STREAM("JSIDVariant::IDControl, pinocchio: " << use_pinocchio_);
+      ROS_INFO_STREAM("JSIDVariant::IDControl, pinocchio: " << use_pinocchio_);
       /**
        * tau_cmd = M * ddq_r + h(q_m, dq_m) + M * (- kp_arr * e - kd_arr * de)
        *         = M * (ddq_r - kp_arr * e - kd_arr * de) + h(q_m, dq_m)
@@ -303,7 +303,7 @@ Vector7d JointSpaceIDController::compute_desired_torque(
       break;
     case JSIDVariant::IDControlSimplified:
     {
-      // ROS_INFO_STREAM("JSIDVariant::IDControlSimplified, pinocchio: " << use_pinocchio_);
+      ROS_INFO_STREAM("JSIDVariant::IDControlSimplified, pinocchio: " << use_pinocchio_);
       /**
        * tau_cmd = (M*ddq_r + h(q_m, dq_m)) - kp_arr * e - kd_arr * de
        *         = rnea(q_m, dq_m, ddq_r) - kp_arr * e - kd_arr * de
@@ -327,7 +327,7 @@ Vector7d JointSpaceIDController::compute_desired_torque(
       break;
     }
     case JSIDVariant::PDGravity:
-      // ROS_INFO_STREAM("JSIDVariant::PDGravity, pinocchio: " << use_pinocchio_);
+      ROS_INFO_STREAM("JSIDVariant::PDGravity, pinocchio: " << use_pinocchio_);
       /** 
        * tau_cmd = (g(q)) - kp_arr * e - kd_arr * de
        * 

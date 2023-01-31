@@ -32,9 +32,7 @@
 #include <franka_hw/franka_model_interface.h>
 #include <franka_hw/trigger_rate.h>
 
-#include "panda_torque_mpc/JointConfigurationComparison.h"
-#include "panda_torque_mpc/JointVelocityComparison.h"
-#include "panda_torque_mpc/JointTorqueComparison.h"
+#include "panda_torque_mpc/JointValuesComparison.h"
 
 #include "panda_torque_mpc/common.h"
 
@@ -93,9 +91,9 @@ class JointSpaceIDController :
 
   franka_hw::TriggerRate rate_trigger_{1.0};
   Vector7d last_tau_d_{};
-  realtime_tools::RealtimePublisher<JointConfigurationComparison> configurations_publisher_;
-  realtime_tools::RealtimePublisher<JointVelocityComparison> velocities_publisher_;
-  realtime_tools::RealtimePublisher<JointTorqueComparison> torques_publisher_;
+  realtime_tools::RealtimePublisher<JointValuesComparison> configurations_publisher_;
+  realtime_tools::RealtimePublisher<JointValuesComparison> velocities_publisher_;
+  realtime_tools::RealtimePublisher<JointValuesComparison> torques_publisher_;
 
   // Pinocchio objects
   pin::Model model_pin_;

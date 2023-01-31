@@ -1,5 +1,8 @@
 <launch>
+  <arg name="record" default="false"/>
   <arg name="arm_id" default="panda"/>
+  <arg name="pkg_path" value="$(find panda_torque_mpc)"/> 
+  <!-- <arg name="pkg_path" value="HEYEYEYEEYEYEYEEYYEY"/>  -->
   <rosparam file="$(find panda_torque_mpc)/config/sim_controller_configs.yaml" subst_value="true" />
   <arg name="controller"  default=" " doc="Choose controller to be launched. Check config/sim_controller_configs.yaml to see which one are available." />
 
@@ -11,4 +14,12 @@
         args="--wait-for initialized $(arg controller)"
   >
   </node>
+
+  <node pkg="rosbag" type="record" name="rosbag_record_cam"
+        args="record -o $(arg pkg_path)/bags/$(arg controller) 
+                    /$(arg controller)/joint_configurations_comparison 
+                    /$(arg controller)/joint_velocities_comparison 
+                    /$(arg controller)/joint_torques_comparison"
+        if="$(arg record)" 
+  />
 </launch>

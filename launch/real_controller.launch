@@ -17,6 +17,15 @@
   <!-- Start the node interfacing with libfranka to control the robot -->
   <include file="$(find franka_control)/launch/franka_control.launch" pass_all_args="true"/>
 
+  <!-- record some topics (should be specified in yaml as well?)  -->
+  <node pkg="rosbag" type="record" name="rosbag_record_controller"
+        args="record --output-name $(find panda_torque_mpc)/bags/$(arg controller)_$(arg expe_name)
+                    /$(arg controller)/joint_configurations_comparison 
+                    /$(arg controller)/joint_velocities_comparison 
+                    /$(arg controller)/joint_torques_comparison"
+        if="$(arg record)" 
+  />
+
   <!-- Spawn the desired controller -->
-  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"  args="model_pinocchio_vs_franka_controller"/>
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"  args="$(arg controller)"/>
 </launch>

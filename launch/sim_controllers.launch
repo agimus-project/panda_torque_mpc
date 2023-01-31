@@ -12,15 +12,7 @@
     <rosparam command="dump" file="$(find panda_torque_mpc)/bags/$(arg controller)_$(arg expe_name).yaml" ns="$(arg controller)" subst_value="true" />
   </group>
   
-
-  <!-- spawns the controller after "initialized" topic tells us the robot is initialized  -->
-  <node pkg="controller_manager"
-        type="spawner"
-        name="$(arg arm_id)_torque_controller_spawner"
-        respawn="false" output="screen"
-        args="--wait-for initialized $(arg controller)"
-  />
-
+  
   <!-- record some topics (should be specified in yaml as well?)  -->
   <node pkg="rosbag" type="record" name="rosbag_record_controller"
         args="record --output-name $(find panda_torque_mpc)/bags/$(arg controller)_$(arg expe_name)
@@ -28,5 +20,13 @@
                     /$(arg controller)/joint_velocities_comparison 
                     /$(arg controller)/joint_torques_comparison"
         if="$(arg record)" 
+  />
+
+  <!-- spawns the controller after "initialized" topic tells us the robot is initialized  -->
+  <node pkg="controller_manager"
+        type="spawner"
+        name="$(arg arm_id)_torque_controller_spawner"
+        respawn="false" output="screen"
+        args="--wait-for initialized $(arg controller)"
   />
 </launch>

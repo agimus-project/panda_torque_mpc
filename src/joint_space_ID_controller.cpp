@@ -54,14 +54,15 @@ bool JointSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
   kd_gains_ = Eigen::Map<Vector7d>(kd_gains.data());
 
   std::vector<double> delta_q;
-  if (!node_handle.getParam("delta_q", delta_q) || delta_q_.size() != 7) {
+  if (!node_handle.getParam("delta_q", delta_q) || delta_q.size() != 7) {
+    ROS_INFO_STREAM("JointSpaceIDController:  " << delta_q.size());
     ROS_ERROR("JointSpaceIDController:  Invalid or no delta_q parameters provided, aborting controller init!");
     return false;
   }
   delta_q_ = Eigen::Map<Vector7d>(delta_q.data());
 
   std::vector<double> period_q;
-  if (!node_handle.getParam("period_q", period_q) || period_q_.size() != 7) {
+  if (!node_handle.getParam("period_q", period_q) || delta_q.size() != 7) {
     ROS_ERROR("JointSpaceIDController:  Invalid or no period_q parameters provided, aborting controller init!");
     return false;
   }
@@ -110,26 +111,26 @@ bool JointSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
   // Retrieve resource FrankaStateHandle
   auto* franka_state_interface = robot_hw->get<franka_hw::FrankaStateInterface>();
   if (franka_state_interface == nullptr) {
-    ROS_ERROR("ModelPinocchioVsFrankaController: Could not get Franka state interface from hardware");
+    ROS_ERROR("JointSpaceIDController: Could not get Franka state interface from hardware");
     return false;
   }
   try {
     franka_state_handle_ = std::make_unique<franka_hw::FrankaStateHandle>(franka_state_interface->getHandle(arm_id + "_robot"));
   } catch (const hardware_interface::HardwareInterfaceException& ex) {
-    ROS_ERROR_STREAM("ModelPinocchioVsFrankaController: Exception getting franka state handle: " << ex.what());
+    ROS_ERROR_STREAM("JointSpaceIDController: Exception getting franka state handle: " << ex.what());
     return false;
   }
 
   // Retrieve resource FrankaModelHandle
   auto* model_interface = robot_hw->get<franka_hw::FrankaModelInterface>();
   if (model_interface == nullptr) {
-    ROS_ERROR_STREAM("ModelPinocchioVsFrankaController: Error getting model interface from hardware");
+    ROS_ERROR_STREAM("JointSpaceIDController: Error getting model interface from hardware");
     return false;
   }
   try {
     franka_model_handle_ = std::make_unique<franka_hw::FrankaModelHandle>(model_interface->getHandle(arm_id + "_model"));
   } catch (hardware_interface::HardwareInterfaceException& ex) {
-    ROS_ERROR_STREAM("ModelPinocchioVsFrankaController: Exception getting model handle from interface: " << ex.what());
+    ROS_ERROR_STREAM("JointSpaceIDController: Exception getting model handle from interface: " << ex.what());
     return false;
   }
 
@@ -178,7 +179,6 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   Eigen::Map<Vector7d> q_m(robot_state.q.data());
   Eigen::Map<Vector7d> dq_m(robot_state.dq.data());
   Eigen::Map<Vector7d> tau_m(robot_state.tau_J.data());  // measured torques -> naturally contains gravity torque
-  Vector7d zero7 = Vector7d::Zero();
 
   // filter the joint velocity measurements
   dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
@@ -188,7 +188,8 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
 
   // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
   // 1000 * (1 / sampling_time).
-  Vector7d tau_d_saturated = saturateTorqueRate(tau_d, Eigen::Map<Vector7d>(robot_state.tau_J_d.data()));
+  // Vector7d tau_d_saturated = saturateTorqueRate(tau_d, Eigen::Map<Vector7d>(robot_state.tau_J_d.data()));
+  Vector7d tau_d_saturated = tau_d;
 
   // Send Torque Command
   for (size_t i = 0; i < 7; ++i) {
@@ -199,21 +200,21 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   // Publish logs
   if (rate_trigger_() && torques_publisher_.trylock()) {
 
-    // Refactor to: publish_logs(q_m, dq_m, tau_m, ...)
+    // Refactor to: publish_logs(publishers, last_vals, measured_vals) ?
 
     /**
-     * It seems the conventions are flipped between measured and commanded torques (action/reaction?)
-     * So we artificially flip the measured torques values to be able to compare them with commanded torques.
+     * Measured torque in simulation returns -tau while running with real robot returns tau --___--
      */
-    tau_m = -tau_m;
+    tau_m = -tau_m;  // SIMULATION
+    // tau_m = tau_m;  // REAL
 
     Vector7d q_error = last_q_r_ - q_m;
     Vector7d dq_error = last_dq_r_ - dq_m;
     Vector7d tau_error = last_tau_d_ - tau_m;
 
     double q_error_rms = std::sqrt(q_error.array().square().sum()) / 7.0;
-    double dq_error_rms = std::sqrt(q_error.array().square().sum()) / 7.0;
-    double tau_error_rms = std::sqrt(q_error.array().square().sum()) / 7.0;
+    double dq_error_rms = std::sqrt(dq_error.array().square().sum()) / 7.0;
+    double tau_error_rms = std::sqrt(tau_error.array().square().sum()) / 7.0;
     configurations_publisher_.msg_.root_mean_square_error = q_error_rms;
     velocities_publisher_.msg_.root_mean_square_error = dq_error_rms;
     torques_publisher_.msg_.root_mean_square_error = tau_error_rms;
@@ -240,12 +241,9 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
     torques_publisher_.unlockAndPublish();
   }
 
-
   // Store previous desired/reference values
   last_q_r_ = q_r; 
   last_dq_r_ = dq_r; 
-
-
   last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 }
 
@@ -263,6 +261,7 @@ Vector7d JointSpaceIDController::compute_desired_torque(
    * 
    * Here, we assume no contact so f=0.
    */
+
   // libfranka dynamics
   std::array<double, 7> coriolis_fra_arr = franka_model_handle_->getCoriolis();
   std::array<double, 7> gravity_fra_arr = franka_model_handle_->getGravity();
@@ -279,33 +278,46 @@ Vector7d JointSpaceIDController::compute_desired_torque(
   Vector7d tau_d;
   switch (control_variant) {
     case JSIDVariant::IDControl:
-      ROS_INFO_STREAM("JSIDVariant::IDControl, pinocchio: " << use_pinocchio_);
+      {  // create local context to be able to init variables
+
+      // ROS_INFO_STREAM("JSIDVariant::IDControl, pinocchio: " << use_pinocchio_);
       /**
-       * tau_cmd = M * ddq_r + h(q_m, dq_m) + M * (- kp_arr * e - kd_arr * de)
-       *         = M * (ddq_r - kp_arr * e - kd_arr * de) + h(q_m, dq_m)
-       *         = rnea(q_m, dq_m, ddq_r - kp_arr * e - kd_arr * de)
+       * 
+       * ddq_d = ddq_r - Kp * e - kd_arr * de
+       * tau_cmd = M * ddq_d + h(q_m, dq_m)
+       *         = rnea(q_m, dq_m, ddq_d)
        * 
        * Use gain arrays to way the gains according to the inertia the 
        *    -> need higher gains at the root of the robot
        * The best way to compute these relative scalings is to use the mass matrix like in IDControl
        * unless the model is not accurate enough
       */
-      pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_r - Kp_ * e - Kd_ * de); // data.tau (but not data.g), joint torques
-      pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);  // data.g == generalized gravity
 
-      // For pinocchio, substract the gravity term from rnea torque to get only centrifugal + Coriolis
-      // For pinocchio, feedback is taken into account in rnea computation
-      if(use_pinocchio_)
+      // Acceleration level feedback law
+      Vector7d ddq_d = ddq_r - Kp_ * e - Kd_ * de;
+
+      if(use_pinocchio_){
+        pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_d); // data.tau (but not data.g), joint torques
+        pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);  // data.g == generalized gravity
+
+        // For pinocchio, substract the gravity term from rnea torque to get only centrifugal + Coriolis
+        // For pinocchio, feedback is taken into account in rnea computation
         tau_d = data_pin_.tau - data_pin_.g;
+      }
       else
-        tau_d = M_fra * (ddq_r - Kp_*e - Kd_ * de) + coriolis_fra;
+        tau_d = M_fra * ddq_d + coriolis_fra;
       
       break;
+      }
     case JSIDVariant::IDControlSimplified:
-    {
-      ROS_INFO_STREAM("JSIDVariant::IDControlSimplified, pinocchio: " << use_pinocchio_);
+      {  // create local context to be able to init variables
+
+      // ROS_INFO_STREAM("JSIDVariant::IDControlSimplified, pinocchio: " << use_pinocchio_);
       /**
-       * tau_cmd = (M*ddq_r + h(q_m, dq_m)) - kp_arr * e - kd_arr * de
+       * Decouples each joint level gain applied from the mass matrix: need an array of gains
+       * but may be more robust to mass matrix model errors.
+       * 
+       * tau_cmd = M*ddq_r + h(q_m, dq_m) - kp_arr * e - kd_arr * de
        *         = rnea(q_m, dq_m, ddq_r) - kp_arr * e - kd_arr * de
        * 
        * Use gain arrays to way the gains according to the inertia the 
@@ -325,9 +337,9 @@ Vector7d JointSpaceIDController::compute_desired_torque(
         tau_d = M_fra * ddq_r + coriolis_fra + tau_feedback;
       
       break;
-    }
+      }
     case JSIDVariant::PDGravity:
-      ROS_INFO_STREAM("JSIDVariant::PDGravity, pinocchio: " << use_pinocchio_);
+      // ROS_INFO_STREAM("JSIDVariant::PDGravity, pinocchio: " << use_pinocchio_);
       /** 
        * tau_cmd = (g(q)) - kp_arr * e - kd_arr * de
        * 
@@ -337,7 +349,7 @@ Vector7d JointSpaceIDController::compute_desired_torque(
 
       break;
     default:
-      ROS_INFO_STREAM("JSIDVariant not implemented !!!!: ");
+      ROS_INFO_STREAM("JSIDVariant " << control_variant << " not implemented !!!!");
 
   }
 
@@ -346,20 +358,17 @@ Vector7d JointSpaceIDController::compute_desired_torque(
 
 void JointSpaceIDController::compute_sinusoid_joint_reference(const Vector7d& delta_q, const Vector7d& period_q, const Vector7d& q0, double t,
                                                               Vector7d& q_r, Vector7d& dq_r, Vector7d& ddq_r){ 
-  // Ai and Ci obtained for each joint using constraints: 
-  // q_i(t=0.0) = q_i_init
-  // q_i(t=period_i/2) = q_i_init + delta_q_i
-  
-  for (size_t i = 0; i < 7; i++) {
-    double wi = 2*M_PI/period_q[i];
-    double Ai = - 0.5 * delta_q[i];
-    double Ci = q0[i] + 0.5 * delta_q[i];
+  // a and c coeff vectors obtained for each joint using constraints: 
+  // q(t=0.0) = q0
+  // q(t=period/2) = q0 + delta_q
 
-    q_r[i]   =        Ai*cos(wi*t) + Ci;
-    dq_r[i]  =    -wi*Ai*sin(wi*t);
-    ddq_r[i] = -wi*wi*Ai*cos(wi*t);  // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
-  }
+  Vector7d w = (2*M_PI/period_q.array()).matrix();
+  Vector7d a = - delta_q;
+  Vector7d c = q0 + delta_q;
 
+  q_r   =                     (a.array()*cos(w.array()*t)).matrix() + c;
+  dq_r  =          (-w.array()*a.array()*sin(w.array()*t)).matrix();
+  ddq_r = (-w.array().square()*a.array()*cos(w.array()*t)).matrix();  // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
 }
 
 Vector7d JointSpaceIDController::saturateTorqueRate(
@@ -368,7 +377,11 @@ Vector7d JointSpaceIDController::saturateTorqueRate(
   Vector7d tau_d_saturated{};
   for (size_t i = 0; i < 7; i++) {
     double difference = tau_d[i] - tau_J_d[i];
-    tau_d_saturated[i] = tau_J_d[i] + std::max(std::min(difference, kDeltaTauMax), -kDeltaTauMax);
+    double tau_corr_i = std::max(std::min(difference, kDeltaTauMax), -kDeltaTauMax);
+    tau_d_saturated[i] = tau_J_d[i] + tau_corr_i;
+    if (tau_corr_i > 0.0)
+      ROS_INFO_STREAM("saturateTorqueRate, joint " << i << ", tau_corr_i: " << tau_corr_i);
+
   }
   return tau_d_saturated;
 }

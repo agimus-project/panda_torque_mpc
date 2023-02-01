@@ -83,14 +83,15 @@ class JointSpaceIDController :
   // Current update state
   Vector7d last_q_r_;
   Vector7d last_dq_r_;
+  Vector7d last_tau_d_;
   Vector7d dq_filtered_;
 
   // initial values
   ros::Time t_init_;
   Vector7d q_init_;   
 
+  // Publishers
   franka_hw::TriggerRate rate_trigger_{1.0};
-  Vector7d last_tau_d_{};
   realtime_tools::RealtimePublisher<JointValuesComparison> configurations_publisher_;
   realtime_tools::RealtimePublisher<JointValuesComparison> velocities_publisher_;
   realtime_tools::RealtimePublisher<JointValuesComparison> torques_publisher_;
@@ -100,8 +101,9 @@ class JointSpaceIDController :
   pin::Data data_pin_;
 
   /**
-   * \brief Compute torque required to achieved trajectory tracking.
+   * \brief Compute torque required to achieve joint trajectory tracking.
    * 
+   * Implementation of Joint Space Inverse Dynamics PD+ controller.
    * Implement the different JSIDVariant which parameters are stored as class attributes.
    * 
    * @param[in] q_m: measured joint configuration 
@@ -112,6 +114,7 @@ class JointSpaceIDController :
    * @param[in] ddq_r: target joint acceleration 
    * @param[in] control_variant: selection of the type of controller 
    * @param[in] use_pinocchio: use pinocchio for Rigid Body Dynamics Algorithms if true (else libfranka) 
+   * @return torque to be applied for control 
   */
   Vector7d compute_desired_torque(
       const Vector7d& q_m, const Vector7d& dq_m, const Vector7d& dq_filtered, 

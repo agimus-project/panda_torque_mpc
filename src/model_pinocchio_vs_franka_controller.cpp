@@ -182,7 +182,7 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     std::cout << "\ndiff oMfl_fra - oMf8_pin :\n" << oMfl_fra - oMf8_pin;  // SAME
     std::cout << "\ndiff lJ4_pin_f - lJ4_pin_j :\n" << lJ4_pin_f - lJ4_pin_j;    // SAME
     std::cout << "\ndiff lJ4_pin_f - lJ4_fra_j :\n" << lJ4_pin_f - lJ4_fra_j;    // SAME
-    std::cout << "\ndiff oJ7_pin_f - oJ7_fra_j :\n" << oJ7_pin_f - oJ7_fra_j;    // NOT SAME: Franka "zero" Jac = LOCAL_WORLD_ALIGNED, not WORLD
+    // std::cout << "\ndiff oJ7_pin_f - oJ7_fra_j :\n" << oJ7_pin_f - oJ7_fra_j;    // NOT SAME: Franka "zero" Jac = LOCAL_WORLD_ALIGNED, not WORLD
     std::cout << "\ndiff loJ7_pin_f - oJ7_fra_j :\n" << loJ7_pin_f - oJ7_fra_j;  // SAME
   }
 }

@@ -13,4 +13,11 @@
       A controller that tracks a self generated joint trajectory using PD+ control. 
     </description>
   </class>
+  <class name="panda_torque_mpc/TaskSpaceIDController" 
+         type="panda_torque_mpc::TaskSpaceIDController" 
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller that tracks a self generated end effector trajectory using task space PD+ control. 
+    </description>
+  </class>
 </library>

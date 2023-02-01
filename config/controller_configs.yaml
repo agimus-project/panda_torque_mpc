@@ -1,13 +1,13 @@
 model_pinocchio_vs_franka_controller:
   type: panda_torque_mpc/ModelPinocchioVsFrankaController
   arm_id: $(arg arm_id)
-  urdf_path: /home/mfourmy/Desktop/panda_inertias.urdf
+  urdf_path: /home/mfourmy/Desktop/panda_inertias_nohand.urdf
 
 
 joint_space_ID_controller:
     type: panda_torque_mpc/JointSpaceIDController
     arm_id: $(arg arm_id)
-    urdf_path: /home/mfourmy/Desktop/panda_inertias.urdf
+    urdf_path: /home/mfourmy/Desktop/panda_inertias_nohand.urdf
     joint_names:
         - $(arg arm_id)_joint1
         - $(arg arm_id)_joint2
@@ -22,8 +22,8 @@ joint_space_ID_controller:
     # Kd: 50  # Stiff
     # Kp: 100 
     # Kd: 10 
-    Kp: 50
-    Kd: 5
+    Kp: 20
+    Kd: 2
     # Gains for IDControlSimplified
     kp_gains:
         - 60.0
@@ -43,25 +43,63 @@ joint_space_ID_controller:
         - 1.0
     # Trajectory simulation
     delta_q:
-        - -0.5
-        - 0.5
-        - 0.5
-        - 0.5
-        - 0.5
-        - 0.5
-        - 0.5
+        - -0.3
+        -  0.3
+        -  0.3
+        -  0.3
+        -  0.3
+        -  0.3
+        -  0.3
     period_q:
-        - 3.0
-        - 3.0
-        - 3.0
-        - 3.0
-        - 3.0
-        - 3.0
-        - 3.0
+        - 5.0
+        - 5.0
+        - 5.0
+        - 5.0
+        - 5.0
+        - 5.0
+        - 5.0
     publish_rate: 10.0
-    use_pinocchio: false
-    alpha_dq_filter: 0.99 # should be close to 1 and <= 1.0
+    use_pinocchio: true
+    alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0
     # 0: IDControl
     # 1: IDControlSimplified
     # 2: PDGravity
     control_variant: 0
+
+
+task_space_ID_controller:
+    type: panda_torque_mpc/TaskSpaceIDController
+    arm_id: $(arg arm_id)
+    urdf_path: /home/mfourmy/Desktop/panda_inertias_nohand.urdf
+    joint_names:
+        - $(arg arm_id)_joint1
+        - $(arg arm_id)_joint2
+        - $(arg arm_id)_joint3
+        - $(arg arm_id)_joint4
+        - $(arg arm_id)_joint5
+        - $(arg arm_id)_joint6
+        - $(arg arm_id)_joint7
+    # Kp: 500  # Stiff
+    # Kd: 50  # Stiff
+    Kp: 100 
+    Kd: 10 
+    # Kp: 20
+    # Kd: 2
+    # Trajectory simulation
+    delta_nu:
+        - 0.07
+        - 0.07
+        - 0.07
+        - 0.0
+        - 0.0
+        - 0.0
+    period_nu:
+        - 3.0
+        - 3.0
+        - 3.0
+        - 5.0
+        - 5.0
+        - 5.0
+    publish_rate: 10.0
+    use_pinocchio: true
+    alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0

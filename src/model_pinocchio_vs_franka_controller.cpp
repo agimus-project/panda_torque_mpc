@@ -101,7 +101,8 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     std::array<double, 7> coriolis = franka_model_handle_->getCoriolis();
     std::array<double, 16> pose_j4 = franka_model_handle_->getPose(franka::Frame::kJoint4);
     std::array<double, 16> pose_j7 = franka_model_handle_->getPose(franka::Frame::kJoint7);
-    // std::array<double, 16> pose_ee = franka_model_handle_->getPose(franka::Frame::kEndEffector);  
+    std::array<double, 16> pose_fl = franka_model_handle_->getPose(franka::Frame::kFlange);  
+    std::array<double, 16> pose_ee = franka_model_handle_->getPose(franka::Frame::kEndEffector);  
     std::array<double, 42> joint4_body_jacobian = franka_model_handle_->getBodyJacobian(franka::Frame::kJoint4);
     std::array<double, 42> joint7_zero_jacobian = franka_model_handle_->getZeroJacobian(franka::Frame::kJoint7);
 
@@ -123,26 +124,33 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     
     // Pinocchio frame ids: joints are a subset of all frames, their ids correspond to the kinematic chain ordee.
     // Pinocchio joint ids: id in the collection of non-fixed joints. The list starts always with universe, so first real joint has id 1.
-    auto jid_4 = model_pin_.getJointId("panda_joint4");
-    auto jid_7 = model_pin_.getJointId("panda_joint7");
-    auto fid_4 = model_pin_.getFrameId("panda_joint4");
-    auto fid_7 = model_pin_.getFrameId("panda_joint7");
+    auto jid_j4 = model_pin_.getJointId("panda_joint4");
+    auto jid_j7 = model_pin_.getJointId("panda_joint7");
+    auto fid_j4 = model_pin_.getFrameId("panda_joint4");
+    auto fid_j7 = model_pin_.getFrameId("panda_joint7");
+    auto fid_f7 = model_pin_.getFrameId("panda_link7");
+    auto fid_f8 = model_pin_.getFrameId("panda_link8");
 
     ////////////////////////////////
     // Store everything in Eigen::Matrix objects for easy comparison
     // Eigen and Franka use Column-Major storage order
 
     // Pose as homogeneous transformation matrices 
-    Eigen::Matrix<double, 4, 4> oM4_pin = data_pin_.oMi.at(jid_4).toHomogeneousMatrix();
-    Eigen::Matrix<double, 4, 4> oM7_pin = data_pin_.oMi.at(jid_7).toHomogeneousMatrix();
+    Eigen::Matrix<double, 4, 4> oMj4_pin = data_pin_.oMi.at(jid_j4).toHomogeneousMatrix();
+    Eigen::Matrix<double, 4, 4> oMj7_pin = data_pin_.oMi.at(jid_j7).toHomogeneousMatrix();
+    Eigen::Matrix<double, 4, 4> oMf7_pin = data_pin_.oMf.at(fid_f7).toHomogeneousMatrix();
+    Eigen::Matrix<double, 4, 4> oMf8_pin = data_pin_.oMf.at(fid_f8).toHomogeneousMatrix();
     Eigen::Map<Eigen::Matrix<double, 4, 4>> oM4_fra(pose_j4.data()); 
     Eigen::Map<Eigen::Matrix<double, 4, 4>> oM7_fra(pose_j7.data()); 
+    Eigen::Map<Eigen::Matrix<double, 4, 4>> oMfl_fra(pose_fl.data()); 
+    Eigen::Map<Eigen::Matrix<double, 4, 4>> oMee_fra(pose_ee.data()); 
     // Frame jacobians Ji st. vi = Ji * q
     // !! call setZero since pinocchio does not internally. Unitialized values appear for frames in the middle of the kinematic chain 
-    Eigen::Matrix<double, 6, 7> lJ4_pin_f; lJ4_pin_f.setZero(); pin::computeFrameJacobian(model_pin_, data_pin_, q, fid_4, lJ4_pin_f);  
-    Eigen::Matrix<double, 6, 7> lJ4_pin_j; lJ4_pin_j.setZero(); pin::computeJointJacobian(model_pin_, data_pin_, q, jid_4, lJ4_pin_j);  // no diff with computeFrameJacobian if corresponding joints AND computeFrameJacobian called with pin::LOCAL (default)
-    Eigen::Matrix<double, 6, 7> oJ7_pin_f; oJ7_pin_f.setZero(); pin::computeFrameJacobian(model_pin_, data_pin_, q, fid_7, pin::WORLD, oJ7_pin_f); 
-    Eigen::Matrix<double, 6, 7> loJ7_pin_f; loJ7_pin_f.setZero(); pin::computeFrameJacobian(model_pin_, data_pin_, q, fid_7, pin::LOCAL_WORLD_ALIGNED, loJ7_pin_f); 
+    Eigen::Matrix<double, 6, 7> lJ4_pin_f; lJ4_pin_f.setZero(); pin::computeFrameJacobian(model_pin_, data_pin_, q, fid_j4, lJ4_pin_f);
+    // computeJointJacobian has no diff if corresponding joints AND computeFrameJacobian called with pin::LOCAL (default)  
+    Eigen::Matrix<double, 6, 7> lJ4_pin_j; lJ4_pin_j.setZero(); pin::computeJointJacobian(model_pin_, data_pin_, q, jid_j4, lJ4_pin_j);
+    Eigen::Matrix<double, 6, 7> oJ7_pin_f; oJ7_pin_f.setZero(); pin::computeFrameJacobian(model_pin_, data_pin_, q, fid_j7, pin::WORLD, oJ7_pin_f); 
+    Eigen::Matrix<double, 6, 7> loJ7_pin_f; loJ7_pin_f.setZero(); pin::computeFrameJacobian(model_pin_, data_pin_, q, fid_j7, pin::LOCAL_WORLD_ALIGNED, loJ7_pin_f); 
     Eigen::Map<Eigen::Matrix<double, 6, 7>> lJ4_fra_j(joint4_body_jacobian.data()); 
     Eigen::Map<Eigen::Matrix<double, 6, 7>> oJ7_fra_j(joint7_zero_jacobian.data()); 
     // Lagrangian dynamics equation elements
@@ -155,38 +163,27 @@ void ModelPinocchioVsFrankaController::update(const ros::Time& /*time*/, const r
     Eigen::Map<Vector7d> cor_fra(coriolis.data()); 
     Eigen::Map<Matrix7d> M_fra(mass.data()); 
     
-    
-
 
     ROS_INFO("\n\n\n--------------------------------------------------");
-    // ROS_INFO_STREAM("mass :" << mass);
-    // ROS_INFO_STREAM("coriolis: " << coriolis);
-    // ROS_INFO_STREAM("gravity :" << gravity);
-    // ROS_INFO_STREAM("pose_j4_fra :" << pose_j4);
-    // ROS_INFO_STREAM("joint4_body_jacobian :" << joint4_body_jacobian);
-    // ROS_INFO_STREAM("joint_zero_jacobian :" << endeffector_zero_jacobian);
+    // std::cout << "\ndiff coriolis: \n" << coriolis);
+    std::cout << "\ngravity_fra :\n" << (g_fra).transpose();
+    std::cout << "\ngravity_pin :\n" << (g_pin).transpose();
+    std::cout << "\ndiff gravity :\n" << (g_fra - g_pin).transpose();  // NOT SAME
+    // std::cout << "\ngravity fra:\n" << g_fra.transpose();
+    // std::cout << "\ngravity pin:\n" << g_pin.transpose();
+    std::cout << "\ndiff data_pin_.tau - (C_pin*dq + g_pin) :\n" << (data_pin_.tau - (C_pin*dq + g_pin)).transpose(); // SAME
 
-
-    // ROS_INFO_STREAM("\ndiff coriolis: \n" << coriolis);
-    ROS_INFO_STREAM("\ngravity_fra :\n" << (g_fra).transpose());
-    ROS_INFO_STREAM("\ngravity_pin :\n" << (g_pin).transpose());
-    ROS_INFO_STREAM("\ndiff gravity :\n" << (g_fra - g_pin).transpose());
-    // ROS_INFO_STREAM("\ngravity fra:\n" << g_fra.transpose());
-    // ROS_INFO_STREAM("\ngravity pin:\n" << g_pin.transpose());
-    ROS_INFO_STREAM("\ndiff data_pin_.tau - (C_pin*dq + g_pin) :\n" << (data_pin_.tau - (C_pin*dq + g_pin)).transpose());
-    ROS_INFO_STREAM("\ndiff oM4 :\n" << oM4_fra - oM4_pin);
-    ROS_INFO_STREAM("\ndiff oM7 :\n" << oM7_fra - oM7_pin);
-    ROS_INFO_STREAM("\ndiff coriolis vector :\n" << (cor_fra - C_pin*dq).transpose());
-    ROS_INFO_STREAM("\ndiff mass matrix :\n" << M_fra - M_pin);
-    ROS_INFO_STREAM("\nM_pin :\n" << M_pin);
-    // ROS_INFO_STREAM("\ndiff M_fra:\n" << M_fra);
-    // ROS_INFO_STREAM("\nM_fra :\n" << M_fra);
-    // ROS_INFO_STREAM("\nM_pin :\n" << M_pin);
-    ROS_INFO_STREAM("\ndiff oM4 :\n" << oM4_fra - oM4_pin);
-    ROS_INFO_STREAM("\ndiff lJ4_pin_f - lJ4_pin_j :\n" << lJ4_pin_f - lJ4_pin_j);
-    ROS_INFO_STREAM("\ndiff lJ4_pin_f - lJ4_fra_j :\n" << lJ4_pin_f - lJ4_fra_j);
-    ROS_INFO_STREAM("\ndiff oJ7_pin_f - oJ7_fra_j :\n" << oJ7_pin_f - oJ7_fra_j);
-    ROS_INFO_STREAM("\ndiff loJ7_pin_f - oJ7_fra_j :\n" << loJ7_pin_f - oJ7_fra_j);
+    std::cout << "\ndiff coriolis vector :\n" << (cor_fra - C_pin*dq).transpose();  // NOT SAME
+    std::cout << "\ndiff mass matrix :\n" << M_fra - M_pin;                         // NOT SAME
+    // std::cout << "\nM_pin :\n" << M_pin);
+    // std::cout << "\nM_fra :\n" << M_fra);
+    std::cout << "\ndiff oM4_fra - oMj4_pin :\n" << oM4_fra - oMj4_pin;    // SAME
+    std::cout << "\ndiff oM7_fra - oMj7_pin :\n" << oM7_fra - oMj7_pin;    // SAME
+    std::cout << "\ndiff oMfl_fra - oMf8_pin :\n" << oMfl_fra - oMf8_pin;  // SAME
+    std::cout << "\ndiff lJ4_pin_f - lJ4_pin_j :\n" << lJ4_pin_f - lJ4_pin_j;    // SAME
+    std::cout << "\ndiff lJ4_pin_f - lJ4_fra_j :\n" << lJ4_pin_f - lJ4_fra_j;    // SAME
+    std::cout << "\ndiff oJ7_pin_f - oJ7_fra_j :\n" << oJ7_pin_f - oJ7_fra_j;    // NOT SAME: Franka "zero" Jac = LOCAL_WORLD_ALIGNED, not WORLD
+    std::cout << "\ndiff loJ7_pin_f - oJ7_fra_j :\n" << loJ7_pin_f - oJ7_fra_j;  // SAME
   }
 }
 

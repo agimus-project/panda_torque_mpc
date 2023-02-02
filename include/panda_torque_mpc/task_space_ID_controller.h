@@ -60,7 +60,7 @@ class TaskSpaceIDController :
   Vector7d saturateTorqueRate(
       const Vector7d& tau_d_calculated,
       const Vector7d& tau_J_d);  // NOLINT (readability-identifier-naming)
-  const double kDeltaTauMax{1.0};  // using static constexpr creates an undefined symbol error
+  const double kDeltaTauMax_{1.0};  // using static constexpr creates an undefined symbol error
 
   // Controller parameters
   double Kp_, Kd_;                // task space gains Control

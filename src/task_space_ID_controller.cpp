@@ -288,13 +288,37 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
   pin::computeJointJacobiansTimeVariation(model_pin_, data_pin_, q_m, dq_m);
   pin::getFrameJacobianTimeVariation(model_pin_, data_pin_, fid, pin::LOCAL_WORLD_ALIGNED, dJ_pin);
 
-  // acceleration level PD+ feedback law
-  Eigen::Vector3d ddx_d = ddx_r.linear() - Kd_ * ( nu_o_e_m.linear() - dx_r.linear()) - Kp_ * (T_o_e_m.translation() - x_r.translation());
 
   // Create and solve least square problem to get desired joint acceleration
+  
+  //////////////
+  // POSITION ONLY
+  Eigen::Vector3d e = T_o_e_m.translation() - x_r.translation();
+  Eigen::Vector3d de = nu_o_e_m.linear() - dx_r.linear();
+  Eigen::Vector3d ddx_d = ddx_r.linear() - Kd_ * de - Kp_ * e;
+  
   Eigen::MatrixXd A = J_pin.block<3,7>(0,0);
   Eigen::VectorXd b = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
   Vector7d ddq_d = A.colPivHouseholderQr().solve(b);
+  ///////////////////////
+
+  // POSITION + CONFIGURATION REGULARIZATION --> TODO
+
+
+  // /////////////////////////
+  // // POSITION + ORIENTATION  --> NOPE
+  // // pin::SE3 e = x_r.inverse() * T_o_e_m;
+  // pin::SE3 e = T_o_e_m.inverse() * x_r;
+  // pin::Motion de = nu_o_e_m - dx_r;
+  // Vector6d ddx_d = ddx_r - Kd_*de - Kp_*pin::log6(e);
+
+  // // Create and solve least square problem to get desired joint acceleration
+  // Eigen::Matrix<double, 6, 6> Jlog; pin::Jlog6(e, Jlog);
+  // Eigen::MatrixXd A =  Jlog * J_pin;
+  // Eigen::VectorXd b = ddx_d - dJ_pin * dq_m;
+  // Vector7d ddq_d = A.colPivHouseholderQr().solve(b);
+  // /////////////////////////
+  
 
   Vector7d tau_d;
   if (use_pinocchio_){
@@ -350,7 +374,7 @@ Vector7d TaskSpaceIDController::saturateTorqueRate(
   Vector7d tau_d_saturated{};
   for (size_t i = 0; i < 7; i++) {
     double difference = tau_d[i] - tau_J_d[i];
-    tau_d_saturated[i] = tau_J_d[i] + std::max(std::min(difference, kDeltaTauMax), -kDeltaTauMax);
+    tau_d_saturated[i] = tau_J_d[i] + std::max(std::min(difference, kDeltaTauMax_), -kDeltaTauMax_);
   }
   return tau_d_saturated;
 }

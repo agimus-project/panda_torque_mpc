@@ -2,54 +2,69 @@ import os
 import numpy as np
 import pandas as pd
 
-from pathlib import Path
-from rosbags.dataframe import get_dataframe
-from rosbags.highlevel import AnyReader
 import matplotlib.pyplot as plt
 
+from read_plot_utils import read_jsid_bag
 
-directory = '../bags/'
-bag_name = 'toto.bag'
+CONTROLLER_NAME = 'joint_space_ID_controller'
+# DIRECTORY = '/home/mfourmy/Downloads/franka_experiments_31_01_23'
 
-bag_path = os.path.join(directory, bag_name)
-topics = [
-  '/joint_space_ID_controller/joint_configurations_comparison', 
-  '/joint_space_ID_controller/joint_velocities_comparison', 
-  '/joint_space_ID_controller/joint_torques_comparison'
+# BAG_NAME = 'joint_space_ID_controller_franka_lowstiff.bag'
+# YML_NAME = 'joint_space_ID_controller_franka_lowstiff.yaml'
+# BAG_NAME = 'joint_space_ID_controller_franka_midstiff.bag'
+# YML_NAME = 'joint_space_ID_controller_franka_midstiff.yaml'
+# BAG_NAME = 'joint_space_ID_controller_franka_stiff.bag'
+# YML_NAME = 'joint_space_ID_controller_franka_stiff.yaml'
+# BAG_NAME = 'joint_space_ID_controller_pin_lowstiff.bag'
+# YML_NAME = 'joint_space_ID_controller_pin_lowstiff.yaml'
+# BAG_NAME = 'joint_space_ID_controller_pin_midstiff.bag'
+# YML_NAME = 'joint_space_ID_controller_pin_midstiff.yaml'
+# BAG_NAME = 'joint_space_ID_controller_pin_stiff.bag'
+# YML_NAME = 'joint_space_ID_controller_pin_stiff.yaml'
+
+
+DIRECTORY = '../bags/'
+BAG_NAMES = [
+  'joint_space_ID_controller_LONG_expe.bag',
+  # 'joint_space_ID_controller_lowK_NoSat.bag',
+  'joint_space_ID_controller_lowK_Sat.bag',
 ]
 
-fields = ['commanded', 'measured', 'error']
+BAG_PATHS = [os.path.join(DIRECTORY, name) for name in BAG_NAMES]
 
-with AnyReader([Path(bag_path)]) as reader:
-    df_q   = get_dataframe(reader, topics[0], fields)
-    df_dq  = get_dataframe(reader, topics[1], fields)
-    df_tau = get_dataframe(reader, topics[2], fields)
 
-# Errors
-q_err_arr   = np.asarray([l for l in df_q['error']])
-dq_err_arr  = np.asarray([l for l in df_dq['error']])
-tau_err_arr = np.asarray([l for l in df_tau['error']])
 
-# Compute time indices
-idx_arr = df_q.index.to_numpy()
-t_delta_arr = idx_arr - idx_arr[0] 
-ns2sec = np.vectorize(lambda x: float(x)/1e9)
-t_arr = ns2sec(t_delta_arr)
-
-fig_q, ax_q = plt.subplots(1,1)
 fig_dq, ax_dq = plt.subplots(1,1)
 fig_tau, ax_tau = plt.subplots(1,1)
+fig_q, ax_q = plt.subplots(1,1)
 
-to_plot = [1,1,0,1,1,0,1]
-for i in range(7):
-    if not to_plot[i]: continue
-    ax_q.plot(t_arr, q_err_arr[:,i], label='q{}'.format(i))
-    ax_dq.plot(t_arr, dq_err_arr[:,i], label='dq{}'.format(i))
-    ax_tau.plot(t_arr, tau_err_arr[:,i], label='tau{}'.format(i))
 
 fig_q.canvas.manager.set_window_title('Joint configurations')
 fig_dq.canvas.manager.set_window_title('Joint velocities')
 fig_tau.canvas.manager.set_window_title('Joint torques')
+
+
+
+JOINTS_TO_PLOT = [1,1,1,1,1,1,1]
+COLORS = 'rgbcmyk'
+MSIZE = 3
+t_arr, q_err_arr, dq_err_arr, tau_err_arr = read_jsid_bag(BAG_PATHS[0], CONTROLLER_NAME)
+for i in range(7):
+    if not JOINTS_TO_PLOT[i]: continue
+    c = COLORS[i]
+    sym = '.'
+    ax_q.plot(t_arr, q_err_arr[:,i], f'{c}{sym}', label=f'q{i}', markersize=MSIZE)
+    ax_dq.plot(t_arr, dq_err_arr[:,i], f'{c}{sym}', label=f'dq{i}', markersize=MSIZE)
+    ax_tau.plot(t_arr, tau_err_arr[:,i], f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
+
+t_arr, q_err_arr, dq_err_arr, tau_err_arr = read_jsid_bag(BAG_PATHS[1], CONTROLLER_NAME)
+for i in range(7):
+    if not JOINTS_TO_PLOT[i]: continue
+    c = COLORS[i]
+    sym = 'x'
+    ax_q.plot(t_arr, q_err_arr[:,i], f'{c}{sym}', label=f'q{i}', markersize=MSIZE)
+    ax_dq.plot(t_arr, dq_err_arr[:,i], f'{c}{sym}', label=f'dq{i}', markersize=MSIZE)
+    ax_tau.plot(t_arr, tau_err_arr[:,i], f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
 
 
 ax_q.set_title('error')

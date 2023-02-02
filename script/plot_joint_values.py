@@ -22,13 +22,18 @@ CONTROLLER_NAME = 'joint_space_ID_controller'
 # BAG_NAME = 'joint_space_ID_controller_pin_stiff.bag'
 # YML_NAME = 'joint_space_ID_controller_pin_stiff.yaml'
 
-
-DIRECTORY = '../bags/'
+DIRECTORY = '/media/mfourmy/MEDUSB/Panda_expe'
 BAG_NAMES = [
-  'joint_space_ID_controller_LONG_expe.bag',
-  # 'joint_space_ID_controller_lowK_NoSat.bag',
-  'joint_space_ID_controller_lowK_Sat.bag',
+  'joint_space_ID_controller_franka_stiff.bag',
+  'joint_space_ID_controller_pin_stiff.bag',
 ]
+
+# DIRECTORY = '../bags/'
+# BAG_NAMES = [
+#   'joint_space_ID_controller_LONG_expe.bag',
+#   # 'joint_space_ID_controller_lowK_NoSat.bag',
+#   'joint_space_ID_controller_lowK_Sat.bag',
+# ]
 
 BAG_PATHS = [os.path.join(DIRECTORY, name) for name in BAG_NAMES]
 
@@ -47,7 +52,7 @@ fig_tau.canvas.manager.set_window_title('Joint torques')
 
 JOINTS_TO_PLOT = [1,1,1,1,1,1,1]
 COLORS = 'rgbcmyk'
-MSIZE = 3
+MSIZE = 5
 t_arr, q_err_arr, dq_err_arr, tau_err_arr = read_jsid_bag(BAG_PATHS[0], CONTROLLER_NAME)
 for i in range(7):
     if not JOINTS_TO_PLOT[i]: continue
@@ -67,9 +72,9 @@ for i in range(7):
     ax_tau.plot(t_arr, tau_err_arr[:,i], f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
 
 
-ax_q.set_title('error')
-ax_dq.set_title('error')
-ax_tau.set_title('error')
+# ax_q.set_title('error')
+# ax_dq.set_title('error')
+# ax_tau.set_title('error')
 ax_q.set_xlabel('t (s)')
 ax_dq.set_xlabel('t (s)')
 ax_tau.set_xlabel('t (s)')

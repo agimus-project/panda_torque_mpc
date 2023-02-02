@@ -37,9 +37,10 @@ def read_jsid_bag(bag_path, controller_name):
   df_tau = df_tau[:min_size]
 
   # Errors
-  q_err_arr   = np.asarray([l for l in df_q['error']])
-  dq_err_arr  = np.asarray([l for l in df_dq['error']])
-  tau_err_arr = np.asarray([l for l in df_tau['error']])
+  FIELD = 'measured'
+  q_err_arr   = np.asarray([l for l in df_q[FIELD]])
+  dq_err_arr  = np.asarray([l for l in df_dq[FIELD]])
+  tau_err_arr = np.asarray([l for l in df_tau[FIELD]])
 
   # Compute time indices
   idx_arr = df_q.index.to_numpy()

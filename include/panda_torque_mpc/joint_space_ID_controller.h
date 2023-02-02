@@ -67,10 +67,8 @@ class JointSpaceIDController :
   std::vector<hardware_interface::JointHandle> joint_handles_;
   
   // Torque saturation
-  Vector7d saturateTorqueRate(
-      const Vector7d& tau_d_calculated,
-      const Vector7d& tau_J_d);  // NOLINT (readability-identifier-naming)
-  const double kDeltaTauMax{1.0};  // using static constexpr creates an undefined symbol error
+  Vector7d saturateTorqueRate(const Vector7d& tau_d_calculated, const Vector7d& tau_J_d, double delta_max);
+  const double kDeltaTauMax_{1.0};  // using static constexpr creates an undefined symbol error
 
   // Controller parameters
   double Kp_, Kd_;                // IDControl
@@ -79,6 +77,7 @@ class JointSpaceIDController :
   JSIDVariant control_variant_;
   bool use_pinocchio_;
   double alpha_dq_filter_;
+  bool saturate_dtau_;
 
   // Current update state
   Vector7d last_q_r_;

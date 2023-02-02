@@ -74,6 +74,12 @@ bool JointSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
   }
   rate_trigger_ = franka_hw::TriggerRate(publish_rate);
 
+  int idc;
+  if (!node_handle.getParam("control_variant", idc)  || !(idc >= 0 && idc < 3)) {
+    ROS_ERROR_STREAM("JointSpaceIDController: Invalid or no control_variant parameters provided, aborting controller init! control_variant: " << idc);
+  }
+  control_variant_ = static_cast<JointSpaceIDController::JSIDVariant>(idc);
+
   if (!node_handle.getParam("use_pinocchio", use_pinocchio_)) {
     ROS_ERROR_STREAM("JointSpaceIDController: Could not read parameter use_pinocchio");
   }
@@ -82,11 +88,10 @@ bool JointSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
     ROS_ERROR_STREAM("JointSpaceIDController: Could not read parameter alpha_dq_filter");
   }
 
-  int idc;
-  if (!node_handle.getParam("control_variant", idc)  || !(idc >= 0 && idc < 3)) {
-    ROS_ERROR_STREAM("JointSpaceIDController: Invalid or no control_variant parameters provided, aborting controller init! control_variant: " << idc);
+  if (!node_handle.getParam("saturate_dtau", saturate_dtau_)) {
+    ROS_ERROR_STREAM("JointSpaceIDController: Could not read parameter saturate_dtau");
   }
-  control_variant_ = static_cast<JointSpaceIDController::JSIDVariant>(idc);
+
 
   // Load panda model with pinocchio
   std::string urdf_path;
@@ -166,6 +171,7 @@ void JointSpaceIDController::starting(const ros::Time& t0) {
 
 
 void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& period) {
+  // ROS_INFO_STREAM("JointSpaceIDController::update t: " << t);
 
   // Time since start of the controller
   double Dt = (t - t_init_).toSec();
@@ -179,6 +185,7 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   Eigen::Map<Vector7d> q_m(robot_state.q.data());
   Eigen::Map<Vector7d> dq_m(robot_state.dq.data());
   Eigen::Map<Vector7d> tau_m(robot_state.tau_J.data());  // measured torques -> naturally contains gravity torque
+  Eigen::Map<Vector7d> tau_J_d(robot_state.tau_J_d.data()); // desired torques (sent at previous iteration)
 
   // filter the joint velocity measurements
   dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
@@ -186,14 +193,13 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   // Compute desired torque
   Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, q_r, dq_r, ddq_r, control_variant_, use_pinocchio_);
 
-  // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
-  // 1000 * (1 / sampling_time).
-  // Vector7d tau_d_saturated = saturateTorqueRate(tau_d, Eigen::Map<Vector7d>(robot_state.tau_J_d.data()));
-  Vector7d tau_d_saturated = tau_d;
+  Vector7d tau_d_sat = saturate_dtau_ ?
+                             saturateTorqueRate(tau_d, tau_J_d, kDeltaTauMax_) :
+                             tau_d;
 
   // Send Torque Command
   for (size_t i = 0; i < 7; ++i) {
-    joint_handles_[i].setCommand(tau_d_saturated[i]);
+    joint_handles_[i].setCommand(tau_d_sat[i]);
   }
 
   ///////////////////
@@ -244,7 +250,7 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   // Store previous desired/reference values
   last_q_r_ = q_r; 
   last_dq_r_ = dq_r; 
-  last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
+  last_tau_d_ = tau_d_sat + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 }
 
 
@@ -371,19 +377,26 @@ void JointSpaceIDController::compute_sinusoid_joint_reference(const Vector7d& de
   ddq_r = (-w.array().square()*a.array()*cos(w.array()*t)).matrix();  // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
 }
 
-Vector7d JointSpaceIDController::saturateTorqueRate(
-    const Vector7d& tau_d,
-    const Vector7d& tau_J_d) {  // NOLINT (readability-identifier-naming)
-  Vector7d tau_d_saturated{};
-  for (size_t i = 0; i < 7; i++) {
-    double difference = tau_d[i] - tau_J_d[i];
-    double tau_corr_i = std::max(std::min(difference, kDeltaTauMax), -kDeltaTauMax);
-    tau_d_saturated[i] = tau_J_d[i] + tau_corr_i;
-    if (tau_corr_i > 0.0)
-      ROS_INFO_STREAM("saturateTorqueRate, joint " << i << ", tau_corr_i: " << tau_corr_i);
+Vector7d JointSpaceIDController::saturateTorqueRate(const Vector7d& tau_d, const Vector7d& tau_d_prev, double delta_max) {
 
+  // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is 1000 * (1 / sampling_time).
+
+  Vector7d tau_d_sat{};
+  for (size_t i = 0; i < 7; i++) {
+    double delta_tau_i = tau_d[i] - tau_d_prev[i];
+    double delta_tau_i_sat = std::max(std::min(delta_tau_i, delta_max), -delta_max);
+    tau_d_sat[i] = tau_d_prev[i] + delta_tau_i_sat;
+
+    if (abs(tau_d_sat[i] - tau_d[i]) > 1e-3){
+    // if (abs(delta_tau_i_sat - delta_tau_i) > 1e-3){
+      ROS_INFO_STREAM("  i, tau_d[i]: " << i << ", " << tau_d[i]);
+      ROS_INFO_STREAM("tau_d_prev[i]   : " << tau_d_prev[i]);
+      ROS_INFO_STREAM("delta_tau_i     : " << delta_tau_i);
+      ROS_INFO_STREAM("delta_tau_i_sat : " << delta_tau_i_sat);
+      ROS_INFO_STREAM("tau_d_sat[i]    : " << tau_d_sat[i]);
+    }
   }
-  return tau_d_saturated;
+  return tau_d_sat;
 }
 
 

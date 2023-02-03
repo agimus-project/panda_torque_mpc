@@ -291,19 +291,43 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
 
   // Create and solve least square problem to get desired joint acceleration
   
-  //////////////
-  // POSITION ONLY
-  Eigen::Vector3d e = T_o_e_m.translation() - x_r.translation();
-  Eigen::Vector3d de = nu_o_e_m.linear() - dx_r.linear();
-  Eigen::Vector3d ddx_d = ddx_r.linear() - Kd_ * de - Kp_ * e;
+  // ////////////
+  // // POSITION ONLY
+  // // UNSTABLE cause UNDERTERMINED!! (3 < 7 Dof constrained)
+  // Eigen::Vector3d e = T_o_e_m.translation() - x_r.translation();
+  // Eigen::Vector3d de = nu_o_e_m.linear() - dx_r.linear();
+  // Eigen::Vector3d ddx_d = ddx_r.linear() - Kd_ * de - Kp_ * e;
   
-  Eigen::MatrixXd A = J_pin.block<3,7>(0,0);
-  Eigen::VectorXd b = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
+  // Eigen::Matrix<double,3,7> A = J_pin.block<3,7>(0,0);
+  // Eigen::Matrix<double,3,1> b = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
+  // Vector7d ddq_d = A.colPivHouseholderQr().solve(b);
+  // ///////////////////////
+
+  // POSITION + CONFIGURATION REGULARIZATION
+  // Position task
+  Eigen::Vector3d ex = T_o_e_m.translation() - x_r.translation();
+  Eigen::Vector3d dex = nu_o_e_m.linear() - dx_r.linear();
+  Eigen::Vector3d ddx_d = ddx_r.linear() - Kd_ * dex - Kp_ * ex;
+
+  // Configuration task : q --> q_init
+  // Let's keep the same dynamics but alpha will handle the weighting between the 2 tasks
+  double Kpq = Kp_; 
+  double Kpdq = Kd_;
+  double alpha = 0.01;
+
+  // ddq_r = 0 = dq_r here 
+  Vector7d eq = q_m - q_init_;
+  Vector7d deq = dq_m;
+  Vector7d ddq_reg_d = - Kpq * eq - Kpdq * deq;
+
+  Eigen::Matrix<double,10,7> A; 
+  A.block<3,7>(0,0) = J_pin.block<3,7>(0,0);
+  A.block<7,7>(3,0) = pow(alpha,2) * Eigen::Matrix<double,7,7>::Identity();
+  Eigen::Matrix<double,10,1> b; 
+  b.segment<3>(0) = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
+  b.segment<7>(3) = pow(alpha,2) * ddq_reg_d;
   Vector7d ddq_d = A.colPivHouseholderQr().solve(b);
   ///////////////////////
-
-  // POSITION + CONFIGURATION REGULARIZATION --> TODO
-
 
   // /////////////////////////
   // // POSITION + ORIENTATION  --> NOPE
@@ -360,12 +384,12 @@ void TaskSpaceIDController::compute_sinusoid_pose_reference(const Vector6d& delt
   dx_r        = pin::Motion(         (-w.array()*a.array()*sin(w.array()*t)).matrix());
   ddx_r       = pin::Motion((-w.array().square()*a.array()*cos(w.array()*t)).matrix());  // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
 
-  ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference pose_0: \n" << pose_0);
-  ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference nu: \n" << nu.transpose());
-  ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference pin::exp6(nu): \n" << pin::exp6(nu));
+  // ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference pose_0: \n" << pose_0);
+  // ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference nu: \n" << nu.transpose());
+  // ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference pin::exp6(nu): \n" << pin::exp6(nu));
 
   x_r = pose_0 * pin::exp6(nu);
-  ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference x_r: \n" << x_r);
+  // ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference x_r: \n" << x_r);
 }
 
 Vector7d TaskSpaceIDController::saturateTorqueRate(

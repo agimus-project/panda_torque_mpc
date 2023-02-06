@@ -1,0 +1,17 @@
+<launch>
+  <arg name="record_joints" default="false"/>
+  <arg name="expe_name" default="expe"/>
+  <arg name="controller"  default="model_pinocchio_vs_franka_controller" doc="Choose controller to be launched. Check config/controller_configs.yaml to see which one are available." />
+
+  <!-- Dump controller related parameters for this experiment in a yaml file with similar name as bag file -->
+  <rosparam command="dump" file="$(find panda_torque_mpc)/bags/$(arg controller)_$(arg expe_name).yaml" ns="$(arg controller)" subst_value="true" />
+  
+  <node pkg="rosbag" type="record" name="rosbag_record_controller"
+        args="record --output-name $(find panda_torque_mpc)/bags/$(arg controller)_$(arg expe_name)
+                    /$(arg controller)/joint_configurations_comparison 
+                    /$(arg controller)/joint_velocities_comparison 
+                    /$(arg controller)/joint_torques_comparison"
+        if="$(arg record_joints)" 
+  />
+
+</launch>

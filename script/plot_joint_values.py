@@ -53,23 +53,31 @@ fig_tau.canvas.manager.set_window_title('Joint torques')
 JOINTS_TO_PLOT = [1,1,1,1,1,1,1]
 COLORS = 'rgbcmyk'
 MSIZE = 5
-t_arr, q_err_arr, dq_err_arr, tau_err_arr = read_jsid_bag(BAG_PATHS[0], CONTROLLER_NAME)
+
+titles = ['']
+ax_lst =  [ax_q, ax_dq, ax_tau]
+
+qtities = ['q', 'dq', 'tau']
+fields = ['err']
+
+
+d_res = read_jsid_bag(BAG_PATHS[0], CONTROLLER_NAME)
 for i in range(7):
     if not JOINTS_TO_PLOT[i]: continue
     c = COLORS[i]
     sym = '.'
-    ax_q.plot(t_arr, q_err_arr[:,i], f'{c}{sym}', label=f'q{i}', markersize=MSIZE)
-    ax_dq.plot(t_arr, dq_err_arr[:,i], f'{c}{sym}', label=f'dq{i}', markersize=MSIZE)
-    ax_tau.plot(t_arr, tau_err_arr[:,i], f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
+    ax_q.plot(d_res['t'], d_res['q_err'][:,i], f'{c}{sym}', label=f'q{i}', markersize=MSIZE)
+    ax_dq.plot(d_res['t'], d_res['dq_err'][:,i], f'{c}{sym}', label=f'dq{i}', markersize=MSIZE)
+    ax_tau.plot(d_res['t'], d_res['tau_err'][:,i], f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
 
-t_arr, q_err_arr, dq_err_arr, tau_err_arr = read_jsid_bag(BAG_PATHS[1], CONTROLLER_NAME)
+d_res = read_jsid_bag(BAG_PATHS[1], CONTROLLER_NAME)
 for i in range(7):
     if not JOINTS_TO_PLOT[i]: continue
     c = COLORS[i]
     sym = 'x'
-    ax_q.plot(t_arr, q_err_arr[:,i], f'{c}{sym}', label=f'q{i}', markersize=MSIZE)
-    ax_dq.plot(t_arr, dq_err_arr[:,i], f'{c}{sym}', label=f'dq{i}', markersize=MSIZE)
-    ax_tau.plot(t_arr, tau_err_arr[:,i], f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
+    ax_q.plot(d_res['t'], d_res['q_err'][:,i], f'{c}{sym}', label=f'q{i}', markersize=MSIZE)
+    ax_dq.plot(d_res['t'], d_res['dq_err'][:,i], f'{c}{sym}', label=f'dq{i}', markersize=MSIZE)
+    ax_tau.plot(d_res['t'], d_res['tau_err'][:,i], f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
 
 
 # ax_q.set_title('error')

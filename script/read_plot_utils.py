@@ -4,22 +4,44 @@ from pathlib import Path
 from rosbags.dataframe import get_dataframe
 from rosbags.highlevel import AnyReader
 
-# def index_2_tarr(index):
-#     # Compute time indices
-#     idx_arr = df_q.index.to_numpy()
-#     t_delta_arr = idx_arr - idx_arr[0] 
-#     ns2sec = np.vectorize(lambda x: float(x)/1e9)
-#     return ns2sec(t_delta_arr)
 
-# def trim_dataframes()
+def trim_dfs(df_lst):
+  min_size = len(min([df.index for df in df_lst], key=lambda idx: len(idx)))
+  for i in range(len(df_lst)):  
+    df_lst[i] = df_lst[i][:min_size]
+  return df_lst
+
+
+def index_2_tarr(index):
+    # Compute time indices
+    idx_arr = index.to_numpy()
+    t_delta_arr = idx_arr - idx_arr[0] 
+    ns2sec = np.vectorize(lambda x: float(x)/1e9)
+    return ns2sec(t_delta_arr)
+
+
+def df_col_vec_asarr(df, col_name):
+  return np.asarray([l for l in df[col_name]])
+
+
+def df_col_pose_asarr(df, col_name):
+  return np.asarray([[
+      msg.position.x, msg.position.y, msg.position.z, msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w
+    ] for msg in df[col_name]])
+
+
+def df_col_twist_asarr(df, col_name):
+  return np.asarray([[
+      msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y, msg.angular.z
+    ] for msg in df[col_name]])
 
 
 def read_jsid_bag(bag_path, controller_name):
 
   topics = [
-    '/{}/joint_configurations_comparison'.format(controller_name), 
-    '/{}/joint_velocities_comparison'.format(controller_name), 
-    '/{}/joint_torques_comparison'.format(controller_name)
+    f'/{controller_name}/joint_configurations_comparison', 
+    f'/{controller_name}/joint_velocities_comparison', 
+    f'/{controller_name}/joint_torques_comparison'
   ]
 
   fields = ['commanded', 'measured', 'error']
@@ -36,16 +58,71 @@ def read_jsid_bag(bag_path, controller_name):
   df_dq = df_dq[:min_size]
   df_tau = df_tau[:min_size]
 
-  # Errors
-  FIELD = 'measured'
-  q_err_arr   = np.asarray([l for l in df_q[FIELD]])
-  dq_err_arr  = np.asarray([l for l in df_dq[FIELD]])
-  tau_err_arr = np.asarray([l for l in df_tau[FIELD]])
 
-  # Compute time indices
-  idx_arr = df_q.index.to_numpy()
-  t_delta_arr = idx_arr - idx_arr[0] 
-  ns2sec = np.vectorize(lambda x: float(x)/1e9)
-  t_arr = ns2sec(t_delta_arr)
+  d_res = {
+    't': index_2_tarr(df_q.index),
 
-  return t_arr, q_err_arr, dq_err_arr, tau_err_arr
+    'q': {
+      'cmd': df_col_vec_asarr(df_q, 'commanded'),
+      'meas': df_col_vec_asarr(df_q, 'measured'),
+      'err': df_col_vec_asarr(df_q, 'error')
+    },
+
+    'dq': {
+      'cmd': df_col_vec_asarr(df_dq, 'commanded'),
+      'meas': df_col_vec_asarr(df_dq, 'measured'),
+      'err': df_col_vec_asarr(df_dq, 'error')
+    },
+
+    'tau': {
+      'cmd': df_col_vec_asarr(df_tau, 'commanded'),
+      'meas': df_col_vec_asarr(df_tau, 'measured'),
+      'err': df_col_vec_asarr(df_tau, 'error')
+    }
+  }
+
+  return d_res
+
+
+def read_tsid_bag(bag_path, controller_name):
+
+  topics = [
+    f'/{controller_name}/task_pose_comparison', 
+    f'/{controller_name}/task_twist_comparison', 
+    f'/{controller_name}/joint_torques_comparison'
+  ]
+
+  fields = ['commanded', 'measured', 'error']
+
+  with AnyReader([Path(bag_path)]) as reader:
+      df_x   = get_dataframe(reader, topics[0], fields)
+      df_dx  = get_dataframe(reader, topics[1], fields)
+      df_tau = get_dataframe(reader, topics[2], fields)
+
+
+  # there might be a one msg difference between the different topics in a same bag -> trim that
+  df_x, df_dx, df_tau = trim_dfs([df_x, df_dx, df_tau])
+
+  d_res = {
+    't': index_2_tarr(df_x.index),
+
+    'x': {
+      'cmd': df_col_pose_asarr(df_x, 'commanded'),
+      'meas': df_col_pose_asarr(df_x, 'measured'),
+      'err': df_col_pose_asarr(df_x, 'error')
+    },
+
+    'dx': {
+      'cmd': df_col_twist_asarr(df_dx, 'commanded'),
+      'meas': df_col_twist_asarr(df_dx, 'measured'),
+      'err': df_col_twist_asarr(df_dx, 'error')
+    },
+
+    'tau': {
+      'cmd': df_col_vec_asarr(df_tau, 'commanded'),
+      'meas': df_col_vec_asarr(df_tau, 'measured'),
+      'err': df_col_vec_asarr(df_tau, 'error')
+    }
+  }
+
+  return d_res

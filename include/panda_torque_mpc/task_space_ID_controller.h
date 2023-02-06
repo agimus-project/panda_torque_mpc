@@ -29,6 +29,8 @@
 #include <franka_hw/trigger_rate.h>
 
 #include "panda_torque_mpc/JointValuesComparison.h"
+#include "panda_torque_mpc/TaskPoseComparison.h"
+#include "panda_torque_mpc/TaskTwistComparison.h"
 
 #include "panda_torque_mpc/common.h"
 
@@ -81,8 +83,8 @@ class TaskSpaceIDController :
 
   // Publishers
   franka_hw::TriggerRate rate_trigger_{1.0};
-  realtime_tools::RealtimePublisher<JointValuesComparison> configurations_publisher_;
-  realtime_tools::RealtimePublisher<JointValuesComparison> velocities_publisher_;
+  realtime_tools::RealtimePublisher<TaskPoseComparison> task_pose_publisher_;
+  realtime_tools::RealtimePublisher<TaskTwistComparison> task_twist_publisher_;
   realtime_tools::RealtimePublisher<JointValuesComparison> torques_publisher_;
 
   // Pinocchio objects

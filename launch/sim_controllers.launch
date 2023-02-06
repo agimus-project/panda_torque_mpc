@@ -2,25 +2,21 @@
   <arg name="robot" default="panda" doc="choose your robot. Possible values: [panda, fr3]"/>
   <arg name="arm_id" default="$(arg robot)" />
 
-  <arg name="record" default="false"/>
+  <arg name="record_joints" default="false"/>
+  <arg name="record_task" default="false"/>
   <arg name="expe_name" default="expe"/>
   <arg name="controller"  default="model_pinocchio_vs_franka_controller" doc="Choose controller to be launched. Check config/controller_configs.yaml to see which one are available." />
 
   <rosparam command="load" file="$(find panda_torque_mpc)/config/controller_configs.yaml" subst_value="true" />
+  
+
   <!-- Dump controller related parameters for this experiment in a yaml file with similar name as bag file -->
-  <group if="$(arg record)">
-    <rosparam command="dump" file="$(find panda_torque_mpc)/bags/$(arg controller)_$(arg expe_name).yaml" ns="$(arg controller)" subst_value="true" />
+  <group if="$(arg record_joints)">
+    <include file="$(find panda_torque_mpc)/launch/record_joint_ctrl.launch" pass_all_args="true"/>
   </group>
-  
-  
-  <!-- record some topics (should be specified in yaml as well?)  -->
-  <node pkg="rosbag" type="record" name="rosbag_record_controller"
-        args="record --output-name $(find panda_torque_mpc)/bags/$(arg controller)_$(arg expe_name)
-                    /$(arg controller)/joint_configurations_comparison 
-                    /$(arg controller)/joint_velocities_comparison 
-                    /$(arg controller)/joint_torques_comparison"
-        if="$(arg record)" 
-  />
+  <group if="$(arg record_task)">
+    <include file="$(find panda_torque_mpc)/launch/record_task_ctrl.launch" pass_all_args="true"/>
+  </group>
 
   <!-- spawns the controller after "initialized" topic tells us the robot is initialized  -->
   <node pkg="controller_manager"

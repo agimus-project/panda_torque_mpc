@@ -218,13 +218,6 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
     Vector7d dq_error = last_dq_r_ - dq_m;
     Vector7d tau_error = last_tau_d_ - tau_m;
 
-    double q_error_rms = std::sqrt(q_error.array().square().sum()) / 7.0;
-    double dq_error_rms = std::sqrt(dq_error.array().square().sum()) / 7.0;
-    double tau_error_rms = std::sqrt(tau_error.array().square().sum()) / 7.0;
-    configurations_publisher_.msg_.root_mean_square_error = q_error_rms;
-    velocities_publisher_.msg_.root_mean_square_error = dq_error_rms;
-    torques_publisher_.msg_.root_mean_square_error = tau_error_rms;
-    
     for (size_t i = 0; i < 7; ++i) {
       // Joint config
       configurations_publisher_.msg_.commanded[i] = last_q_r_[i];

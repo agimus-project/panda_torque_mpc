@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   franka_hw
   franka_gripper
   geometry_msgs
+  visualization_msgs
   hardware_interface
   joint_limits_interface
   tf
@@ -21,7 +22,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   urdf
-  visualization_msgs
 )
 
 find_package(Eigen3 REQUIRED)
@@ -33,9 +33,11 @@ find_package(pinocchio REQUIRED)
 
 add_message_files(FILES
   JointValuesComparison.msg
+  TaskPoseComparison.msg
+  TaskTwistComparison.msg
 )
 
-generate_messages()
+generate_messages(DEPENDENCIES geometry_msgs)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -47,6 +49,7 @@ catkin_package(
     franka_hw
     franka_gripper
     geometry_msgs
+    visualization_msgs
     hardware_interface
     joint_limits_interface
     tf
@@ -56,7 +59,6 @@ catkin_package(
     realtime_tools
     roscpp
     urdf
-    visualization_msgs
   DEPENDS Franka
 )
 

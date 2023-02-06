@@ -134,8 +134,8 @@ bool TaskSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
     }
   }
 
-  configurations_publisher_.init(node_handle, "joint_configurations_comparison", 1);
-  velocities_publisher_.init(node_handle, "joint_velocities_comparison", 1);
+  task_pose_publisher_.init(node_handle, "task_pose_comparison", 1);
+  task_twist_publisher_.init(node_handle, "task_twist_comparison", 1);
   torques_publisher_.init(node_handle, "joint_torques_comparison", 1);
 
   dq_filtered_ = Vector7d::Zero();
@@ -171,6 +171,14 @@ void TaskSpaceIDController::update(const ros::Time& t, const ros::Duration& peri
   Eigen::Map<Vector7d> q_m(robot_state.q.data());
   Eigen::Map<Vector7d> dq_m(robot_state.dq.data());
   Eigen::Map<Vector7d> tau_m(robot_state.tau_J.data());  // measured torques -> naturally contains gravity torque
+  // End effector computed state
+  // FK and differential FK
+  pin::forwardKinematics(model_pin_, data_pin_, q_m, dq_m);
+  pin::updateFramePlacements(model_pin_, data_pin_);
+  auto fid = model_pin_.getFrameId(pin_frame_);
+  pin::SE3 T_o_e_m = data_pin_.oMf[fid];
+  pin::Motion nu_o_e_m = pin::getFrameVelocity(model_pin_, data_pin_, fid, pin::LOCAL_WORLD_ALIGNED);
+
 
   // filter the joint velocity measurements
   dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
@@ -200,36 +208,73 @@ void TaskSpaceIDController::update(const ros::Time& t, const ros::Duration& peri
     tau_m = -tau_m;  // SIMULATION
     // tau_m = tau_m;  // REAL
 
-    // Vector7d q_error = last_q_r_ - q_m;
-    // Vector7d dq_error = last_dq_r_ - dq_m;
+    // torque
     Vector7d tau_error = last_tau_d_ - tau_m;
+    // EE pose
+    Eigen::Vector3d p_o_e_err = T_o_e_m.translation() - x_r.translation();
+    Eigen::Quaterniond quat_r(x_r.rotation());
+    Eigen::Quaterniond quat_m(T_o_e_m.rotation());
+    Eigen::Quaterniond quat_err = quat_r.inverse() * quat_m;
+    // EE twist
+    Eigen::Vector3d v_o_e_err = nu_o_e_m.linear() - dx_r.linear();
+    Eigen::Vector3d omg_o_e_err = nu_o_e_m.angular() - dx_r.angular();
 
-    // double q_error_rms = std::sqrt(q_error.array().square().sum()) / 7.0;
-    // double dq_error_rms = std::sqrt(dq_error.array().square().sum()) / 7.0;
-    double tau_error_rms = std::sqrt(tau_error.array().square().sum()) / 7.0;
-    // configurations_publisher_.msg_.root_mean_square_error = q_error_rms;
-    // velocities_publisher_.msg_.root_mean_square_error = dq_error_rms;
-    torques_publisher_.msg_.root_mean_square_error = tau_error_rms;
-    
+    // EE Twists linear part
+    task_twist_publisher_.msg_.commanded.linear.x = dx_r.linear()[0];
+    task_twist_publisher_.msg_.commanded.linear.y = dx_r.linear()[1];
+    task_twist_publisher_.msg_.commanded.linear.z = dx_r.linear()[2];
+    task_twist_publisher_.msg_.measured.linear.x = nu_o_e_m.linear()[0];
+    task_twist_publisher_.msg_.measured.linear.y = nu_o_e_m.linear()[1];
+    task_twist_publisher_.msg_.measured.linear.z = nu_o_e_m.linear()[2];
+    task_twist_publisher_.msg_.error.linear.x = v_o_e_err[0];
+    task_twist_publisher_.msg_.error.linear.y = v_o_e_err[1];
+    task_twist_publisher_.msg_.error.linear.z = v_o_e_err[2];
+
+    // EE Twists angular part
+    task_twist_publisher_.msg_.commanded.angular.x = dx_r.angular()[0];
+    task_twist_publisher_.msg_.commanded.angular.y = dx_r.angular()[1];
+    task_twist_publisher_.msg_.commanded.angular.z = dx_r.angular()[2];
+    task_twist_publisher_.msg_.measured.angular.x = nu_o_e_m.angular()[0];
+    task_twist_publisher_.msg_.measured.angular.y = nu_o_e_m.angular()[1];
+    task_twist_publisher_.msg_.measured.angular.z = nu_o_e_m.angular()[2];
+    task_twist_publisher_.msg_.error.angular.x = omg_o_e_err[0];
+    task_twist_publisher_.msg_.error.angular.y = omg_o_e_err[1];
+    task_twist_publisher_.msg_.error.angular.z = omg_o_e_err[2];
+
+    // End effector position
+    task_pose_publisher_.msg_.commanded.position.x = x_r.translation()[0];
+    task_pose_publisher_.msg_.commanded.position.y = x_r.translation()[1];
+    task_pose_publisher_.msg_.commanded.position.z = x_r.translation()[2];
+    task_pose_publisher_.msg_.measured.position.x = T_o_e_m.translation()[0];
+    task_pose_publisher_.msg_.measured.position.y = T_o_e_m.translation()[1];
+    task_pose_publisher_.msg_.measured.position.z = T_o_e_m.translation()[2];
+    task_pose_publisher_.msg_.error.position.x = p_o_e_err[0];
+    task_pose_publisher_.msg_.error.position.y = p_o_e_err[1];
+    task_pose_publisher_.msg_.error.position.z = p_o_e_err[2];
+
+    // Quaternion
+    task_pose_publisher_.msg_.commanded.orientation.x = quat_r.x();
+    task_pose_publisher_.msg_.commanded.orientation.y = quat_r.y();
+    task_pose_publisher_.msg_.commanded.orientation.z = quat_r.z();
+    task_pose_publisher_.msg_.commanded.orientation.w = quat_r.w();
+    task_pose_publisher_.msg_.measured.orientation.x = quat_m.x();
+    task_pose_publisher_.msg_.measured.orientation.y = quat_m.y();
+    task_pose_publisher_.msg_.measured.orientation.z = quat_m.z();
+    task_pose_publisher_.msg_.measured.orientation.w = quat_m.w();
+    task_pose_publisher_.msg_.error.orientation.x = quat_err.x();
+    task_pose_publisher_.msg_.error.orientation.y = quat_err.y();
+    task_pose_publisher_.msg_.error.orientation.z = quat_err.z();
+    task_pose_publisher_.msg_.error.orientation.w = quat_err.w();
+
+    // Size 7 vectors
     for (size_t i = 0; i < 7; ++i) {
-      // // Joint config
-      // configurations_publisher_.msg_.commanded[i] = last_q_r_[i];
-      // configurations_publisher_.msg_.measured[i] = q_m[i];
-      // configurations_publisher_.msg_.error[i] = q_error[i];
-
-      // // Joint velocities
-      // velocities_publisher_.msg_.commanded[i] = last_dq_r_[i];
-      // velocities_publisher_.msg_.measured[i] = dq_m[i];
-      // velocities_publisher_.msg_.error[i] = dq_error[i];
-
-      // Joint torque
       torques_publisher_.msg_.commanded[i] = last_tau_d_[i];
       torques_publisher_.msg_.measured[i] = tau_m[i];
       torques_publisher_.msg_.error[i] = tau_error[i];
     }
 
-    // configurations_publisher_.unlockAndPublish();
-    // velocities_publisher_.unlockAndPublish();
+    task_pose_publisher_.unlockAndPublish();
+    task_twist_publisher_.unlockAndPublish();
     torques_publisher_.unlockAndPublish();
   }
 

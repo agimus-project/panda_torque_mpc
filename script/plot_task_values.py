@@ -11,7 +11,8 @@ CONTROLLER_NAME = 'task_space_ID_controller'
 
 DIRECTORY = '../bags/'
 EXPE_NAMES = [
-  'expe',
+  # 'expe',
+  'stiffer',
 ]
 
 

@@ -164,8 +164,6 @@ void TaskSpaceIDController::update(const ros::Time& t, const ros::Duration& peri
   pin::Motion dx_r, ddx_r;
   compute_sinusoid_pose_reference(delta_nu_, period_nu_, x_init_, Dt, x_r, dx_r, ddx_r);
 
-  ROS_INFO_STREAM("TaskSpaceIDController::update x_r: \n" << x_r);
-
   // Retrieve current measured robot state
   franka::RobotState robot_state = franka_state_handle_->getRobotState();  // return a const& of RobotState object -> not going to be modified
   Eigen::Map<Vector7d> q_m(robot_state.q.data());
@@ -211,8 +209,8 @@ void TaskSpaceIDController::update(const ros::Time& t, const ros::Duration& peri
     // torque
     Vector7d tau_error = last_tau_d_ - tau_m;
     // EE pose
-    Eigen::Vector3d p_o_e_err = T_o_e_m.translation() - x_r.translation();
-    Eigen::Quaterniond quat_r(x_r.rotation());
+    Eigen::Vector3d p_o_e_err = T_o_e_m.translation() - last_x_r_.translation();
+    Eigen::Quaterniond quat_r(last_x_r_.rotation());
     Eigen::Quaterniond quat_m(T_o_e_m.rotation());
     Eigen::Quaterniond quat_err = quat_r.inverse() * quat_m;
     // EE twist
@@ -279,8 +277,8 @@ void TaskSpaceIDController::update(const ros::Time& t, const ros::Duration& peri
   }
 
   // Store previous desired/reference values
-  // last_q_r_ = q_r; 
-  // last_dq_r_ = dq_r; 
+  last_x_r_ = x_r; 
+  last_dx_r_ = dx_r; 
   last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 }
 

@@ -71,6 +71,8 @@ class TaskSpaceIDController :
   double alpha_dq_filter_;
 
   // Current update state
+  pin::SE3 last_x_r_;
+  pin::Motion last_dx_r_;
   Vector7d last_q_r_;
   Vector7d last_dq_r_;
   Vector7d last_tau_d_{};

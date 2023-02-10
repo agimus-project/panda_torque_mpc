@@ -57,7 +57,8 @@ class JointSpaceIDController :
   enum JSIDVariant {
     IDControl,
     IDControlSimplified,
-    PDGravity
+    PDGravity,
+    PureGravity
   };
 
  private:

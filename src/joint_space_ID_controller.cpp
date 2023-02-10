@@ -349,6 +349,16 @@ Vector7d JointSpaceIDController::compute_desired_torque(
       tau_d = - kp_gains_.cwiseProduct(e) - kd_gains_.cwiseProduct(de); 
 
       break;
+    case JSIDVariant::PureGravity:
+      // ROS_INFO_STREAM("JSIDVariant::PureGravity, pinocchio: " << use_pinocchio_);
+      /** 
+       * tau_cmd = g(q)
+       * 
+       * Rely purely on the gravity compensation implemented in Panda -> might be UNSTABLE
+      */
+      tau_d = Vector7d::Zero(); 
+
+      break;
     default:
       ROS_INFO_STREAM("JSIDVariant " << control_variant << " not implemented !!!!");
 

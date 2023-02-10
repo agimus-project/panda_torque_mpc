@@ -62,6 +62,7 @@ joint_space_ID_controller:
     # 0: IDControl
     # 1: IDControlSimplified
     # 2: PDGravity
+    # 3: PureGravity
     control_variant: 0
     use_pinocchio: true
     alpha_dq_filter: 0.99 # should be close to 1 and <= 1.0

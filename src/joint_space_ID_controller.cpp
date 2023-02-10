@@ -187,12 +187,13 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
   Eigen::Map<Vector7d> tau_m(robot_state.tau_J.data());  // measured torques -> naturally contains gravity torque
   Eigen::Map<Vector7d> tau_J_d(robot_state.tau_J_d.data()); // desired torques (sent at previous iteration)
 
-  // filter the joint velocity measurements
+  // Filter the joint velocity measurements
   dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
 
   // Compute desired torque
   Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, q_r, dq_r, ddq_r, control_variant_, use_pinocchio_);
 
+  // Compare torques sent at previous iteration with current desired torques, saturate if needed
   Vector7d tau_d_sat = saturate_dtau_ ?
                              saturateTorqueRate(tau_d, tau_J_d, kDeltaTauMax_) :
                              tau_d;
@@ -210,6 +211,7 @@ void JointSpaceIDController::update(const ros::Time& t, const ros::Duration& per
 
     /**
      * Measured torque in simulation returns -tau while running with real robot returns tau --___--
+     * Does NOT influence the control law though
      */
     tau_m = -tau_m;  // SIMULATION
     // tau_m = tau_m;  // REAL

@@ -15,7 +15,7 @@
   
 
   <!-- Start the node interfacing with libfranka to control the robot -->
-  <include file="$(find franka_control)/launch/franka_control.launch" pass_all_args="true"/>
+  <include file="$(find panda_torque_mpc)/launch/franka_control.launch" pass_all_args="true"/>
 
   <!-- record some topics (should be specified in yaml as well?)  -->
   <node pkg="rosbag" type="record" name="rosbag_record_controller"

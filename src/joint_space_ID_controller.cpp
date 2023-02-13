@@ -75,7 +75,7 @@ bool JointSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
   rate_trigger_ = franka_hw::TriggerRate(publish_rate);
 
   int idc;
-  if (!node_handle.getParam("control_variant", idc)  || !(idc >= 0 && idc < 3)) {
+  if (!node_handle.getParam("control_variant", idc)  || !(idc >= 0 && idc < 4)) {
     ROS_ERROR_STREAM("JointSpaceIDController: Invalid or no control_variant parameters provided, aborting controller init! control_variant: " << idc);
   }
   control_variant_ = static_cast<JointSpaceIDController::JSIDVariant>(idc);

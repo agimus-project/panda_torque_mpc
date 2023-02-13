@@ -3,6 +3,9 @@ model_pinocchio_vs_franka_controller:
   arm_id: $(arg arm_id)
   urdf_path: $(find panda_torque_mpc)/config/panda_inertias_nohand.urdf
 
+log_update_dt:
+  type: panda_torque_mpc/LogUpdateDt
+  arm_id: $(arg arm_id)
 
 joint_space_ID_controller:
     type: panda_torque_mpc/JointSpaceIDController

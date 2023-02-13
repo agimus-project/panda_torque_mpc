@@ -44,11 +44,12 @@ In two different shells:
 * Bring robot to init position  
 `roslaunch franka_example_controllers move_to_start.launch robot_ip:=192.168.102.11 load_gripper:=false robot:=panda`
 * Start one of the custom controllers  
-`roslaunch panda_torque_mpc real_controller.launch controller:=<controller-name> robot_ip:=192.168.102.11 load_gripper:=false robot:=panda`
+`roslaunch panda_torque_mpc real_controllers.launch controller:=<controller-name> robot_ip:=192.168.102.11 load_gripper:=false robot:=panda`
 
 ## Custom controllers
 The parameters of each controller are defined in `config/controller_configs.yaml`. To run one of them in simulation or real, replace <controller-name> with:
 * `model_pinocchio_vs_franka_controller`: compare Rigid Body Dynamics computation between pinocchio and libfranka
+* `log_update_dt`: logs ::update time and duration parameters in a csv file to investigate RT control
 * `joint_space_ID_controller`: follow joint trajectory reference using different flavors of joint space Inverse Dynamics 
 * `task_space_ID_controller`: TOTEST 
 

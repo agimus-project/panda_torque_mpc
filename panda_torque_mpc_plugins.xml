@@ -6,6 +6,13 @@
       A controller that only compares Rigib Body Dynamics Algorithm values computed from Franka and pinocchio. 
     </description>
   </class>
+  <class name="panda_torque_mpc/LogUpdateDt" 
+         type="panda_torque_mpc::LogUpdateDt" 
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      Saves time and duration of update function to a file. 
+    </description>
+  </class>
   <class name="panda_torque_mpc/JointSpaceIDController" 
          type="panda_torque_mpc::JointSpaceIDController" 
          base_class_type="controller_interface::ControllerBase">
@@ -20,4 +27,5 @@
       A controller that tracks a self generated end effector trajectory using task space PD+ control. 
     </description>
   </class>
+
 </library>

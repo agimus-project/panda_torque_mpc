@@ -106,5 +106,9 @@ task_space_ID_controller:
         - 5.0
         - 5.0
     publish_rate: 10.0
+    # 0: PosiPosture  # works
+    # 1: PosePosture  # not working
+    # 2: TSID         # TODO
+    control_variant: 0
     use_pinocchio: true
     alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0

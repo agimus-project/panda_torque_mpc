@@ -53,6 +53,13 @@ class TaskSpaceIDController :
   void stopping(const ros::Time&) override;
 
  private:
+
+  enum TSIDVariant {
+    PosiPosture,
+    PosePosture,
+    TSID
+  };
+
   // Handles  
   std::unique_ptr<franka_hw::FrankaModelHandle> franka_model_handle_;
   std::unique_ptr<franka_hw::FrankaStateHandle> franka_state_handle_;
@@ -65,6 +72,7 @@ class TaskSpaceIDController :
   const double kDeltaTauMax_{1.0};  // using static constexpr creates an undefined symbol error
 
   // Controller parameters
+  TSIDVariant control_variant_;
   double Kp_, Kd_;                // task space gains Control
   Vector6d delta_nu_, period_nu_;   // trajectory specification
   bool use_pinocchio_;
@@ -111,7 +119,7 @@ class TaskSpaceIDController :
   Vector7d compute_desired_torque(
       const Vector7d& q_m, const Vector7d& dq_m, const Vector7d& dq_filtered, 
       const pin::SE3& x_r, const pin::Motion& dx_r, const pin::Motion& ddx_r, 
-      bool use_pinocchio);
+      TSIDVariant control_variant, bool use_pinocchio);
 
   /**
    * \brief Generate a (cos)sinusoidal target trajectory of end effector pose.

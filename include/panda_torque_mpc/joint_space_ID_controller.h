@@ -54,6 +54,9 @@ class JointSpaceIDController :
   void update(const ros::Time&, const ros::Duration& period) override;
   void stopping(const ros::Time&) override;
 
+
+ private:
+
   enum JSIDVariant {
     IDControl,
     IDControlSimplified,
@@ -61,7 +64,6 @@ class JointSpaceIDController :
     PureGravity
   };
 
- private:
   // Handles  
   std::unique_ptr<franka_hw::FrankaModelHandle> franka_model_handle_;
   std::unique_ptr<franka_hw::FrankaStateHandle> franka_state_handle_;

@@ -61,6 +61,12 @@ bool TaskSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
   }
   rate_trigger_ = franka_hw::TriggerRate(publish_rate);
 
+  int idc;
+  if (!node_handle.getParam("control_variant", idc)  || !(idc >= 0 && idc < 3)) {
+    ROS_ERROR_STREAM("TaskSpaceIDController: Invalid or no control_variant parameters provided, aborting controller init! control_variant: " << idc);
+  }
+  control_variant_ = static_cast<TaskSpaceIDController::TSIDVariant>(idc);
+
   if (!node_handle.getParam("use_pinocchio", use_pinocchio_)) {
     ROS_ERROR_STREAM("TaskSpaceIDController: Could not read parameter use_pinocchio");
   }
@@ -182,7 +188,7 @@ void TaskSpaceIDController::update(const ros::Time& t, const ros::Duration& peri
   dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
 
   // Compute desired torque
-  Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r, dx_r, ddx_r, use_pinocchio_);
+  Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r, dx_r, ddx_r, control_variant_, use_pinocchio_);
 
   // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
   // 1000 * (1 / sampling_time).
@@ -286,7 +292,7 @@ void TaskSpaceIDController::update(const ros::Time& t, const ros::Duration& peri
 Vector7d TaskSpaceIDController::compute_desired_torque(
       const Vector7d& q_m, const Vector7d& dq_m, const Vector7d& dq_filtered, 
       const pin::SE3& x_r, const pin::Motion& dx_r, const pin::Motion& ddx_r, 
-      bool use_pinocchio)
+      TSIDVariant control_variant, bool use_pinocchio)
 {
 
   /** 
@@ -331,61 +337,103 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
   pin::computeJointJacobiansTimeVariation(model_pin_, data_pin_, q_m, dq_m);
   pin::getFrameJacobianTimeVariation(model_pin_, data_pin_, fid, pin::LOCAL_WORLD_ALIGNED, dJ_pin);
 
+  Vector7d ddq_d;  // desired joint acceleration
+  switch(control_variant) {
+    case TSIDVariant::PosiPosture:
+      {
+      ROS_INFO_STREAM("TSIDVariant::PosiPosture, pinocchio: " << use_pinocchio_);
+      // ////////////
+      // // POSITION ONLY
+      // // UNSTABLE cause UNDERTERMINED!! (3 < 7 Dof constrained)
+      // Eigen::Vector3d e = T_o_e_m.translation() - x_r.translation();
+      // Eigen::Vector3d de = nu_o_e_m.linear() - dx_r.linear();
+      // Eigen::Vector3d ddx_d = ddx_r.linear() - Kd_ * de - Kp_ * e;
 
-  // Create and solve least square problem to get desired joint acceleration
-  
-  // ////////////
-  // // POSITION ONLY
-  // // UNSTABLE cause UNDERTERMINED!! (3 < 7 Dof constrained)
-  // Eigen::Vector3d e = T_o_e_m.translation() - x_r.translation();
-  // Eigen::Vector3d de = nu_o_e_m.linear() - dx_r.linear();
-  // Eigen::Vector3d ddx_d = ddx_r.linear() - Kd_ * de - Kp_ * e;
-  
-  // Eigen::Matrix<double,3,7> A = J_pin.block<3,7>(0,0);
-  // Eigen::Matrix<double,3,1> b = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
-  // Vector7d ddq_d = A.colPivHouseholderQr().solve(b);
-  // ///////////////////////
+      // Eigen::Matrix<double,3,7> A = J_pin.block<3,7>(0,0);
+      // Eigen::Matrix<double,3,1> b = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
+      // ddq_d = A.colPivHouseholderQr().solve(b);
+      // ///////////////////////
 
-  // POSITION + CONFIGURATION REGULARIZATION
-  // Position task
-  Eigen::Vector3d ex = T_o_e_m.translation() - x_r.translation();
-  Eigen::Vector3d dex = nu_o_e_m.linear() - dx_r.linear();
-  Eigen::Vector3d ddx_d = ddx_r.linear() - Kd_ * dex - Kp_ * ex;
+      ////////////
+      // EE POSITION + POSTURE tasks
+      // Position task
+      Eigen::Vector3d ex = T_o_e_m.translation() - x_r.translation();
+      Eigen::Vector3d dex = nu_o_e_m.linear() - dx_r.linear();
+      Eigen::Vector3d ddx_d = ddx_r.linear() - Kd_ * dex - Kp_ * ex;
 
-  // Configuration task : q --> q_init
-  // Let's keep the same dynamics but alpha will handle the weighting between the 2 tasks
-  double Kpq = Kp_; 
-  double Kpdq = Kd_;
-  double alpha = 0.01;
+      // Posture task : q --> q_init
+      // Let's keep the same dynamics but alpha will handle the weighting between the 2 tasks
+      double Kpq = Kp_; 
+      double Kpdq = Kd_;
+      double alpha = 0.01;
+      // ddq_r = 0 = dq_r here 
+      Vector7d eq = q_m - q_init_;
+      Vector7d deq = dq_m;
+      Vector7d ddq_reg_d = - Kpq * eq - Kpdq * deq;
 
-  // ddq_r = 0 = dq_r here 
-  Vector7d eq = q_m - q_init_;
-  Vector7d deq = dq_m;
-  Vector7d ddq_reg_d = - Kpq * eq - Kpdq * deq;
+      // Create and solve least square problem to get desired joint acceleration
+      Eigen::Matrix<double,10,7> A; 
+      A.block<3,7>(0,0) = J_pin.block<3,7>(0,0);
+      A.block<7,7>(3,0) = pow(alpha,2) * Eigen::Matrix<double,7,7>::Identity();
+      Eigen::Matrix<double,10,1> b; 
+      b.segment<3>(0) = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
+      b.segment<7>(3) = pow(alpha,2) * ddq_reg_d;
+      ddq_d = A.colPivHouseholderQr().solve(b);
 
-  Eigen::Matrix<double,10,7> A; 
-  A.block<3,7>(0,0) = J_pin.block<3,7>(0,0);
-  A.block<7,7>(3,0) = pow(alpha,2) * Eigen::Matrix<double,7,7>::Identity();
-  Eigen::Matrix<double,10,1> b; 
-  b.segment<3>(0) = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
-  b.segment<7>(3) = pow(alpha,2) * ddq_reg_d;
-  Vector7d ddq_d = A.colPivHouseholderQr().solve(b);
-  ///////////////////////
+      break;
+      }
+    case TSIDVariant::PosePosture: 
+      {
+      ROS_INFO_STREAM("TSIDVariant::PosePosture, pinocchio: " << use_pinocchio_);
 
-  // /////////////////////////
-  // // POSITION + ORIENTATION  --> NOPE
-  // // pin::SE3 e = x_r.inverse() * T_o_e_m;
-  // pin::SE3 e = T_o_e_m.inverse() * x_r;
-  // pin::Motion de = nu_o_e_m - dx_r;
-  // Vector6d ddx_d = ddx_r - Kd_*de - Kp_*pin::log6(e);
+      // EE SE3 POSE + POSTURE tasks  --> NOPE, likely problem with the jacobian computation
+      // End effector pose task
+      // pin::SE3 e = x_r.inverse() * T_o_e_m;
+      pin::SE3 e = T_o_e_m.inverse() * x_r;
+      pin::Motion de = nu_o_e_m - dx_r;
+      Vector6d ddx_d = ddx_r - Kd_*de - Kp_*pin::log6(e);
+      Eigen::Matrix<double, 6, 6> Jlog; pin::Jlog6(e, Jlog);
+        
+      // Posture task : q --> q_init
+      // Let's keep the same dynamics but alpha will handle the weighting between the 2 tasks
+      double Kpq = Kp_; 
+      double Kpdq = Kd_;
+      double alpha = 0.01;
+      // ddq_r = 0 = dq_r here 
+      Vector7d eq = q_m - q_init_;
+      Vector7d deq = dq_m;
+      Vector7d ddq_reg_d = - Kpq * eq - Kpdq * deq;
 
-  // // Create and solve least square problem to get desired joint acceleration
-  // Eigen::Matrix<double, 6, 6> Jlog; pin::Jlog6(e, Jlog);
-  // Eigen::MatrixXd A =  Jlog * J_pin;
-  // Eigen::VectorXd b = ddx_d - dJ_pin * dq_m;
-  // Vector7d ddq_d = A.colPivHouseholderQr().solve(b);
-  // /////////////////////////
-  
+      // SE3 ONLY -> UNDERDETERMINED
+      // Eigen::Matrix<double, 6, 7> A = Jlog * J_pin;
+      // Eigen::Matrix<double, 6, 7> b = ddx_d - dJ_pin * dq_m;
+      // ddq_d = A.colPivHouseholderQr().solve(b);
+
+      // Create and solve least square problem to get desired joint acceleration
+      Eigen::Matrix<double,13,7> A; 
+      A.block<6,7>(0,0) = Jlog * J_pin;
+      A.block<7,7>(6,0) = pow(alpha,2) * Eigen::Matrix<double,7,7>::Identity();
+      Eigen::Matrix<double,13,1> b; 
+      b.segment<6>(0) = ddx_d - dJ_pin * dq_m;
+      b.segment<7>(6) = pow(alpha,2) * ddq_reg_d;
+      ddq_d = A.colPivHouseholderQr().solve(b);
+
+      break;
+      }
+    case TSIDVariant::TSID:
+      ROS_INFO_STREAM("TSIDVariant::TSID, pinocchio: " << use_pinocchio_);
+      // 
+      // 
+      // todo
+      // 
+      // 
+      break;
+
+  }
+
+
+
+
 
   Vector7d tau_d;
   if (use_pinocchio_){

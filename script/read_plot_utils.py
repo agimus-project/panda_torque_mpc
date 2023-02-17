@@ -63,21 +63,21 @@ def read_jsid_bag(bag_path, controller_name):
     't': index_2_tarr(df_q.index),
 
     'q': {
-      'cmd': df_col_vec_asarr(df_q, 'commanded'),
-      'meas': df_col_vec_asarr(df_q, 'measured'),
-      'err': df_col_vec_asarr(df_q, 'error')
+      'commanded': df_col_vec_asarr(df_q, 'commanded'),
+      'measured': df_col_vec_asarr(df_q, 'measured'),
+      'error': df_col_vec_asarr(df_q, 'error')
     },
 
     'dq': {
-      'cmd': df_col_vec_asarr(df_dq, 'commanded'),
-      'meas': df_col_vec_asarr(df_dq, 'measured'),
-      'err': df_col_vec_asarr(df_dq, 'error')
+      'commanded': df_col_vec_asarr(df_dq, 'commanded'),
+      'measured': df_col_vec_asarr(df_dq, 'measured'),
+      'error': df_col_vec_asarr(df_dq, 'error')
     },
 
     'tau': {
-      'cmd': df_col_vec_asarr(df_tau, 'commanded'),
-      'meas': df_col_vec_asarr(df_tau, 'measured'),
-      'err': df_col_vec_asarr(df_tau, 'error')
+      'commanded': df_col_vec_asarr(df_tau, 'commanded'),
+      'measured': df_col_vec_asarr(df_tau, 'measured'),
+      'error': df_col_vec_asarr(df_tau, 'error')
     }
   }
 
@@ -107,21 +107,21 @@ def read_tsid_bag(bag_path, controller_name):
     't': index_2_tarr(df_x.index),
 
     'x': {
-      'cmd': df_col_pose_asarr(df_x, 'commanded'),
-      'meas': df_col_pose_asarr(df_x, 'measured'),
-      'err': df_col_pose_asarr(df_x, 'error')
+      'commanded': df_col_pose_asarr(df_x, 'commanded'),
+      'measured': df_col_pose_asarr(df_x, 'measured'),
+      'error': df_col_pose_asarr(df_x, 'error')
     },
 
     'dx': {
-      'cmd': df_col_twist_asarr(df_dx, 'commanded'),
-      'meas': df_col_twist_asarr(df_dx, 'measured'),
-      'err': df_col_twist_asarr(df_dx, 'error')
+      'commanded': df_col_twist_asarr(df_dx, 'commanded'),
+      'measured': df_col_twist_asarr(df_dx, 'measured'),
+      'error': df_col_twist_asarr(df_dx, 'error')
     },
 
     'tau': {
-      'cmd': df_col_vec_asarr(df_tau, 'commanded'),
-      'meas': df_col_vec_asarr(df_tau, 'measured'),
-      'err': df_col_vec_asarr(df_tau, 'error')
+      'commanded': df_col_vec_asarr(df_tau, 'commanded'),
+      'measured': df_col_vec_asarr(df_tau, 'measured'),
+      'error': df_col_vec_asarr(df_tau, 'error')
     }
   }
 

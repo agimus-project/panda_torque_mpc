@@ -16,7 +16,6 @@
 #include <pinocchio/algorithm/crba.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 
-
 #include <controller_interface/multi_interface_controller.h>
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/robot_hw.h>
@@ -34,6 +33,7 @@
 
 #include "panda_torque_mpc/common.h"
 
+#include "tsid_reaching.h"
 
 namespace panda_torque_mpc {
 
@@ -74,6 +74,7 @@ class TaskSpaceIDController :
   // Controller parameters
   TSIDVariant control_variant_;
   double Kp_, Kd_;                // task space gains Control
+  double w_posture_;              // tasks relative weights
   Vector6d delta_nu_, period_nu_;   // trajectory specification
   bool use_pinocchio_;
   double alpha_dq_filter_;
@@ -101,9 +102,12 @@ class TaskSpaceIDController :
   pin::Model model_pin_;
   pin::Data data_pin_;
 
+  // Tsid formulation
+  TsidReaching tsid_reachin_;
+
   // other 
   franka::Frame franka_frame_;
-  std::string pin_frame_;
+  std::string ee_frame_pin_;
 
   /**
    * \brief Compute torque required to achieve end effector pose trajectory tracking.
@@ -134,6 +138,10 @@ class TaskSpaceIDController :
   */
   void compute_sinusoid_pose_reference(const Vector6d& delta_nu, const Vector6d& period_nu, const pin::SE3& pose_0, double t,
                                        pin::SE3& x_r, pin::Motion& dx_r, pin::Motion& ddx_r);
+
+
+  // void setup_tsid_formulation(const std::string urdf_path& urdf_path,
+  //                             tsid::robots::RobotWrapper& tsid_robot, tsid::InverseDynamicsFormulationAccForce tsid_formulation);
 
 };
 

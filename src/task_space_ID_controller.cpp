@@ -9,6 +9,11 @@
 
 #include <franka/robot_state.h>
 
+// #include <tsid/tasks/task-se3-equality.hpp>
+// #include <tsid/tasks/task-joint-posture.hpp>
+// #include <tsid/tasks/task-actuation-bounds.hpp>
+// #include <tsid/tasks/task-joint-bounds.hpp>
+// #include <tsid/trajectories/trajectory-euclidian.hpp>
 
 namespace panda_torque_mpc {
 
@@ -37,6 +42,11 @@ bool TaskSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
 
   if (!node_handle.getParam("Kd", Kd_)) {
     ROS_ERROR("TaskSpaceIDController: Could not read parameter Kd");
+    return false;
+  }
+
+  if (!node_handle.getParam("w_posture", w_posture_)) {
+    ROS_ERROR("TaskSpaceIDController: Could not read parameter w_posture");
     return false;
   }
 
@@ -93,8 +103,21 @@ bool TaskSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
 
   // Define corresponding frame id for pinocchio and Franka (see model_pinocchio_vs_franka_controller)
   franka_frame_ = franka::Frame::kFlange;
-  pin_frame_ = "panda_link8";
-  
+  ee_frame_pin_ = "panda_link8";
+
+
+  /////////////////////////////////////////////////
+  /////////////////////////////////////////////////
+  //                    TSID                     //
+  /////////////////////////////////////////////////
+  /////////////////////////////////////////////////
+
+
+  /////////////////////////////////////////////////
+  /////////////////////////////////////////////////
+  /////////////////////////////////////////////////
+  /////////////////////////////////////////////////
+
 
   ///////////////////
   // Claim interfaces
@@ -155,7 +178,12 @@ void TaskSpaceIDController::starting(const ros::Time& t0) {
   q_init_ = Eigen::Map<const Vector7d>(franka_state_handle_->getRobotState().q.data());
   pin::forwardKinematics(model_pin_, data_pin_, q_init_);
   pin::updateFramePlacements(model_pin_, data_pin_);
-  x_init_ = data_pin_.oMf[model_pin_.getFrameId(pin_frame_)];
+  x_init_ = data_pin_.oMf[model_pin_.getFrameId(ee_frame_pin_)];
+
+  // Only for TSID
+  auto trajPosture = tsid::trajectories::TrajectoryEuclidianConstant("traj_joint", q_init_);
+  postureTask_.setReference(trajPosture.computeNext());
+
   ROS_INFO_STREAM("TaskSpaceIDController::starting x_init_: \n" << x_init_);
 }
 
@@ -179,7 +207,7 @@ void TaskSpaceIDController::update(const ros::Time& t, const ros::Duration& peri
   // FK and differential FK
   pin::forwardKinematics(model_pin_, data_pin_, q_m, dq_m);
   pin::updateFramePlacements(model_pin_, data_pin_);
-  auto fid = model_pin_.getFrameId(pin_frame_);
+  auto fid = model_pin_.getFrameId(ee_frame_pin_);
   pin::SE3 T_o_e_m = data_pin_.oMf[fid];
   pin::Motion nu_o_e_m = pin::getFrameVelocity(model_pin_, data_pin_, fid, pin::LOCAL_WORLD_ALIGNED);
 
@@ -325,7 +353,7 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
   // FK and differential FK
   pin::forwardKinematics(model_pin_, data_pin_, q_m, dq_m);
   pin::updateFramePlacements(model_pin_, data_pin_);
-  auto fid = model_pin_.getFrameId(pin_frame_);
+  auto fid = model_pin_.getFrameId(ee_frame_pin_);
   pin::SE3 T_o_e_m = data_pin_.oMf[fid];
   pin::Motion nu_o_e_m = pin::getFrameVelocity(model_pin_, data_pin_, fid, pin::LOCAL_WORLD_ALIGNED);
 
@@ -363,21 +391,18 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
 
       // Posture task : q --> q_init
       // Let's keep the same dynamics but alpha will handle the weighting between the 2 tasks
-      double Kpq = Kp_; 
-      double Kpdq = Kd_;
-      double alpha = 0.01;
       // ddq_r = 0 = dq_r here 
       Vector7d eq = q_m - q_init_;
       Vector7d deq = dq_m;
-      Vector7d ddq_reg_d = - Kpq * eq - Kpdq * deq;
+      Vector7d ddq_reg_d = - Kp_ * eq - Kd_ * deq;
 
       // Create and solve least square problem to get desired joint acceleration
       Eigen::Matrix<double,10,7> A; 
       A.block<3,7>(0,0) = J_pin.block<3,7>(0,0);
-      A.block<7,7>(3,0) = pow(alpha,2) * Eigen::Matrix<double,7,7>::Identity();
+      A.block<7,7>(3,0) = pow(w_posture_,2) * Eigen::Matrix<double,7,7>::Identity();
       Eigen::Matrix<double,10,1> b; 
       b.segment<3>(0) = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
-      b.segment<7>(3) = pow(alpha,2) * ddq_reg_d;
+      b.segment<7>(3) = pow(w_posture_,2) * ddq_reg_d;
       ddq_d = A.colPivHouseholderQr().solve(b);
 
       break;
@@ -396,13 +421,10 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
         
       // Posture task : q --> q_init
       // Let's keep the same dynamics but alpha will handle the weighting between the 2 tasks
-      double Kpq = Kp_; 
-      double Kpdq = Kd_;
-      double alpha = 0.01;
       // ddq_r = 0 = dq_r here 
       Vector7d eq = q_m - q_init_;
       Vector7d deq = dq_m;
-      Vector7d ddq_reg_d = - Kpq * eq - Kpdq * deq;
+      Vector7d ddq_reg_d = - Kp_ * eq - Kd_ * deq;
 
       // SE3 ONLY -> UNDERDETERMINED
       // Eigen::Matrix<double, 6, 7> A = Jlog * J_pin;
@@ -412,21 +434,45 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
       // Create and solve least square problem to get desired joint acceleration
       Eigen::Matrix<double,13,7> A; 
       A.block<6,7>(0,0) = Jlog * J_pin;
-      A.block<7,7>(6,0) = pow(alpha,2) * Eigen::Matrix<double,7,7>::Identity();
+      A.block<7,7>(6,0) = pow(w_posture_,2) * Eigen::Matrix<double,7,7>::Identity();
       Eigen::Matrix<double,13,1> b; 
       b.segment<6>(0) = ddx_d - dJ_pin * dq_m;
-      b.segment<7>(6) = pow(alpha,2) * ddq_reg_d;
+      b.segment<7>(6) = pow(w_posture_,2) * ddq_reg_d;
       ddq_d = A.colPivHouseholderQr().solve(b);
 
       break;
       }
     case TSIDVariant::TSID:
       ROS_INFO_STREAM("TSIDVariant::TSID, pinocchio: " << use_pinocchio_);
-      // 
-      // 
-      // todo
-      // 
-      // 
+
+      // EE tracking
+      tsid::trajectories::TrajectorySample sampleEE;
+      // pos = [posi, R_flattened]
+      Eigen::Matrix<double, 12, 1> pos;
+      pos.head<3>(0) = x_r.translation();
+      Eigen::MatrixXd R_flattened = x_r.rotation();
+      R_flattened.resize(9,1);
+      pos.head<9>(3) = R_flattened;
+      sampleEE.setValue(pos);
+      sampleEE.setDerivative(dx_r.toVector());
+      sampleEE.setSecondDerivative(ddx_r.toVector());
+      eeTask_.setReference(sampleEE);
+
+      // time is only useful in computeProblemData when we have contact switches
+      double time = 0.0;
+      auto HQPData = tsid_formulation_.computeProblemData(time, q_m, dq_m);
+      HQPData.print_all();
+
+      auto sol = solver_tsid_.solve(HQPData);
+      if (sol.status!=0) 
+      {
+        ROS_INFO_STREAM("QP problem could not be solved! Error code: " << sol.status);
+
+      }
+      
+      // tau_d = tsid_formulation_.getActuatorForces(sol);  ?? USE THIS DIRECTLY INSTEAD?
+      ddq_d = tsid_formulation_.getAccelerations(sol);
+
       break;
 
   }
@@ -493,6 +539,8 @@ Vector7d TaskSpaceIDController::saturateTorqueRate(
   }
   return tau_d_saturated;
 }
+
+
 
 
 void TaskSpaceIDController::stopping(const ros::Time& t0) {

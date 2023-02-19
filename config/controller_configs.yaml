@@ -90,6 +90,7 @@ task_space_ID_controller:
     Kd: 10 
     # Kp: 20
     # Kd: 2
+    w_posture: 0.01
     # Trajectory simulation
     delta_nu:
         - 0.07

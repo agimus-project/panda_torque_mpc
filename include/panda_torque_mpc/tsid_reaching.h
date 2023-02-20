@@ -46,7 +46,7 @@ class TsidReaching
         eeTask_ = std::make_unique<TaskSE3Equality>("task-ee", *tsid_robot_, _ee_frame_pin);
         eeTask_->Kp(Kp*Eigen::Matrix<double, 6, 1>::Ones());
         eeTask_->Kd(Kd*Eigen::Matrix<double, 6, 1>::Ones());
-        Eigen::VectorXd ee_task_mask =  Eigen::Matrix<double, 6, 1>::Ones();
+        Eigen::Matrix<double, 6, 1> ee_task_mask = Eigen::Matrix<double, 6, 1>::Ones();
         eeTask_->setMask(ee_task_mask);
         // TODO: check what this does exactly
         eeTask_->useLocalFrame(false);

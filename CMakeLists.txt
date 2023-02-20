@@ -30,6 +30,7 @@ if(NOT Franka_FOUND)
   find_package(Franka 0.8.0 REQUIRED)
 endif()
 find_package(pinocchio REQUIRED)
+find_package(tsid REQUIRED)
 
 add_message_files(FILES
   JointValuesComparison.msg
@@ -85,5 +86,9 @@ target_include_directories(panda_torque_mpc PUBLIC
   include
 )
 
-target_include_directories(panda_torque_mpc PUBLIC ${PINOCCHIO_INCLUDE_DIRS})
-target_link_libraries(panda_torque_mpc PUBLIC ${PINOCCHIO_LIBRARIES}  )
+# pinocchio::pinocchio pinocchio::pinocchio_headers
+# target_include_directories(panda_torque_mpc PUBLIC ${PINOCCHIO_INCLUDE_DIRS})
+# target_link_libraries(panda_torque_mpc PUBLIC ${PINOCCHIO_LIBRARIES})
+
+target_link_libraries(panda_torque_mpc PUBLIC pinocchio::pinocchio pinocchio::pinocchio_headers)
+target_link_libraries(panda_torque_mpc PUBLIC tsid::tsid)

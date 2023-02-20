@@ -9,12 +9,6 @@
 
 #include <franka/robot_state.h>
 
-// #include <tsid/tasks/task-se3-equality.hpp>
-// #include <tsid/tasks/task-joint-posture.hpp>
-// #include <tsid/tasks/task-actuation-bounds.hpp>
-// #include <tsid/tasks/task-joint-bounds.hpp>
-// #include <tsid/trajectories/trajectory-euclidian.hpp>
-
 namespace panda_torque_mpc {
 
 bool TaskSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
@@ -462,9 +456,19 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
 
       // time is only useful in computeProblemData when we have contact switches
       double time = 0.0;
+      ROS_INFO_STREAM("HERE");
+      /**
+      // DEBUG: 
+      gzserver: /usr/include/eigen3/Eigen/src/Core/util/XprHelper.h:113: 
+      Eigen::internal::variable_if_dynamic<T, Value>::variable_if_dynamic(T) [with T = long int; int Value = 3]: Assertion `v == T(Value)' failed.
+
+      Means that a mismatch is happening between a compile time Eigen matrix size definition and a runtime usage
+      */
       auto HQPData = tsid_reaching_.formulation_->computeProblemData(time, q_m, dq_m);
+      ROS_INFO_STREAM("HERE");
 
       auto sol = tsid_reaching_.solver_qp_->solve(HQPData);
+      ROS_INFO_STREAM("HERE");
       if (sol.status!=0) 
       {
         ROS_INFO_STREAM("QP problem could not be solved! Error code: " << sol.status);
@@ -473,6 +477,7 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
       
       // tau_d = formulation_.getActuatorForces(sol);  ?? USE THIS DIRECTLY INSTEAD?
       ddq_d = tsid_reaching_.formulation_->getAccelerations(sol);
+      ROS_INFO_STREAM("HERE");
 
       break;
 

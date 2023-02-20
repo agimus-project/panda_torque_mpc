@@ -108,7 +108,7 @@ task_space_ID_controller:
         - 5.0
     publish_rate: 10.0
     # 0: PosiPosture  # works
-    # 1: PosePosture  # not working
+    # 1: PosePosture  # not working -> pbe in jacobian
     # 2: TSID         # TODO
     control_variant: 0
     use_pinocchio: true

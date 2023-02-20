@@ -112,6 +112,8 @@ bool TaskSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
   /////////////////////////////////////////////////
   /////////////////////////////////////////////////
 
+  tsid_reaching_ = TsidReaching(model_pin_, ee_frame_pin_, Kp_, Kd_, w_posture_);
+
 
   /////////////////////////////////////////////////
   /////////////////////////////////////////////////
@@ -182,7 +184,7 @@ void TaskSpaceIDController::starting(const ros::Time& t0) {
 
   // Only for TSID
   auto trajPosture = tsid::trajectories::TrajectoryEuclidianConstant("traj_joint", q_init_);
-  postureTask_.setReference(trajPosture.computeNext());
+  tsid_reaching_.postureTask_->setReference(trajPosture.computeNext());
 
   ROS_INFO_STREAM("TaskSpaceIDController::starting x_init_: \n" << x_init_);
 }
@@ -456,22 +458,21 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
       sampleEE.setValue(pos);
       sampleEE.setDerivative(dx_r.toVector());
       sampleEE.setSecondDerivative(ddx_r.toVector());
-      eeTask_.setReference(sampleEE);
+      tsid_reaching_.eeTask_->setReference(sampleEE);
 
       // time is only useful in computeProblemData when we have contact switches
       double time = 0.0;
-      auto HQPData = tsid_formulation_.computeProblemData(time, q_m, dq_m);
-      HQPData.print_all();
+      auto HQPData = tsid_reaching_.formulation_->computeProblemData(time, q_m, dq_m);
 
-      auto sol = solver_tsid_.solve(HQPData);
+      auto sol = tsid_reaching_.solver_qp_->solve(HQPData);
       if (sol.status!=0) 
       {
         ROS_INFO_STREAM("QP problem could not be solved! Error code: " << sol.status);
 
       }
       
-      // tau_d = tsid_formulation_.getActuatorForces(sol);  ?? USE THIS DIRECTLY INSTEAD?
-      ddq_d = tsid_formulation_.getAccelerations(sol);
+      // tau_d = formulation_.getActuatorForces(sol);  ?? USE THIS DIRECTLY INSTEAD?
+      ddq_d = tsid_reaching_.formulation_->getAccelerations(sol);
 
       break;
 
@@ -545,7 +546,6 @@ Vector7d TaskSpaceIDController::saturateTorqueRate(
 
 void TaskSpaceIDController::stopping(const ros::Time& t0) {
   ROS_INFO_STREAM("TaskSpaceIDController::stopping");
-  // TODO: 
 }
 
 }  // namespace panda_torque_mpc

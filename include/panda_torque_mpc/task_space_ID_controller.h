@@ -103,7 +103,7 @@ class TaskSpaceIDController :
   pin::Data data_pin_;
 
   // Tsid formulation
-  TsidReaching tsid_reachin_;
+  TsidReaching tsid_reaching_;
 
   // other 
   franka::Frame franka_frame_;

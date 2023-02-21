@@ -1,4 +1,4 @@
-#include <panda_torque_mpc/task_space_ID_controller.h>
+#include "panda_torque_mpc/task_space_ID_controller.h"
 
 #include <cmath>
 #include <memory>
@@ -176,9 +176,7 @@ void TaskSpaceIDController::starting(const ros::Time& t0) {
   pin::updateFramePlacements(model_pin_, data_pin_);
   x_init_ = data_pin_.oMf[model_pin_.getFrameId(ee_frame_pin_)];
 
-  // Only for TSID
-  auto trajPosture = tsid::trajectories::TrajectoryEuclidianConstant("traj_joint", q_init_);
-  tsid_reaching_.postureTask_->setReference(trajPosture.computeNext());
+  tsid_reaching_.setPostureRef(q_init_);
 
   ROS_INFO_STREAM("TaskSpaceIDController::starting x_init_: \n" << x_init_);
 }
@@ -441,44 +439,11 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
     case TSIDVariant::TSID:
       ROS_INFO_STREAM("TSIDVariant::TSID, pinocchio: " << use_pinocchio_);
 
-      // EE tracking
-      tsid::trajectories::TrajectorySample sampleEE;
-      // pos = [posi, R_flattened]
-      Eigen::Matrix<double, 12, 1> pos;
-      pos.head<3>(0) = x_r.translation();
-      Eigen::MatrixXd R_flattened = x_r.rotation();
-      R_flattened.resize(9,1);
-      pos.head<9>(3) = R_flattened;
-      sampleEE.setValue(pos);
-      sampleEE.setDerivative(dx_r.toVector());
-      sampleEE.setSecondDerivative(ddx_r.toVector());
-      tsid_reaching_.eeTask_->setReference(sampleEE);
-
-      // time is only useful in computeProblemData when we have contact switches
-      double time = 0.0;
-      ROS_INFO_STREAM("HERE");
-      /**
-      // DEBUG: 
-      gzserver: /usr/include/eigen3/Eigen/src/Core/util/XprHelper.h:113: 
-      Eigen::internal::variable_if_dynamic<T, Value>::variable_if_dynamic(T) [with T = long int; int Value = 3]: Assertion `v == T(Value)' failed.
-
-      Means that a mismatch is happening between a compile time Eigen matrix size definition and a runtime usage
-      */
-      auto HQPData = tsid_reaching_.formulation_->computeProblemData(time, q_m, dq_m);
-      ROS_INFO_STREAM("HERE");
-
-      auto sol = tsid_reaching_.solver_qp_->solve(HQPData);
-      ROS_INFO_STREAM("HERE");
-      if (sol.status!=0) 
-      {
-        ROS_INFO_STREAM("QP problem could not be solved! Error code: " << sol.status);
-
-      }
+      tsid_reaching_.setEERef(x_r, dx_r, ddx_r);
+      tsid_reaching_.solve(q_m, dq_m);
+      ddq_d = tsid_reaching_.getAccelerations();
+      // tau_d = tsid_reaching.getTorques();
       
-      // tau_d = formulation_.getActuatorForces(sol);  ?? USE THIS DIRECTLY INSTEAD?
-      ddq_d = tsid_reaching_.formulation_->getAccelerations(sol);
-      ROS_INFO_STREAM("HERE");
-
       break;
 
   }

@@ -25,6 +25,8 @@ namespace panda_torque_mpc
         typedef tsid::InverseDynamicsFormulationAccForce IDFormulation;
         typedef tsid::tasks::TaskSE3Equality TaskSE3Equality;
         typedef tsid::tasks::TaskJointPosture TaskJointPosture;
+        typedef tsid::tasks::TaskActuationBounds TaskActuationBounds;
+        typedef tsid::tasks::TaskJointBounds TaskJointBounds;
         typedef tsid::solvers::SolverHQuadProgFast SolverHQuadProgFast;
 
         TsidReaching()
@@ -42,9 +44,9 @@ namespace panda_torque_mpc
 
             // 1) EE tracking task
             eeTask_ = std::make_unique<TaskSE3Equality>("task-ee", *tsid_robot_, _ee_frame_pin);
-            eeTask_->Kp(Kp * Eigen::Matrix<double, 6, 1>::Ones());
-            eeTask_->Kd(Kd * Eigen::Matrix<double, 6, 1>::Ones());
-            Eigen::Matrix<double, 6, 1> ee_task_mask = Eigen::Matrix<double, 6, 1>::Ones();
+            eeTask_->Kp(Kp * Vector6d::Ones());
+            eeTask_->Kd(Kd * Vector6d::Ones());
+            Vector6d ee_task_mask = Vector6d::Ones();
             eeTask_->setMask(ee_task_mask);
             // TODO: check what this does exactly
             eeTask_->useLocalFrame(false);
@@ -53,8 +55,8 @@ namespace panda_torque_mpc
 
             // 2) posture task
             postureTask_ = std::make_unique<TaskJointPosture>("task-posture", *tsid_robot_);
-            postureTask_->Kp(Kp * Eigen::Matrix<double, 7, 1>::Ones());
-            postureTask_->Kd(Kd * Eigen::Matrix<double, 7, 1>::Ones());
+            postureTask_->Kp(Kp * Vector7d::Ones());
+            postureTask_->Kd(Kd * Vector7d::Ones());
             formulation_->addMotionTask(*postureTask_, w_posture, 1, 0.0);
 
             // 3) Actuation bound Constraint
@@ -62,24 +64,24 @@ namespace panda_torque_mpc
             double tau_limit_scale = 0.5;
             Vector7d tau_max = tau_limit_scale * _model_pin.effortLimit;
             Vector7d tau_min = -tau_max;
-            tsid::tasks::TaskActuationBounds actuationBoundsTask("task-actuation-bounds", *tsid_robot_);
-            actuationBoundsTask.setBounds(tau_min, tau_max);
-            double w_torque_bounds = 1.0;
+            actuationBoundsTask_ = std::make_unique<TaskActuationBounds>("task-actuation-bounds", *tsid_robot_);
+            actuationBoundsTask_->setBounds(tau_min, tau_max);
+            double w_torque_bounds = 0.01;
             if (w_torque_bounds > 0.0)
-                formulation_->addActuationTask(actuationBoundsTask, w_torque_bounds, 0, 0.0);
+                formulation_->addActuationTask(*actuationBoundsTask_, w_torque_bounds, 1, 0.0);
 
             // 4) Vel constraint is actually implemented as an acceleration constraint:
             // ddq_max_due_to_vel = (v_ub - va)/dt;
             //  -> trim the acceleration on a given joint so that integrating it for dt does not go beyond vel limit
             double dt_margin = 2e-3; // margin before joint limit collision
-            tsid::tasks::TaskJointBounds jointBoundsTask("task-joint-bounds", *tsid_robot_, dt_margin);
+            jointBoundsTask_ = std::make_unique<TaskJointBounds>("task-joint-bounds", *tsid_robot_, dt_margin);
             double v_limit_scale = 0.5;
             Vector7d v_max = v_limit_scale * _model_pin.velocityLimit;
             Vector7d v_min = -v_max;
-            jointBoundsTask.setVelocityBounds(v_min, v_max);
+            jointBoundsTask_->setVelocityBounds(v_min, v_max);
             double w_joint_bounds = 1.0;
             if (w_joint_bounds > 0.0)
-                formulation_->addMotionTask(jointBoundsTask, w_joint_bounds, 0, 0.0);
+                formulation_->addMotionTask(*jointBoundsTask_, w_joint_bounds, 0, 0.0);
 
             // SOLVER
             solver_qp_ = std::make_unique<SolverHQuadProgFast>("qp solver");
@@ -113,38 +115,38 @@ namespace panda_torque_mpc
         {
             // time is only useful in computeProblemData when we have contact switches
             double time = 0.0;
-            /**
-            // DEBUG:
-            gzserver: /usr/include/eigen3/Eigen/src/Core/util/XprHelper.h:113:
-            Eigen::internal::variable_if_dynamic<T, Value>::variable_if_dynamic(T) [with T = long int; int Value = 3]: Assertion `v == T(Value)' failed.
-
-            Means that a mismatch is happening between a compile time Eigen matrix size definition and a runtime usage
-            */
             auto HQPData = formulation_->computeProblemData(time, q_m, dq_m);
 
             auto sol = solver_qp_->solve(HQPData);
+            std::cout << "Solver status: " << sol.status << std::endl;
+            std::cout << "Solver iterations: " << sol.iterations << std::endl;
+            
             if (sol.status != 0)
             {
-                // ROS_INFO_STREAM("QP problem could not be solved! Error code: " << sol.status);
+                std::cout << "QP could not be solved, error code: " << sol.status << std::endl;
             }
 
             ddq_d_ = formulation_->getAccelerations(sol);
-            tau_d_ = formulation_->getActuatorForces(sol);
+            tau_d_ = formulation_->getActuatorForces(sol);  
         }
 
-        Vector7d getAccelerations() {return ddq_d_;}
-        Vector7d getTorques() {return tau_d_;}
+        Eigen::VectorXd getAccelerations() {return ddq_d_;}
+        Eigen::VectorXd getTorques() {return tau_d_;}
 
         // TSID objects we need to access in the controller body
+        // All tasks need to be member variable otherwise a segfault 
+        // happens when calling computeProblemData
         std::unique_ptr<RobotWrapper> tsid_robot_;
         std::unique_ptr<IDFormulation> formulation_;
         std::unique_ptr<TaskSE3Equality> eeTask_;
         std::unique_ptr<TaskJointPosture> postureTask_;
+        std::unique_ptr<TaskActuationBounds> actuationBoundsTask_;
+        std::unique_ptr<TaskJointBounds> jointBoundsTask_;
         std::unique_ptr<SolverHQuadProgFast> solver_qp_;
 
         // optimization problem results
-        Vector7d ddq_d_; 
-        Vector7d tau_d_; 
+        Eigen::VectorXd ddq_d_; 
+        Eigen::VectorXd tau_d_; 
     };
 
 } // namespace panda_torque_mpc

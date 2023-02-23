@@ -1,5 +1,5 @@
 
-// Adapted from panda_torque_mpc model_example_controller 
+// Adapted from panda_torque_mpc model_example_controller
 #pragma once
 
 #include <memory>
@@ -15,7 +15,6 @@
 #include <pinocchio/algorithm/crba.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 
-
 #include <controller_interface/multi_interface_controller.h>
 #include <hardware_interface/robot_hw.h>
 #include <ros/node_handle.h>
@@ -27,29 +26,29 @@
 
 #include "panda_torque_mpc/common.h"
 
+namespace panda_torque_mpc
+{
 
-namespace panda_torque_mpc {
+    namespace pin = pinocchio;
 
-namespace pin = pinocchio;
+    class ModelPinocchioVsFrankaController
+        : public controller_interface::MultiInterfaceController<franka_hw::FrankaModelInterface,
+                                                                franka_hw::FrankaStateInterface>
+    {
+    public:
+        bool init(hardware_interface::RobotHW *robot_hw, ros::NodeHandle &node_handle) override;
+        void update(const ros::Time &, const ros::Duration &) override;
 
-class ModelPinocchioVsFrankaController
-    : public controller_interface::MultiInterfaceController<franka_hw::FrankaModelInterface,
-                                                            franka_hw::FrankaStateInterface> {
- public:
-  bool init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& node_handle) override;
-  void update(const ros::Time&, const ros::Duration&) override;
+    private:
+        // Handles
+        std::unique_ptr<franka_hw::FrankaStateHandle> franka_state_handle_;
+        std::unique_ptr<franka_hw::FrankaModelHandle> franka_model_handle_;
 
- private:
-  // Handles  
-  std::unique_ptr<franka_hw::FrankaStateHandle> franka_state_handle_;
-  std::unique_ptr<franka_hw::FrankaModelHandle> franka_model_handle_;
+        franka_hw::TriggerRate rate_trigger_{1.0};
 
-  franka_hw::TriggerRate rate_trigger_{1.0};
-
-  // Pinocchio objects
-  pin::Model model_pin_;
-  pin::Data data_pin_;
-
-};
+        // Pinocchio objects
+        pin::Model model_pin_;
+        pin::Data data_pin_;
+    };
 
 } // namespace panda_torque_mpc

@@ -86,9 +86,5 @@ target_include_directories(panda_torque_mpc PUBLIC
   include
 )
 
-# pinocchio::pinocchio pinocchio::pinocchio_headers
-# target_include_directories(panda_torque_mpc PUBLIC ${PINOCCHIO_INCLUDE_DIRS})
-# target_link_libraries(panda_torque_mpc PUBLIC ${PINOCCHIO_LIBRARIES})
-
 target_link_libraries(panda_torque_mpc PUBLIC pinocchio::pinocchio pinocchio::pinocchio_headers)
 target_link_libraries(panda_torque_mpc PUBLIC tsid::tsid)

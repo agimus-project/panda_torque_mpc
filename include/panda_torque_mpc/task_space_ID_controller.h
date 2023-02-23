@@ -29,7 +29,7 @@
 
 #include "panda_torque_mpc/common.h"
 
-#include "tsid_reaching.h"
+#include "tsid_manipulator_reaching.h"
 
 namespace panda_torque_mpc {
 
@@ -69,8 +69,9 @@ class TaskSpaceIDController :
 
   // Controller parameters
   TSIDVariant control_variant_;
-  double Kp_, Kd_;                // task space gains Control
-  double w_posture_;              // tasks relative weights
+  double kp_ee_;                // task space gains Control
+  double w_ee_, w_posture_;              // tasks relative weights
+  Vector6d tsid_ee_mask_;
   Vector6d delta_nu_, period_nu_;   // trajectory specification
   bool use_pinocchio_;
   double alpha_dq_filter_;
@@ -99,7 +100,7 @@ class TaskSpaceIDController :
   pin::Data data_pin_;
 
   // Tsid formulation
-  TsidReaching tsid_reaching_;
+  TsidManipulatorReaching tsid_reaching_;
 
   // other 
   franka::Frame franka_frame_;

@@ -84,13 +84,6 @@ task_space_ID_controller:
         - $(arg arm_id)_joint5
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
-    # Kp: 500  # Stiff
-    # Kd: 50  # Stiff
-    Kp: 100 
-    Kd: 10 
-    # Kp: 20
-    # Kd: 2
-    w_posture: 0.01
     # Trajectory simulation
     delta_nu:
         - 0.07
@@ -110,6 +103,13 @@ task_space_ID_controller:
     # 0: PosiPosture  # works
     # 1: PosePosture  # not working -> pbe in jacobian
     # 2: TSID         # TODO
-    control_variant: 0
+    control_variant: 2
     use_pinocchio: true
     alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0
+    # Controller configs
+    # kp_ee: 500  # Stiff
+    kp_ee: 100 
+    # kp_ee: 20
+    w_ee: 1
+    w_posture: 0.001
+    tsid_ee_mask: [1,1,1,1,1,1]

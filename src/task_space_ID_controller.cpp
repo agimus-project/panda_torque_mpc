@@ -2,6 +2,8 @@
 
 #include <cmath>
 #include <memory>
+#include <ctime>
+#include <chrono>
 
 #include <controller_interface/controller_base.h>
 #include <pluginlib/class_list_macros.h>
@@ -29,13 +31,13 @@ bool TaskSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
     return false;
   }
 
-  if (!node_handle.getParam("Kp", Kp_)) {
+  if (!node_handle.getParam("kp_ee", kp_ee_)) {
     ROS_ERROR("TaskSpaceIDController: Could not read parameter Kp");
     return false;
   }
 
-  if (!node_handle.getParam("Kd", Kd_)) {
-    ROS_ERROR("TaskSpaceIDController: Could not read parameter Kd");
+  if (!node_handle.getParam("w_posture", w_ee_)) {
+    ROS_ERROR("TaskSpaceIDController: Could not read parameter w_ee");
     return false;
   }
 
@@ -43,6 +45,13 @@ bool TaskSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
     ROS_ERROR("TaskSpaceIDController: Could not read parameter w_posture");
     return false;
   }
+
+  std::vector<double> tsid_ee_mask;
+  if (!node_handle.getParam("tsid_ee_mask", tsid_ee_mask) || tsid_ee_mask.size() != 6) {
+    ROS_ERROR("TaskSpaceIDController:  Invalid or no tsid_ee_mask parameters provided, aborting controller init!");
+    return false;
+  }
+  tsid_ee_mask_ = Eigen::Map<Vector6d>(tsid_ee_mask.data());
 
   std::vector<double> delta_nu;
   if (!node_handle.getParam("delta_nu", delta_nu) || delta_nu.size() != 6) {
@@ -85,6 +94,11 @@ bool TaskSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
     ROS_ERROR("TaskSpaceIDController: Could not read parameter urdf_path");
     return false;
   }
+
+
+  /////////////////////////////////////////////////
+  //                 Pinocchio                   //
+  /////////////////////////////////////////////////
   pin::urdf::buildModel(urdf_path, model_pin_);
   std::cout << "model name: " << model_pin_.name << std::endl;
   data_pin_ = pin::Data(model_pin_);
@@ -101,17 +115,11 @@ bool TaskSpaceIDController::init(hardware_interface::RobotHW* robot_hw,
 
 
   /////////////////////////////////////////////////
-  /////////////////////////////////////////////////
   //                    TSID                     //
   /////////////////////////////////////////////////
-  /////////////////////////////////////////////////
-
-  tsid_reaching_ = TsidReaching(model_pin_, ee_frame_pin_, Kp_, Kd_, w_posture_);
-
-
-  /////////////////////////////////////////////////
-  /////////////////////////////////////////////////
-  /////////////////////////////////////////////////
+  TsidConfig conf;
+  conf.ee_task_mask = tsid_ee_mask_;
+  tsid_reaching_ = TsidManipulatorReaching(urdf_path, conf);
   /////////////////////////////////////////////////
 
 
@@ -176,6 +184,7 @@ void TaskSpaceIDController::starting(const ros::Time& t0) {
   pin::updateFramePlacements(model_pin_, data_pin_);
   x_init_ = data_pin_.oMf[model_pin_.getFrameId(ee_frame_pin_)];
 
+  // Set posture reference once and for all
   tsid_reaching_.setPostureRef(q_init_);
 
   ROS_INFO_STREAM("TaskSpaceIDController::starting x_init_: \n" << x_init_);
@@ -183,6 +192,12 @@ void TaskSpaceIDController::starting(const ros::Time& t0) {
 
 
 void TaskSpaceIDController::update(const ros::Time& t, const ros::Duration& period) {
+  // time_t tstart, tend; 
+  // time(&tstart);
+
+  auto tstart = std::chrono::high_resolution_clock::now();
+
+
 
   // Time since start of the controller
   double Dt = (t - t_init_).toSec();
@@ -308,6 +323,14 @@ void TaskSpaceIDController::update(const ros::Time& t, const ros::Duration& peri
   last_x_r_ = x_r; 
   last_dx_r_ = dx_r; 
   last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
+
+  auto tend = std::chrono::high_resolution_clock::now();
+
+  // Calculating total time taken by the program.
+  double time_taken = std::chrono::duration_cast<std::chrono::nanoseconds>(tend - tstart).count();
+  time_taken *= 1e-6;
+  std::cout << std::setprecision(9) << "uppdate() took (ms): "<< time_taken << std::endl;
+
 }
 
 
@@ -369,7 +392,7 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
       // // UNSTABLE cause UNDERTERMINED!! (3 < 7 Dof constrained)
       // Eigen::Vector3d e = T_o_e_m.translation() - x_r.translation();
       // Eigen::Vector3d de = nu_o_e_m.linear() - dx_r.linear();
-      // Eigen::Vector3d ddx_d = ddx_r.linear() - Kd_ * de - Kp_ * e;
+      // Eigen::Vector3d ddx_d = ddx_r.linear() - 2*sqrt(kp_ee_) * de - kp_ee_ * e;
 
       // Eigen::Matrix<double,3,7> A = J_pin.block<3,7>(0,0);
       // Eigen::Matrix<double,3,1> b = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
@@ -381,21 +404,21 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
       // Position task
       Eigen::Vector3d ex = T_o_e_m.translation() - x_r.translation();
       Eigen::Vector3d dex = nu_o_e_m.linear() - dx_r.linear();
-      Eigen::Vector3d ddx_d = ddx_r.linear() - Kd_ * dex - Kp_ * ex;
+      Eigen::Vector3d ddx_d = ddx_r.linear() - 2*sqrt(kp_ee_) * dex - kp_ee_ * ex;
 
       // Posture task : q --> q_init
       // Let's keep the same dynamics but alpha will handle the weighting between the 2 tasks
       // ddq_r = 0 = dq_r here 
       Vector7d eq = q_m - q_init_;
       Vector7d deq = dq_m;
-      Vector7d ddq_reg_d = - Kp_ * eq - Kd_ * deq;
+      Vector7d ddq_reg_d = - kp_ee_ * eq - 2*sqrt(kp_ee_) * deq;
 
       // Create and solve least square problem to get desired joint acceleration
       Eigen::Matrix<double,10,7> A; 
-      A.block<3,7>(0,0) = J_pin.block<3,7>(0,0);
+      A.block<3,7>(0,0) = pow(w_ee_,2) * J_pin.block<3,7>(0,0);
       A.block<7,7>(3,0) = pow(w_posture_,2) * Eigen::Matrix<double,7,7>::Identity();
       Eigen::Matrix<double,10,1> b; 
-      b.segment<3>(0) = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
+      b.segment<3>(0) = pow(w_ee_,2) * (ddx_d - dJ_pin.block<3,7>(0,0) * dq_m);
       b.segment<7>(3) = pow(w_posture_,2) * ddq_reg_d;
       ddq_d = A.colPivHouseholderQr().solve(b);
 
@@ -407,10 +430,10 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
 
       // EE SE3 POSE + POSTURE tasks  --> NOPE, likely problem with the jacobian computation
       // End effector pose task
-      // pin::SE3 e = x_r.inverse() * T_o_e_m;
+      // pin::SE3 e = x_r.inverse() * T_o_e_m;  // does not seem to be the issue
       pin::SE3 e = T_o_e_m.inverse() * x_r;
       pin::Motion de = nu_o_e_m - dx_r;
-      Vector6d ddx_d = ddx_r - Kd_*de - Kp_*pin::log6(e);
+      Vector6d ddx_d = ddx_r - 2*sqrt(kp_ee_)*de - kp_ee_*pin::log6(e);
       Eigen::Matrix<double, 6, 6> Jlog; pin::Jlog6(e, Jlog);
         
       // Posture task : q --> q_init
@@ -418,7 +441,7 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
       // ddq_r = 0 = dq_r here 
       Vector7d eq = q_m - q_init_;
       Vector7d deq = dq_m;
-      Vector7d ddq_reg_d = - Kp_ * eq - Kd_ * deq;
+      Vector7d ddq_reg_d = - kp_ee_ * eq - 2*sqrt(kp_ee_) * deq;
 
       // SE3 ONLY -> UNDERDETERMINED
       // Eigen::Matrix<double, 6, 7> A = Jlog * J_pin;
@@ -427,10 +450,10 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
 
       // Create and solve least square problem to get desired joint acceleration
       Eigen::Matrix<double,13,7> A; 
-      A.block<6,7>(0,0) = Jlog * J_pin;
+      A.block<6,7>(0,0) = pow(w_ee_,2) * (Jlog * J_pin);
       A.block<7,7>(6,0) = pow(w_posture_,2) * Eigen::Matrix<double,7,7>::Identity();
       Eigen::Matrix<double,13,1> b; 
-      b.segment<6>(0) = ddx_d - dJ_pin * dq_m;
+      b.segment<6>(0) = pow(w_ee_,2) * (ddx_d - dJ_pin * dq_m);
       b.segment<7>(6) = pow(w_posture_,2) * ddq_reg_d;
       ddq_d = A.colPivHouseholderQr().solve(b);
 
@@ -442,7 +465,9 @@ Vector7d TaskSpaceIDController::compute_desired_torque(
       tsid_reaching_.setEERef(x_r, dx_r, ddx_r);
       tsid_reaching_.solve(q_m, dq_m);
       ddq_d = tsid_reaching_.getAccelerations();
-      // tau_d = tsid_reaching.getTorques();
+      Eigen::VectorXd tau_d = tsid_reaching_.getTorques();
+      // std::cout << "ddq_d: " << ddq_d.transpose() << std::endl;
+      // std::cout << "tau_d: " << tau_d.transpose() << std::endl;
       
       break;
 

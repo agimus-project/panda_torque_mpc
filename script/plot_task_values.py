@@ -11,8 +11,8 @@ CONTROLLER_NAME = 'task_space_ID_controller'
 
 DIRECTORY = '../bags/'
 EXPE_NAMES = [
-  # 'expe',
-  'stiffer',
+  'expe',
+#   'stiffer',
 ]
 
 
@@ -34,9 +34,9 @@ fig_dx.canvas.manager.set_window_title('Task vel')
 fig_tau.canvas.manager.set_window_title('Joint torques')
 
 
-# FIELD = 'cmd'
-# FIELD = 'meas'
-FIELD = 'err'
+FIELD = 'commanded'
+# FIELD = 'measurement'
+# FIELD = 'error'
 
 # position/linear part
 for i in range(3):

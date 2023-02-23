@@ -108,8 +108,15 @@ task_space_ID_controller:
     alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0
     # Controller configs
     # kp_ee: 500  # Stiff
+    # kd_ee: 100 
     kp_ee: 100 
+    kd_ee: 20 
     # kp_ee: 20
+    # kd_ee: 5 
+    kp_q: 100
+    kd_q: 40
     w_ee: 1
-    w_posture: 0.001
+    w_q: 0.01
+    tau_limit_scale: 0.01
+    v_limit_scale: 0.1
     tsid_ee_mask: [1,1,1,1,1,1]

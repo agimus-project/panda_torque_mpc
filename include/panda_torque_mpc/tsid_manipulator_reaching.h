@@ -21,12 +21,14 @@ namespace panda_torque_mpc
     struct TsidConfig
     {
         // task space gains
-        double kp_ee = 1.0;
-        double kp_posture = 1.0;
+        double kp_ee = 100;
+        double kd_ee = 30;
+        double kp_q = 100;
+        double kd_q = 30;
 
         // task weights
         double w_ee = 1.0;
-        double w_posture = 1e-3;
+        double w_q = 1e-3;
         double w_torque_bounds = 1.0;
         double w_joint_bounds = 1.0;
 
@@ -72,14 +74,14 @@ namespace panda_torque_mpc
 
             // 1) posture task
             postureTask_ = std::make_unique<TaskJointPosture>("task-posture", *tsid_robot_);
-            postureTask_->Kp(conf_.kp_posture * Vector7d::Ones());
-            postureTask_->Kd(2.0 * sqrt(conf_.kp_posture) * Vector7d::Ones());
-            formulation_->addMotionTask(*postureTask_, conf_.w_posture, 1, 0.0);
+            postureTask_->Kp(conf_.kp_q * Vector7d::Ones());
+            postureTask_->Kd(conf_.kd_q * Vector7d::Ones());
+            formulation_->addMotionTask(*postureTask_, conf_.w_q, 1, 0.0);
 
             // 2) EE tracking task
             eeTask_ = std::make_unique<TaskSE3Equality>("task-ee", *tsid_robot_, conf_.ee_frame_name);
             eeTask_->Kp(conf_.kp_ee * Vector6d::Ones());
-            eeTask_->Kd(2.0 * sqrt(conf_.kp_ee) * Vector6d::Ones());
+            eeTask_->Kd(conf_.kd_ee * Vector6d::Ones());
             eeTask_->setMask(conf_.ee_task_mask);
             // TODO: check what this does exactly
             eeTask_->useLocalFrame(false);

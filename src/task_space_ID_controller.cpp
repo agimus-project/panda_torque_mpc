@@ -2,8 +2,6 @@
 
 #include <cmath>
 #include <memory>
-#include <ctime>
-#include <chrono>
 
 #include <controller_interface/controller_base.h>
 #include <pluginlib/class_list_macros.h>
@@ -11,103 +9,68 @@
 
 #include <franka/robot_state.h>
 
+
 namespace panda_torque_mpc
 {
 
     bool TaskSpaceIDController::init(hardware_interface::RobotHW *robot_hw,
-                                     ros::NodeHandle &node_handle)
+                                     ros::NodeHandle &nh)
     {
 
         ///////////////////
         // Load parameters
         ///////////////////
         std::string arm_id;
-        if (!node_handle.getParam("arm_id", arm_id))
-        {
-            ROS_ERROR("TaskSpaceIDController: Could not read parameter arm_id");
-            return false;
-        }
+        if(!get_param_error_tpl<std::string>(nh, arm_id, "arm_id")) return false;
 
         std::vector<std::string> joint_names;
-        if (!node_handle.getParam("joint_names", joint_names) || joint_names.size() != 7)
-        {
-            ROS_ERROR("TaskSpaceIDController: Invalid or no joint_names parameters provided, aborting controller init!");
-            return false;
-        }
+        if(!get_param_error_tpl<std::vector<std::string>>(nh, joint_names, "joint_names", 
+                                                          [](std::vector<std::string> v) {return v.size() == 7;})) return false;
 
-        if (!node_handle.getParam("kp_ee", kp_ee_))
-        {
-            ROS_ERROR("TaskSpaceIDController: Could not read parameter Kp");
-            return false;
-        }
-
-        if (!node_handle.getParam("w_posture", w_ee_))
-        {
-            ROS_ERROR("TaskSpaceIDController: Could not read parameter w_ee");
-            return false;
-        }
-
-        if (!node_handle.getParam("w_posture", w_posture_))
-        {
-            ROS_ERROR("TaskSpaceIDController: Could not read parameter w_posture");
-            return false;
-        }
+        if(!get_param_error_tpl<double>(nh, kp_ee_, "kp_ee")) return false;
+        if(!get_param_error_tpl<double>(nh, kd_ee_, "kd_ee")) return false;
+        if(!get_param_error_tpl<double>(nh, kp_q_,  "kp_q"))  return false;
+        if(!get_param_error_tpl<double>(nh, kd_ee_, "kd_q"))  return false;
+        if(!get_param_error_tpl<double>(nh, w_ee_, "w_ee"))  return false;
+        if(!get_param_error_tpl<double>(nh, w_q_,  "w_q"))  return false;
+        if(!get_param_error_tpl<double>(nh, w_q_,  "w_q"))  return false;
+        if(!get_param_error_tpl<double>(nh, tau_limit_scale_, "tau_limit_scale"))  return false;
+        if(!get_param_error_tpl<double>(nh, v_limit_scale_,   "v_limit_scale"))  return false;
 
         std::vector<double> tsid_ee_mask;
-        if (!node_handle.getParam("tsid_ee_mask", tsid_ee_mask) || tsid_ee_mask.size() != 6)
-        {
-            ROS_ERROR("TaskSpaceIDController:  Invalid or no tsid_ee_mask parameters provided, aborting controller init!");
-            return false;
-        }
+        if(!get_param_error_tpl<std::vector<double>>(nh, tsid_ee_mask, "tsid_ee_mask", 
+                                                     [](std::vector<double> v) {return v.size() == 6;})) return false;
         tsid_ee_mask_ = Eigen::Map<Vector6d>(tsid_ee_mask.data());
 
+        // Trajectory
         std::vector<double> delta_nu;
-        if (!node_handle.getParam("delta_nu", delta_nu) || delta_nu.size() != 6)
-        {
-            ROS_ERROR("TaskSpaceIDController:  Invalid or no delta_nu parameters provided, aborting controller init!");
-            return false;
-        }
+        if(!get_param_error_tpl<std::vector<double>>(nh, delta_nu, "delta_nu", 
+                                                     [](std::vector<double> v) {return v.size() == 6;})) return false;
         delta_nu_ = Eigen::Map<Vector6d>(delta_nu.data());
-
         std::vector<double> period_nu;
-        if (!node_handle.getParam("period_nu", period_nu) || period_nu.size() != 6)
-        {
-            ROS_ERROR("TaskSpaceIDController:  Invalid or no period_nu parameters provided, aborting controller init!");
-            return false;
-        }
+        if(!get_param_error_tpl<std::vector<double>>(nh, period_nu, "period_nu", 
+                                                     [](std::vector<double> v) {return v.size() == 6;})) return false;
         period_nu_ = Eigen::Map<Vector6d>(period_nu.data());
 
         double publish_rate(30.0);
-        if (!node_handle.getParam("publish_rate", publish_rate))
+        if (!nh.getParam("publish_rate", publish_rate))
         {
             ROS_INFO_STREAM("TaskSpaceIDController: publish_rate not found. Defaulting to " << publish_rate);
         }
         rate_trigger_ = franka_hw::TriggerRate(publish_rate);
 
         int idc;
-        if (!node_handle.getParam("control_variant", idc) || !(idc >= 0 && idc < 3))
-        {
-            ROS_ERROR_STREAM("TaskSpaceIDController: Invalid or no control_variant parameters provided, aborting controller init! control_variant: " << idc);
-        }
+        if(!get_param_error_tpl<int>(nh, idc, "control_variant", 
+                                     [](int x) {return x >= 0 && x < 3;})) return false;
+                                     
         control_variant_ = static_cast<TaskSpaceIDController::TSIDVariant>(idc);
 
-        if (!node_handle.getParam("use_pinocchio", use_pinocchio_))
-        {
-            ROS_ERROR_STREAM("TaskSpaceIDController: Could not read parameter use_pinocchio");
-        }
-
-        if (!node_handle.getParam("alpha_dq_filter", alpha_dq_filter_))
-        {
-            ROS_ERROR_STREAM("TaskSpaceIDController: Could not read parameter alpha_dq_filter");
-        }
+        if(!get_param_error_tpl<bool>(nh, use_pinocchio_, "use_pinocchio")) return false;
+        if(!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter")) return false;
 
         // Load panda model with pinocchio
         std::string urdf_path;
-        if (!node_handle.getParam("urdf_path", urdf_path))
-        {
-            ROS_ERROR("TaskSpaceIDController: Could not read parameter urdf_path");
-            return false;
-        }
+        if(!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path")) return false;
 
         /////////////////////////////////////////////////
         //                 Pinocchio                   //
@@ -125,12 +88,18 @@ namespace panda_torque_mpc
         // Define corresponding frame id for pinocchio and Franka (see model_pinocchio_vs_franka_controller)
         franka_frame_ = franka::Frame::kFlange;
         ee_frame_pin_ = "panda_link8";
+        ee_frame_id_ = model_pin_.getFrameId(ee_frame_pin_);
 
         /////////////////////////////////////////////////
         //                    TSID                     //
         /////////////////////////////////////////////////
         TsidConfig conf;
-        conf.ee_task_mask = tsid_ee_mask_;
+        conf.kp_ee = kp_ee_;  
+        conf.kd_ee = kd_ee_;  
+        conf.kp_q = kp_q_; 
+        conf.kd_q = kd_q_; 
+        conf.w_ee = w_ee_; 
+        conf.w_q = w_q_; 
         tsid_reaching_ = TsidManipulatorReaching(urdf_path, conf);
         /////////////////////////////////////////////////
 
@@ -148,9 +117,9 @@ namespace panda_torque_mpc
         {
             franka_state_handle_ = std::make_unique<franka_hw::FrankaStateHandle>(franka_state_interface->getHandle(arm_id + "_robot"));
         }
-        catch (const hardware_interface::HardwareInterfaceException &ex)
+        catch (const hardware_interface::HardwareInterfaceException &e)
         {
-            ROS_ERROR_STREAM("TaskSpaceIDController: Exception getting franka state handle: " << ex.what());
+            ROS_ERROR_STREAM("TaskSpaceIDController: Exception getting franka state handle: " << e.what());
             return false;
         }
 
@@ -165,9 +134,9 @@ namespace panda_torque_mpc
         {
             franka_model_handle_ = std::make_unique<franka_hw::FrankaModelHandle>(model_interface->getHandle(arm_id + "_model"));
         }
-        catch (hardware_interface::HardwareInterfaceException &ex)
+        catch (hardware_interface::HardwareInterfaceException &e)
         {
-            ROS_ERROR_STREAM("TaskSpaceIDController: Exception getting model handle from interface: " << ex.what());
+            ROS_ERROR_STREAM("TaskSpaceIDController: Exception getting model handle from interface: " << e.what());
             return false;
         }
 
@@ -184,16 +153,16 @@ namespace panda_torque_mpc
             {
                 joint_handles_.push_back(effort_joint_interface->getHandle(joint_names[i]));
             }
-            catch (const hardware_interface::HardwareInterfaceException &ex)
+            catch (const hardware_interface::HardwareInterfaceException &e)
             {
-                ROS_ERROR_STREAM("TaskSpaceIDController: Exception getting joint handles: " << ex.what());
+                ROS_ERROR_STREAM("TaskSpaceIDController: Exception getting joint handles: " << e.what());
                 return false;
             }
         }
 
-        task_pose_publisher_.init(node_handle, "task_pose_comparison", 1);
-        task_twist_publisher_.init(node_handle, "task_twist_comparison", 1);
-        torques_publisher_.init(node_handle, "joint_torques_comparison", 1);
+        task_pose_publisher_.init(nh, "task_pose_comparison", 1);
+        task_twist_publisher_.init(nh, "task_twist_comparison", 1);
+        torques_publisher_.init(nh, "joint_torques_comparison", 1);
 
         dq_filtered_ = Vector7d::Zero();
 
@@ -207,7 +176,7 @@ namespace panda_torque_mpc
         q_init_ = Eigen::Map<const Vector7d>(franka_state_handle_->getRobotState().q.data());
         pin::forwardKinematics(model_pin_, data_pin_, q_init_);
         pin::updateFramePlacements(model_pin_, data_pin_);
-        x_init_ = data_pin_.oMf[model_pin_.getFrameId(ee_frame_pin_)];
+        x_init_ = data_pin_.oMf[ee_frame_id_];
 
         // Set posture reference once and for all
         tsid_reaching_.setPostureRef(q_init_);
@@ -218,10 +187,7 @@ namespace panda_torque_mpc
 
     void TaskSpaceIDController::update(const ros::Time &t, const ros::Duration &period)
     {
-        // time_t tstart, tend;
-        // time(&tstart);
-
-        auto tstart = std::chrono::high_resolution_clock::now();
+        TicTac tictac;
 
         // Time since start of the controller
         double Dt = (t - t_init_).toSec();
@@ -229,7 +195,9 @@ namespace panda_torque_mpc
         // compute desired configuration and configuration velocity
         pin::SE3 x_r;
         pin::Motion dx_r, ddx_r;
+        TicTac tictac_ref;
         compute_sinusoid_pose_reference(delta_nu_, period_nu_, x_init_, Dt, x_r, dx_r, ddx_r);
+        tictac_ref.print_tac("compute_sinusoid_pose_reference() took (ms): ");
 
         // Retrieve current measured robot state
         franka::RobotState robot_state = franka_state_handle_->getRobotState(); // return a const& of RobotState object -> not going to be modified
@@ -240,15 +208,16 @@ namespace panda_torque_mpc
         // FK and differential FK
         pin::forwardKinematics(model_pin_, data_pin_, q_m, dq_m);
         pin::updateFramePlacements(model_pin_, data_pin_);
-        auto fid = model_pin_.getFrameId(ee_frame_pin_);
-        pin::SE3 T_o_e_m = data_pin_.oMf[fid];
-        pin::Motion nu_o_e_m = pin::getFrameVelocity(model_pin_, data_pin_, fid, pin::LOCAL_WORLD_ALIGNED);
+        pin::SE3 T_o_e_m = data_pin_.oMf[ee_frame_id_];
+        pin::Motion nu_o_e_m = pin::getFrameVelocity(model_pin_, data_pin_, ee_frame_id_, pin::LOCAL_WORLD_ALIGNED);
 
         // filter the joint velocity measurements
         dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
 
         // Compute desired torque
+        TicTac tictac_comp;
         Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r, dx_r, ddx_r, control_variant_, use_pinocchio_);
+        tictac_comp.print_tac("compute_desired_torque() took (ms): ");
 
         // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
         // 1000 * (1 / sampling_time).
@@ -263,9 +232,10 @@ namespace panda_torque_mpc
 
         ///////////////////
         // Publish logs
+        // Takes about 5 us -> negligeable
         if (rate_trigger_() && torques_publisher_.trylock())
         {
-
+            // TicTac tt_publish;
             // Refactor to: publish_logs(publishers, last_vals, measured_vals) ?
 
             /**
@@ -343,6 +313,8 @@ namespace panda_torque_mpc
             task_pose_publisher_.unlockAndPublish();
             task_twist_publisher_.unlockAndPublish();
             torques_publisher_.unlockAndPublish();
+
+            // std::cout << std::setprecision(9) << "publish took (ms): " << tt_publish.tac() << std::endl;
         }
 
         // Store previous desired/reference values
@@ -350,12 +322,7 @@ namespace panda_torque_mpc
         last_dx_r_ = dx_r;
         last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 
-        auto tend = std::chrono::high_resolution_clock::now();
-
-        // Calculating total time taken by the program.
-        double time_taken = std::chrono::duration_cast<std::chrono::nanoseconds>(tend - tstart).count();
-        time_taken *= 1e-6;
-        std::cout << std::setprecision(9) << "uppdate() took (ms): " << time_taken << std::endl;
+        tictac.print_tac("update() took (ms): ");
     }
 
     Vector7d TaskSpaceIDController::compute_desired_torque(
@@ -393,17 +360,16 @@ namespace panda_torque_mpc
         // FK and differential FK
         pin::forwardKinematics(model_pin_, data_pin_, q_m, dq_m);
         pin::updateFramePlacements(model_pin_, data_pin_);
-        auto fid = model_pin_.getFrameId(ee_frame_pin_);
-        pin::SE3 T_o_e_m = data_pin_.oMf[fid];
-        pin::Motion nu_o_e_m = pin::getFrameVelocity(model_pin_, data_pin_, fid, pin::LOCAL_WORLD_ALIGNED);
+        pin::SE3 T_o_e_m = data_pin_.oMf[ee_frame_id_];
+        pin::Motion nu_o_e_m = pin::getFrameVelocity(model_pin_, data_pin_, ee_frame_id_, pin::LOCAL_WORLD_ALIGNED);
 
         // end effector jacobian and time derivative
         Eigen::Matrix<double, 6, 7> J_pin, dJ_pin;
         J_pin.setZero();
-        pin::computeFrameJacobian(model_pin_, data_pin_, q_m, fid, pin::LOCAL_WORLD_ALIGNED, J_pin);
+        pin::computeFrameJacobian(model_pin_, data_pin_, q_m, ee_frame_id_, pin::LOCAL_WORLD_ALIGNED, J_pin);
         dJ_pin.setZero();
         pin::computeJointJacobiansTimeVariation(model_pin_, data_pin_, q_m, dq_m);
-        pin::getFrameJacobianTimeVariation(model_pin_, data_pin_, fid, pin::LOCAL_WORLD_ALIGNED, dJ_pin);
+        pin::getFrameJacobianTimeVariation(model_pin_, data_pin_, ee_frame_id_, pin::LOCAL_WORLD_ALIGNED, dJ_pin);
 
         Vector7d ddq_d; // desired joint acceleration
         switch (control_variant)
@@ -411,39 +377,30 @@ namespace panda_torque_mpc
         case TSIDVariant::PosiPosture:
         {
             ROS_INFO_STREAM("TSIDVariant::PosiPosture, pinocchio: " << use_pinocchio_);
-            // ////////////
-            // // POSITION ONLY
-            // // UNSTABLE cause UNDERTERMINED!! (3 < 7 Dof constrained)
-            // Eigen::Vector3d e = T_o_e_m.translation() - x_r.translation();
-            // Eigen::Vector3d de = nu_o_e_m.linear() - dx_r.linear();
-            // Eigen::Vector3d ddx_d = ddx_r.linear() - 2*sqrt(kp_ee_) * de - kp_ee_ * e;
-
-            // Eigen::Matrix<double,3,7> A = J_pin.block<3,7>(0,0);
-            // Eigen::Matrix<double,3,1> b = ddx_d - dJ_pin.block<3,7>(0,0) * dq_m;
-            // ddq_d = A.colPivHouseholderQr().solve(b);
-            // ///////////////////////
-
             ////////////
             // EE POSITION + POSTURE tasks
             // Position task
-            Eigen::Vector3d ex = T_o_e_m.translation() - x_r.translation();
-            Eigen::Vector3d dex = nu_o_e_m.linear() - dx_r.linear();
-            Eigen::Vector3d ddx_d = ddx_r.linear() - 2 * sqrt(kp_ee_) * dex - kp_ee_ * ex;
+            Eigen::Vector3d e_x = T_o_e_m.translation() - x_r.translation();
+            Eigen::Vector3d de_x = nu_o_e_m.linear() - dx_r.linear();
+            Eigen::Vector3d ddx_d = ddx_r.linear() - kp_ee_ * e_x - kd_ee_ * de_x;
 
             // Posture task : q --> q_init
             // Let's keep the same dynamics but alpha will handle the weighting between the 2 tasks
             // ddq_r = 0 = dq_r here
             Vector7d eq = q_m - q_init_;
             Vector7d deq = dq_m;
-            Vector7d ddq_reg_d = -kp_ee_ * eq - 2 * sqrt(kp_ee_) * deq;
+            Vector7d ddq_reg_d = -kp_q_*eq - kd_q_*deq;
 
             // Create and solve least square problem to get desired joint acceleration
             Eigen::Matrix<double, 10, 7> A;
-            A.block<3, 7>(0, 0) = pow(w_ee_, 2) * J_pin.block<3, 7>(0, 0);
-            A.block<7, 7>(3, 0) = pow(w_posture_, 2) * Eigen::Matrix<double, 7, 7>::Identity();
+            Eigen::Matrix<double, 3, 7> J_pin_p = J_pin.block<3, 7>(0, 0);
+            Eigen::Matrix<double, 3, 7> dJ_pin_p = dJ_pin.block<3, 7>(0, 0);
+            A.block<3, 7>(0, 0) = pow(w_ee_, 2) * J_pin_p;
+            A.block<7, 7>(3, 0) = pow(w_q_, 2) * Eigen::Matrix<double, 7, 7>::Identity();
             Eigen::Matrix<double, 10, 1> b;
-            b.segment<3>(0) = pow(w_ee_, 2) * (ddx_d - dJ_pin.block<3, 7>(0, 0) * dq_m);
-            b.segment<7>(3) = pow(w_posture_, 2) * ddq_reg_d;
+            b.segment<3>(0) = pow(w_ee_, 2) * (ddx_d - dJ_pin_p * dq_m);
+            b.segment<7>(3) = pow(w_q_, 2) * ddq_reg_d;
+
             ddq_d = A.colPivHouseholderQr().solve(b);
 
             break;
@@ -476,10 +433,10 @@ namespace panda_torque_mpc
             // Create and solve least square problem to get desired joint acceleration
             Eigen::Matrix<double, 13, 7> A;
             A.block<6, 7>(0, 0) = pow(w_ee_, 2) * (Jlog * J_pin);
-            A.block<7, 7>(6, 0) = pow(w_posture_, 2) * Eigen::Matrix<double, 7, 7>::Identity();
+            A.block<7, 7>(6, 0) = pow(w_q_, 2) * Eigen::Matrix<double, 7, 7>::Identity();
             Eigen::Matrix<double, 13, 1> b;
             b.segment<6>(0) = pow(w_ee_, 2) * (ddx_d - dJ_pin * dq_m);
-            b.segment<7>(6) = pow(w_posture_, 2) * ddq_reg_d;
+            b.segment<7>(6) = pow(w_q_, 2) * ddq_reg_d;
             ddq_d = A.colPivHouseholderQr().solve(b);
 
             break;

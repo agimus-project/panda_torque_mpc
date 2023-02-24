@@ -1,3 +1,4 @@
+<?xml version="1.0" ?>
 <launch>
   <arg name="robot" default="panda" doc="choose your robot. Possible values: [panda, fr3]"/>
   <arg name="arm_id" default="$(arg robot)" />
@@ -5,10 +6,9 @@
   <arg name="record_joints" default="false"/>
   <arg name="record_task" default="false"/>
   <arg name="expe" default="expe"/>
-  <arg name="controller"  default="model_pinocchio_vs_franka_controller" doc="Choose controller to be launched. Check config/controller_configs.yaml to see which one are available." />
+  <arg name="controller" default="model_pinocchio_vs_franka_controller" doc="Choose controller to be launched. Check config/controller_configs.yaml to see which one are available." />
 
   <rosparam command="load" file="$(find panda_torque_mpc)/config/controller_configs.yaml" subst_value="true" />
-  
 
   <!-- Dump controller related parameters for this experiment in a yaml file with similar name as bag file -->
   <group if="$(arg record_joints)">
@@ -17,6 +17,7 @@
   <group if="$(arg record_task)">
     <include file="$(find panda_torque_mpc)/launch/record_task_ctrl.launch" pass_all_args="true"/>
   </group>
+
 
   <!-- spawns the controller after "initialized" topic tells us the robot is initialized  -->
   <node pkg="controller_manager"

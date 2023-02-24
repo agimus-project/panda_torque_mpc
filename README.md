@@ -61,6 +61,7 @@ This means that your computer is not RealTime capable and Franka expects that by
 
 
 # TODOLIST
+* Double check if `initialized` topic is streamed when using the real controller (not likely) 
 * Switch between the urdf files depending on `load_gripper` argument
 * Figure out why measured torque signs are inverted between simulation and real robot.
 Do the sign flipping in code automatically

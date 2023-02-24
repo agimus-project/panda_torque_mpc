@@ -1,6 +1,5 @@
 # panda_torque_mpc
 ------------------  
-TODO
 
 # Building the project (tested with Ubuntu 20.05 - ROS noetic)
 ## conda/mamba env setup
@@ -51,7 +50,7 @@ The parameters of each controller are defined in `config/controller_configs.yaml
 * `model_pinocchio_vs_franka_controller`: compare Rigid Body Dynamics computation between pinocchio and libfranka
 * `log_update_dt`: logs ::update time and duration parameters in a csv file to investigate RT control
 * `joint_space_ID_controller`: follow joint trajectory reference using different flavors of joint space Inverse Dynamics 
-* `task_space_ID_controller`: TOTEST 
+* `task_space_ID_controller`: follow task space end-effector trajectory ($\mathbb{R}^3 or SE(3)) 
 
 
 ## Troubleshooting
@@ -65,4 +64,3 @@ This means that your computer is not RealTime capable and Franka expects that by
 * Switch between the urdf files depending on `load_gripper` argument
 * Figure out why measured torque signs are inverted between simulation and real robot.
 Do the sign flipping in code automatically
-* test task_space_ID_controller

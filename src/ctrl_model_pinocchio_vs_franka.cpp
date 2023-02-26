@@ -1,4 +1,4 @@
-#include "panda_torque_mpc/model_pinocchio_vs_franka_controller.h"
+#include "panda_torque_mpc/ctrl_model_pinocchio_vs_franka.h"
 
 #include <algorithm>
 #include <array>
@@ -30,7 +30,7 @@ namespace
 namespace panda_torque_mpc
 {
 
-    bool ModelPinocchioVsFrankaController::init(hardware_interface::RobotHW *robot_hw,
+    bool CtrlModelPinocchioVsFranka::init(hardware_interface::RobotHW *robot_hw,
                                                 ros::NodeHandle &node_handle)
     {
 
@@ -40,7 +40,7 @@ namespace panda_torque_mpc
         std::string arm_id;
         if (!node_handle.getParam("arm_id", arm_id))
         {
-            ROS_ERROR("ModelPinocchioVsFrankaController: Could not read parameter arm_id");
+            ROS_ERROR("CtrlModelPinocchioVsFranka: Could not read parameter arm_id");
             return false;
         }
 
@@ -48,7 +48,7 @@ namespace panda_torque_mpc
         std::string urdf_path;
         if (!node_handle.getParam("urdf_path", urdf_path))
         {
-            ROS_ERROR("ModelPinocchioVsFrankaController: Could not read parameter urdf_path");
+            ROS_ERROR("CtrlModelPinocchioVsFranka: Could not read parameter urdf_path");
             return false;
         }
         // Load panda model with pinocchio
@@ -69,7 +69,7 @@ namespace panda_torque_mpc
         auto *franka_state_interface = robot_hw->get<franka_hw::FrankaStateInterface>();
         if (franka_state_interface == nullptr)
         {
-            ROS_ERROR("ModelPinocchioVsFrankaController: Could not get Franka state interface from hardware");
+            ROS_ERROR("CtrlModelPinocchioVsFranka: Could not get Franka state interface from hardware");
             return false;
         }
         try
@@ -78,7 +78,7 @@ namespace panda_torque_mpc
         }
         catch (const hardware_interface::HardwareInterfaceException &ex)
         {
-            ROS_ERROR_STREAM("ModelPinocchioVsFrankaController: Exception getting franka state handle: " << ex.what());
+            ROS_ERROR_STREAM("CtrlModelPinocchioVsFranka: Exception getting franka state handle: " << ex.what());
             return false;
         }
 
@@ -86,7 +86,7 @@ namespace panda_torque_mpc
         auto *model_interface = robot_hw->get<franka_hw::FrankaModelInterface>();
         if (model_interface == nullptr)
         {
-            ROS_ERROR_STREAM("ModelPinocchioVsFrankaController: Error getting model interface from hardware");
+            ROS_ERROR_STREAM("CtrlModelPinocchioVsFranka: Error getting model interface from hardware");
             return false;
         }
         try
@@ -95,14 +95,14 @@ namespace panda_torque_mpc
         }
         catch (hardware_interface::HardwareInterfaceException &ex)
         {
-            ROS_ERROR_STREAM("ModelPinocchioVsFrankaController: Exception getting model handle from interface: " << ex.what());
+            ROS_ERROR_STREAM("CtrlModelPinocchioVsFranka: Exception getting model handle from interface: " << ex.what());
             return false;
         }
 
         return true;
     }
 
-    void ModelPinocchioVsFrankaController::update(const ros::Time & /*time*/, const ros::Duration & /*period*/)
+    void CtrlModelPinocchioVsFranka::update(const ros::Time & /*time*/, const ros::Duration & /*period*/)
     {
         if (rate_trigger_())
         {
@@ -221,5 +221,5 @@ namespace panda_torque_mpc
 
 } // namespace panda_torque_mpc
 
-PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::ModelPinocchioVsFrankaController,
+PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::CtrlModelPinocchioVsFranka,
                        controller_interface::ControllerBase)

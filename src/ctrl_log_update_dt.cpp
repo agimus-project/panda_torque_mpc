@@ -1,4 +1,4 @@
-#include "panda_torque_mpc/log_update_dt.h"
+#include "panda_torque_mpc/ctrl_log_update_dt.h"
 
 #include <algorithm>
 #include <array>
@@ -32,14 +32,14 @@ namespace
 namespace panda_torque_mpc
 {
 
-    bool LogUpdateDt::init(hardware_interface::RobotHW *robot_hw,
+    bool CtrlLogUpdateDt::init(hardware_interface::RobotHW *robot_hw,
                            ros::NodeHandle &node_handle)
     {
 
         std::string arm_id;
         if (!node_handle.getParam("arm_id", arm_id))
         {
-            ROS_ERROR("ModelPinocchioVsFrankaController: Could not read parameter arm_id");
+            ROS_ERROR("CtrlModelPinocchioVsFranka: Could not read parameter arm_id");
             return false;
         }
 
@@ -50,7 +50,7 @@ namespace panda_torque_mpc
         auto *franka_state_interface = robot_hw->get<franka_hw::FrankaStateInterface>();
         if (franka_state_interface == nullptr)
         {
-            ROS_ERROR("LogUpdateDt: Could not get Franka state interface from hardware");
+            ROS_ERROR("CtrlLogUpdateDt: Could not get Franka state interface from hardware");
             return false;
         }
         try
@@ -59,31 +59,31 @@ namespace panda_torque_mpc
         }
         catch (const hardware_interface::HardwareInterfaceException &ex)
         {
-            ROS_ERROR_STREAM("LogUpdateDt: Exception getting franka state handle: " << ex.what());
+            ROS_ERROR_STREAM("CtrlLogUpdateDt: Exception getting franka state handle: " << ex.what());
             return false;
         }
 
         return true;
     }
 
-    void LogUpdateDt::starting(const ros::Time &t0)
+    void CtrlLogUpdateDt::starting(const ros::Time &t0)
     {
-        ROS_INFO_STREAM("LogUpdateDt::starting");
+        ROS_INFO_STREAM("CtrlLogUpdateDt::starting");
         t_init_ = t0;
         time_vec_.reserve(120 * 1000);
         dur_vec_.reserve(120 * 1000);
     }
 
-    void LogUpdateDt::update(const ros::Time &t, const ros::Duration &dur)
+    void CtrlLogUpdateDt::update(const ros::Time &t, const ros::Duration &dur)
     {
 
         time_vec_.push_back((t - t_init_).toSec());
         dur_vec_.push_back(dur.toSec());
     }
 
-    void LogUpdateDt::stopping(const ros::Time &t0)
+    void CtrlLogUpdateDt::stopping(const ros::Time &t0)
     {
-        ROS_INFO_STREAM("LogUpdateDt::stopping");
+        ROS_INFO_STREAM("CtrlLogUpdateDt::stopping");
 
         ///////////////////////
         // STORE DT
@@ -105,5 +105,5 @@ namespace panda_torque_mpc
 
 } // namespace panda_torque_mpc
 
-PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::LogUpdateDt,
+PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::CtrlLogUpdateDt,
                        controller_interface::ControllerBase)

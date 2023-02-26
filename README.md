@@ -47,10 +47,10 @@ In two different shells:
 
 ## Custom controllers
 The parameters of each controller are defined in `config/controller_configs.yaml`. To run one of them in simulation or real, replace <controller-name> with:
-* `model_pinocchio_vs_franka_controller`: compare Rigid Body Dynamics computation between pinocchio and libfranka
-* `log_update_dt`: logs ::update time and duration parameters in a csv file to investigate RT control
-* `joint_space_ID_controller`: follow joint trajectory reference using different flavors of joint space Inverse Dynamics 
-* `task_space_ID_controller`: follow task space end-effector trajectory ($\mathbb{R}^3 or SE(3)) 
+* `ctrl_model_pinocchio_vs_franka`: compare Rigid Body Dynamics computation between pinocchio and libfranka
+* `ctrl_log_update_dt`: logs ::update time and duration parameters in a csv file to investigate RT control
+* `ctrl_joint_space_ID`: follow joint trajectory reference using different flavors of joint space Inverse Dynamics 
+* `ctrl_task_space_ID`: follow task space end-effector trajectory ($\mathbb{R}^3 or SE(3)) 
 
 
 ## Troubleshooting

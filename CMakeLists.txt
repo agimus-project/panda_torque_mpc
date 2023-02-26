@@ -65,10 +65,10 @@ catkin_package(
 
 
 add_library(panda_torque_mpc
-  src/model_pinocchio_vs_franka_controller.cpp
-  src/log_update_dt.cpp
-  src/joint_space_ID_controller.cpp
-  src/task_space_ID_controller.cpp
+  src/ctrl_model_pinocchio_vs_franka.cpp
+  src/ctrl_log_update_dt.cpp
+  src/ctrl_joint_space_ID.cpp
+  src/ctrl_task_space_ID.cpp
 )
 
 target_link_libraries(panda_torque_mpc PUBLIC

@@ -1,14 +1,14 @@
-model_pinocchio_vs_franka_controller:
-  type: panda_torque_mpc/ModelPinocchioVsFrankaController
+ctrl_model_pinocchio_vs_franka:
+  type: panda_torque_mpc/CtrlModelPinocchioVsFranka
   arm_id: $(arg arm_id)
   urdf_path: $(find panda_torque_mpc)/config/panda_inertias_nohand.urdf
 
-log_update_dt:
-  type: panda_torque_mpc/LogUpdateDt
+ctrl_log_update_dt:
+  type: panda_torque_mpc/CtrlLogUpdateDt
   arm_id: $(arg arm_id)
 
-joint_space_ID_controller:
-    type: panda_torque_mpc/JointSpaceIDController
+ctrl_joint_space_ID:
+    type: panda_torque_mpc/CtrlJointSpaceID
     arm_id: $(arg arm_id)
     urdf_path: $(find panda_torque_mpc)/config/panda_inertias_nohand.urdf
     joint_names:
@@ -72,8 +72,8 @@ joint_space_ID_controller:
     saturate_dtau: true
 
 
-task_space_ID_controller:
-    type: panda_torque_mpc/TaskSpaceIDController
+ctrl_task_space_ID:
+    type: panda_torque_mpc/CtrlTaskSpaceID
     arm_id: $(arg arm_id)
     urdf_path: $(find panda_torque_mpc)/config/panda_inertias_nohand.urdf
     joint_names:

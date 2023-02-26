@@ -6,40 +6,40 @@ import matplotlib.pyplot as plt
 
 from read_plot_utils import read_jsid_bag
 
-CONTROLLER_NAME = 'joint_space_ID_controller'
+CONTROLLER_NAME = 'ctrl_joint_space_ID'
 # DIRECTORY = '/home/mfourmy/Downloads/franka_experiments_31_01_23'
 
-# BAG_NAME = 'joint_space_ID_controller_franka_lowstiff.bag'
-# YML_NAME = 'joint_space_ID_controller_franka_lowstiff.yaml'
-# BAG_NAME = 'joint_space_ID_controller_franka_midstiff.bag'
-# YML_NAME = 'joint_space_ID_controller_franka_midstiff.yaml'
-# BAG_NAME = 'joint_space_ID_controller_franka_stiff.bag'
-# YML_NAME = 'joint_space_ID_controller_franka_stiff.yaml'
-# BAG_NAME = 'joint_space_ID_controller_pin_lowstiff.bag'
-# YML_NAME = 'joint_space_ID_controller_pin_lowstiff.yaml'
-# BAG_NAME = 'joint_space_ID_controller_pin_midstiff.bag'
-# YML_NAME = 'joint_space_ID_controller_pin_midstiff.yaml'
-# BAG_NAME = 'joint_space_ID_controller_pin_stiff.bag'
-# YML_NAME = 'joint_space_ID_controller_pin_stiff.yaml'
+# BAG_NAME = 'ctrl_joint_space_ID_franka_lowstiff.bag'
+# YML_NAME = 'ctrl_joint_space_ID_franka_lowstiff.yaml'
+# BAG_NAME = 'ctrl_joint_space_ID_franka_midstiff.bag'
+# YML_NAME = 'ctrl_joint_space_ID_franka_midstiff.yaml'
+# BAG_NAME = 'ctrl_joint_space_ID_franka_stiff.bag'
+# YML_NAME = 'ctrl_joint_space_ID_franka_stiff.yaml'
+# BAG_NAME = 'ctrl_joint_space_ID_pin_lowstiff.bag'
+# YML_NAME = 'ctrl_joint_space_ID_pin_lowstiff.yaml'
+# BAG_NAME = 'ctrl_joint_space_ID_pin_midstiff.bag'
+# YML_NAME = 'ctrl_joint_space_ID_pin_midstiff.yaml'
+# BAG_NAME = 'ctrl_joint_space_ID_pin_stiff.bag'
+# YML_NAME = 'ctrl_joint_space_ID_pin_stiff.yaml'
 
 # DIRECTORY = '/media/mfourmy/MEDUSB/Panda_expe'
 # BAG_NAMES = [
-#   'joint_space_ID_controller_franka_stiff.bag',
-#   'joint_space_ID_controller_pin_stiff.bag',
+#   'ctrl_joint_space_ID_franka_stiff.bag',
+#   'ctrl_joint_space_ID_pin_stiff.bag',
 # ]
 
 # DIRECTORY = '../bags/'
 # BAG_NAMES = [
-#   'joint_space_ID_controller_LONG_expe.bag',
-#   # 'joint_space_ID_controller_lowK_NoSat.bag',
-#   'joint_space_ID_controller_lowK_Sat.bag',
+#   'ctrl_joint_space_ID_LONG_expe.bag',
+#   # 'ctrl_joint_space_ID_lowK_NoSat.bag',
+#   'ctrl_joint_space_ID_lowK_Sat.bag',
 # ]
 
 DIRECTORY = '/home/mfourmy/Downloads/Panda_Expe_BIS'
 
 BAG_NAMES = [
-  'joint_space_ID_controller_franka_stiff.bag',
-  'joint_space_ID_controller_pin_stiff.bag',
+  'ctrl_joint_space_ID_franka_stiff.bag',
+  'ctrl_joint_space_ID_pin_stiff.bag',
 ]
 
 

@@ -31,7 +31,7 @@ namespace panda_torque_mpc
 
     namespace pin = pinocchio;
 
-    class ModelPinocchioVsFrankaController
+    class CtrlModelPinocchioVsFranka
         : public controller_interface::MultiInterfaceController<franka_hw::FrankaModelInterface,
                                                                 franka_hw::FrankaStateInterface>
     {

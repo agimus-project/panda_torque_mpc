@@ -1,7 +1,7 @@
 <launch>
   <arg name="record_joints" default="false"/>
   <arg name="expe" default="expe"/>
-  <arg name="controller"  default="model_pinocchio_vs_franka_controller" doc="Choose controller to be launched. Check config/controller_configs.yaml to see which one are available." />
+  <arg name="controller"  default="ctrl_model_pinocchio_vs_franka" doc="Choose controller to be launched. Check config/controller_configs.yaml to see which one are available." />
 
   <!-- Dump controller related parameters for this experiment in a yaml file with similar name as bag file -->
   <rosparam command="dump" file="$(find panda_torque_mpc)/bags/$(arg controller)_$(arg expe).yaml" ns="$(arg controller)" subst_value="true" />

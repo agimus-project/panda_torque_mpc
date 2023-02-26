@@ -17,7 +17,7 @@
 namespace panda_torque_mpc
 {
 
-    class LogUpdateDt
+    class CtrlLogUpdateDt
         : public controller_interface::MultiInterfaceController<franka_hw::FrankaStateInterface>
     {
     public:

@@ -39,7 +39,7 @@ namespace panda_torque_mpc
 
     namespace pin = pinocchio;
 
-    class JointSpaceIDController : public controller_interface::MultiInterfaceController<franka_hw::FrankaModelInterface,
+    class CtrlJointSpaceID : public controller_interface::MultiInterfaceController<franka_hw::FrankaModelInterface,
                                                                                          franka_hw::FrankaStateInterface,
                                                                                          hardware_interface::EffortJointInterface>
     {

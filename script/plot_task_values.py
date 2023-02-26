@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from read_plot_utils import read_tsid_bag
 
-CONTROLLER_NAME = 'task_space_ID_controller'
+CONTROLLER_NAME = 'ctrl_task_space_ID'
 
 
 DIRECTORY = '../bags/'

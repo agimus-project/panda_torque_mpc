@@ -1,4 +1,4 @@
-#include "panda_torque_mpc/task_space_ID_controller.h"
+#include "panda_torque_mpc/ctrl_task_space_ID.h"
 
 #include <cmath>
 #include <memory>
@@ -13,7 +13,7 @@
 namespace panda_torque_mpc
 {
 
-    bool TaskSpaceIDController::init(hardware_interface::RobotHW *robot_hw,
+    bool CtrlTaskSpaceID::init(hardware_interface::RobotHW *robot_hw,
                                      ros::NodeHandle &nh)
     {
 
@@ -55,7 +55,7 @@ namespace panda_torque_mpc
         double publish_rate(30.0);
         if (!nh.getParam("publish_rate", publish_rate))
         {
-            ROS_INFO_STREAM("TaskSpaceIDController: publish_rate not found. Defaulting to " << publish_rate);
+            ROS_INFO_STREAM("CtrlTaskSpaceID: publish_rate not found. Defaulting to " << publish_rate);
         }
         rate_trigger_ = franka_hw::TriggerRate(publish_rate);
 
@@ -63,7 +63,7 @@ namespace panda_torque_mpc
         if(!get_param_error_tpl<int>(nh, idc, "control_variant", 
                                      [](int x) {return x >= 0 && x < 3;})) return false;
                                      
-        control_variant_ = static_cast<TaskSpaceIDController::TSIDVariant>(idc);
+        control_variant_ = static_cast<CtrlTaskSpaceID::TSIDVariant>(idc);
 
         if(!get_param_error_tpl<bool>(nh, use_pinocchio_, "use_pinocchio")) return false;
         if(!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter")) return false;
@@ -85,7 +85,7 @@ namespace panda_torque_mpc
             return false;
         }
 
-        // Define corresponding frame id for pinocchio and Franka (see model_pinocchio_vs_franka_controller)
+        // Define corresponding frame id for pinocchio and Franka (see ctrl_model_pinocchio_vs_franka)
         franka_frame_ = franka::Frame::kFlange;
         ee_frame_pin_ = "panda_link8";
         ee_frame_id_ = model_pin_.getFrameId(ee_frame_pin_);
@@ -110,7 +110,7 @@ namespace panda_torque_mpc
         auto *franka_state_interface = robot_hw->get<franka_hw::FrankaStateInterface>();
         if (franka_state_interface == nullptr)
         {
-            ROS_ERROR("TaskSpaceIDController: Could not get Franka state interface from hardware");
+            ROS_ERROR("CtrlTaskSpaceID: Could not get Franka state interface from hardware");
             return false;
         }
         try
@@ -119,7 +119,7 @@ namespace panda_torque_mpc
         }
         catch (const hardware_interface::HardwareInterfaceException &e)
         {
-            ROS_ERROR_STREAM("TaskSpaceIDController: Exception getting franka state handle: " << e.what());
+            ROS_ERROR_STREAM("CtrlTaskSpaceID: Exception getting franka state handle: " << e.what());
             return false;
         }
 
@@ -127,7 +127,7 @@ namespace panda_torque_mpc
         auto *model_interface = robot_hw->get<franka_hw::FrankaModelInterface>();
         if (model_interface == nullptr)
         {
-            ROS_ERROR_STREAM("TaskSpaceIDController: Error getting model interface from hardware");
+            ROS_ERROR_STREAM("CtrlTaskSpaceID: Error getting model interface from hardware");
             return false;
         }
         try
@@ -136,7 +136,7 @@ namespace panda_torque_mpc
         }
         catch (hardware_interface::HardwareInterfaceException &e)
         {
-            ROS_ERROR_STREAM("TaskSpaceIDController: Exception getting model handle from interface: " << e.what());
+            ROS_ERROR_STREAM("CtrlTaskSpaceID: Exception getting model handle from interface: " << e.what());
             return false;
         }
 
@@ -144,7 +144,7 @@ namespace panda_torque_mpc
         auto *effort_joint_interface = robot_hw->get<hardware_interface::EffortJointInterface>();
         if (effort_joint_interface == nullptr)
         {
-            ROS_ERROR_STREAM("TaskSpaceIDController: Error getting effort joint interface from hardware");
+            ROS_ERROR_STREAM("CtrlTaskSpaceID: Error getting effort joint interface from hardware");
             return false;
         }
         for (size_t i = 0; i < 7; ++i)
@@ -155,7 +155,7 @@ namespace panda_torque_mpc
             }
             catch (const hardware_interface::HardwareInterfaceException &e)
             {
-                ROS_ERROR_STREAM("TaskSpaceIDController: Exception getting joint handles: " << e.what());
+                ROS_ERROR_STREAM("CtrlTaskSpaceID: Exception getting joint handles: " << e.what());
                 return false;
             }
         }
@@ -169,9 +169,9 @@ namespace panda_torque_mpc
         return true;
     }
 
-    void TaskSpaceIDController::starting(const ros::Time &t0)
+    void CtrlTaskSpaceID::starting(const ros::Time &t0)
     {
-        ROS_INFO_STREAM("TaskSpaceIDController::starting");
+        ROS_INFO_STREAM("CtrlTaskSpaceID::starting");
         t_init_ = t0;
         q_init_ = Eigen::Map<const Vector7d>(franka_state_handle_->getRobotState().q.data());
         pin::forwardKinematics(model_pin_, data_pin_, q_init_);
@@ -181,11 +181,11 @@ namespace panda_torque_mpc
         // Set posture reference once and for all
         tsid_reaching_.setPostureRef(q_init_);
 
-        ROS_INFO_STREAM("TaskSpaceIDController::starting x_init_: \n"
+        ROS_INFO_STREAM("CtrlTaskSpaceID::starting x_init_: \n"
                         << x_init_);
     }
 
-    void TaskSpaceIDController::update(const ros::Time &t, const ros::Duration &period)
+    void CtrlTaskSpaceID::update(const ros::Time &t, const ros::Duration &period)
     {
         TicTac tictac;
 
@@ -325,7 +325,7 @@ namespace panda_torque_mpc
         tictac.print_tac("update() took (ms): ");
     }
 
-    Vector7d TaskSpaceIDController::compute_desired_torque(
+    Vector7d CtrlTaskSpaceID::compute_desired_torque(
         const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered,
         const pin::SE3 &x_r, const pin::Motion &dx_r, const pin::Motion &ddx_r,
         TSIDVariant control_variant, bool use_pinocchio)
@@ -480,7 +480,7 @@ namespace panda_torque_mpc
         return tau_d;
     }
 
-    void TaskSpaceIDController::compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pin::SE3 &pose_0, double t,
+    void CtrlTaskSpaceID::compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pin::SE3 &pose_0, double t,
                                                                 pin::SE3 &x_r, pin::Motion &dx_r, pin::Motion &ddx_r)
     {
         // Ai and Ci obtained for each joint using constraints:
@@ -495,15 +495,15 @@ namespace panda_torque_mpc
         dx_r = pin::Motion((-w.array() * a.array() * sin(w.array() * t)).matrix());
         ddx_r = pin::Motion((-w.array().square() * a.array() * cos(w.array() * t)).matrix()); // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
 
-        // ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference pose_0: \n" << pose_0);
-        // ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference nu: \n" << nu.transpose());
-        // ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference pin::exp6(nu): \n" << pin::exp6(nu));
+        // ROS_INFO_STREAM("CtrlTaskSpaceID::compute_sinusoid_pose_reference pose_0: \n" << pose_0);
+        // ROS_INFO_STREAM("CtrlTaskSpaceID::compute_sinusoid_pose_reference nu: \n" << nu.transpose());
+        // ROS_INFO_STREAM("CtrlTaskSpaceID::compute_sinusoid_pose_reference pin::exp6(nu): \n" << pin::exp6(nu));
 
         x_r = pose_0 * pin::exp6(nu);
-        // ROS_INFO_STREAM("TaskSpaceIDController::compute_sinusoid_pose_reference x_r: \n" << x_r);
+        // ROS_INFO_STREAM("CtrlTaskSpaceID::compute_sinusoid_pose_reference x_r: \n" << x_r);
     }
 
-    Vector7d TaskSpaceIDController::saturateTorqueRate(
+    Vector7d CtrlTaskSpaceID::saturateTorqueRate(
         const Vector7d &tau_d,
         const Vector7d &tau_J_d)
     { // NOLINT (readability-identifier-naming)
@@ -516,12 +516,12 @@ namespace panda_torque_mpc
         return tau_d_saturated;
     }
 
-    void TaskSpaceIDController::stopping(const ros::Time &t0)
+    void CtrlTaskSpaceID::stopping(const ros::Time &t0)
     {
-        ROS_INFO_STREAM("TaskSpaceIDController::stopping");
+        ROS_INFO_STREAM("CtrlTaskSpaceID::stopping");
     }
 
 } // namespace panda_torque_mpc
 
-PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::TaskSpaceIDController,
+PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::CtrlTaskSpaceID,
                        controller_interface::ControllerBase)

@@ -6,7 +6,7 @@
   <arg name="record_joints" default="false"/>
   <arg name="record_task" default="false"/>
   <arg name="expe" default="expe"/>
-  <arg name="controller" default="model_pinocchio_vs_franka_controller" doc="Choose controller to be launched. Check config/controller_configs.yaml to see which one are available." />
+  <arg name="controller" default="ctrl_model_pinocchio_vs_franka" doc="Choose controller to be launched. Check config/controller_configs.yaml to see which one are available." />
 
   <rosparam command="load" file="$(find panda_torque_mpc)/config/controller_configs.yaml" subst_value="true" />
 

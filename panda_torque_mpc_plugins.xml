@@ -1,27 +1,27 @@
 <library path="lib/libpanda_torque_mpc">
-  <class name="panda_torque_mpc/ModelPinocchioVsFrankaController" 
-         type="panda_torque_mpc::ModelPinocchioVsFrankaController" 
+  <class name="panda_torque_mpc/CtrlModelPinocchioVsFranka" 
+         type="panda_torque_mpc::CtrlModelPinocchioVsFranka" 
          base_class_type="controller_interface::ControllerBase">
     <description>
       A controller that only compares Rigib Body Dynamics Algorithm values computed from Franka and pinocchio. 
     </description>
   </class>
-  <class name="panda_torque_mpc/LogUpdateDt" 
-         type="panda_torque_mpc::LogUpdateDt" 
+  <class name="panda_torque_mpc/CtrlLogUpdateDt" 
+         type="panda_torque_mpc::CtrlLogUpdateDt" 
          base_class_type="controller_interface::ControllerBase">
     <description>
       Saves time and duration of update function to a file. 
     </description>
   </class>
-  <class name="panda_torque_mpc/JointSpaceIDController" 
-         type="panda_torque_mpc::JointSpaceIDController" 
+  <class name="panda_torque_mpc/CtrlJointSpaceID" 
+         type="panda_torque_mpc::CtrlJointSpaceID" 
          base_class_type="controller_interface::ControllerBase">
     <description>
       A controller that tracks a self generated joint trajectory using PD+ control. 
     </description>
   </class>
-  <class name="panda_torque_mpc/TaskSpaceIDController" 
-         type="panda_torque_mpc::TaskSpaceIDController" 
+  <class name="panda_torque_mpc/CtrlTaskSpaceID" 
+         type="panda_torque_mpc::CtrlTaskSpaceID" 
          base_class_type="controller_interface::ControllerBase">
     <description>
       A controller that tracks a self generated end effector trajectory using task space PD+ control. 

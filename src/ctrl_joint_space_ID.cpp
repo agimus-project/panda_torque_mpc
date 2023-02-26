@@ -1,4 +1,4 @@
-#include <panda_torque_mpc/joint_space_ID_controller.h>
+#include <panda_torque_mpc/ctrl_joint_space_ID.h>
 
 #include <cmath>
 #include <memory>
@@ -12,7 +12,7 @@
 namespace panda_torque_mpc
 {
 
-    bool JointSpaceIDController::init(hardware_interface::RobotHW *robot_hw,
+    bool CtrlJointSpaceID::init(hardware_interface::RobotHW *robot_hw,
                                       ros::NodeHandle &node_handle)
     {
 
@@ -22,33 +22,33 @@ namespace panda_torque_mpc
         std::string arm_id;
         if (!node_handle.getParam("arm_id", arm_id))
         {
-            ROS_ERROR("JointSpaceIDController: Could not read parameter arm_id");
+            ROS_ERROR("CtrlJointSpaceID: Could not read parameter arm_id");
             return false;
         }
 
         std::vector<std::string> joint_names;
         if (!node_handle.getParam("joint_names", joint_names) || joint_names.size() != 7)
         {
-            ROS_ERROR("JointSpaceIDController: Invalid or no joint_names parameters provided, aborting controller init!");
+            ROS_ERROR("CtrlJointSpaceID: Invalid or no joint_names parameters provided, aborting controller init!");
             return false;
         }
 
         if (!node_handle.getParam("Kp", Kp_))
         {
-            ROS_ERROR("JointSpaceIDController: Could not read parameter Kp");
+            ROS_ERROR("CtrlJointSpaceID: Could not read parameter Kp");
             return false;
         }
 
         if (!node_handle.getParam("Kd", Kd_))
         {
-            ROS_ERROR("JointSpaceIDController: Could not read parameter Kd");
+            ROS_ERROR("CtrlJointSpaceID: Could not read parameter Kd");
             return false;
         }
 
         std::vector<double> kp_gains;
         if (!node_handle.getParam("kp_gains", kp_gains) || kp_gains.size() != 7)
         {
-            ROS_ERROR("JointSpaceIDController:  Invalid or no kp_gains parameters provided, aborting controller init!");
+            ROS_ERROR("CtrlJointSpaceID:  Invalid or no kp_gains parameters provided, aborting controller init!");
             return false;
         }
         kp_gains_ = Eigen::Map<Vector7d>(kp_gains.data());
@@ -56,7 +56,7 @@ namespace panda_torque_mpc
         std::vector<double> kd_gains;
         if (!node_handle.getParam("kd_gains", kd_gains) || kd_gains_.size() != 7)
         {
-            ROS_ERROR("JointSpaceIDController:  Invalid or no kd_gains parameters provided, aborting controller init!");
+            ROS_ERROR("CtrlJointSpaceID:  Invalid or no kd_gains parameters provided, aborting controller init!");
             return false;
         }
         kd_gains_ = Eigen::Map<Vector7d>(kd_gains.data());
@@ -64,8 +64,8 @@ namespace panda_torque_mpc
         std::vector<double> delta_q;
         if (!node_handle.getParam("delta_q", delta_q) || delta_q.size() != 7)
         {
-            ROS_INFO_STREAM("JointSpaceIDController:  " << delta_q.size());
-            ROS_ERROR("JointSpaceIDController:  Invalid or no delta_q parameters provided, aborting controller init!");
+            ROS_INFO_STREAM("CtrlJointSpaceID:  " << delta_q.size());
+            ROS_ERROR("CtrlJointSpaceID:  Invalid or no delta_q parameters provided, aborting controller init!");
             return false;
         }
         delta_q_ = Eigen::Map<Vector7d>(delta_q.data());
@@ -73,7 +73,7 @@ namespace panda_torque_mpc
         std::vector<double> period_q;
         if (!node_handle.getParam("period_q", period_q) || delta_q.size() != 7)
         {
-            ROS_ERROR("JointSpaceIDController:  Invalid or no period_q parameters provided, aborting controller init!");
+            ROS_ERROR("CtrlJointSpaceID:  Invalid or no period_q parameters provided, aborting controller init!");
             return false;
         }
         period_q_ = Eigen::Map<Vector7d>(period_q.data());
@@ -81,37 +81,37 @@ namespace panda_torque_mpc
         double publish_rate(30.0);
         if (!node_handle.getParam("publish_rate", publish_rate))
         {
-            ROS_INFO_STREAM("JointSpaceIDController: publish_rate not found. Defaulting to " << publish_rate);
+            ROS_INFO_STREAM("CtrlJointSpaceID: publish_rate not found. Defaulting to " << publish_rate);
         }
         rate_trigger_ = franka_hw::TriggerRate(publish_rate);
 
         int idc;
         if (!node_handle.getParam("control_variant", idc) || !(idc >= 0 && idc < 4))
         {
-            ROS_ERROR_STREAM("JointSpaceIDController: Invalid or no control_variant parameters provided, aborting controller init! control_variant: " << idc);
+            ROS_ERROR_STREAM("CtrlJointSpaceID: Invalid or no control_variant parameters provided, aborting controller init! control_variant: " << idc);
         }
-        control_variant_ = static_cast<JointSpaceIDController::JSIDVariant>(idc);
+        control_variant_ = static_cast<CtrlJointSpaceID::JSIDVariant>(idc);
 
         if (!node_handle.getParam("use_pinocchio", use_pinocchio_))
         {
-            ROS_ERROR_STREAM("JointSpaceIDController: Could not read parameter use_pinocchio");
+            ROS_ERROR_STREAM("CtrlJointSpaceID: Could not read parameter use_pinocchio");
         }
 
         if (!node_handle.getParam("alpha_dq_filter", alpha_dq_filter_))
         {
-            ROS_ERROR_STREAM("JointSpaceIDController: Could not read parameter alpha_dq_filter");
+            ROS_ERROR_STREAM("CtrlJointSpaceID: Could not read parameter alpha_dq_filter");
         }
 
         if (!node_handle.getParam("saturate_dtau", saturate_dtau_))
         {
-            ROS_ERROR_STREAM("JointSpaceIDController: Could not read parameter saturate_dtau");
+            ROS_ERROR_STREAM("CtrlJointSpaceID: Could not read parameter saturate_dtau");
         }
 
         // Load panda model with pinocchio
         std::string urdf_path;
         if (!node_handle.getParam("urdf_path", urdf_path))
         {
-            ROS_ERROR("JointSpaceIDController: Could not read parameter urdf_path");
+            ROS_ERROR("CtrlJointSpaceID: Could not read parameter urdf_path");
             return false;
         }
         pin::urdf::buildModel(urdf_path, model_pin_);
@@ -131,7 +131,7 @@ namespace panda_torque_mpc
         auto *franka_state_interface = robot_hw->get<franka_hw::FrankaStateInterface>();
         if (franka_state_interface == nullptr)
         {
-            ROS_ERROR("JointSpaceIDController: Could not get Franka state interface from hardware");
+            ROS_ERROR("CtrlJointSpaceID: Could not get Franka state interface from hardware");
             return false;
         }
         try
@@ -140,7 +140,7 @@ namespace panda_torque_mpc
         }
         catch (const hardware_interface::HardwareInterfaceException &ex)
         {
-            ROS_ERROR_STREAM("JointSpaceIDController: Exception getting franka state handle: " << ex.what());
+            ROS_ERROR_STREAM("CtrlJointSpaceID: Exception getting franka state handle: " << ex.what());
             return false;
         }
 
@@ -148,7 +148,7 @@ namespace panda_torque_mpc
         auto *model_interface = robot_hw->get<franka_hw::FrankaModelInterface>();
         if (model_interface == nullptr)
         {
-            ROS_ERROR_STREAM("JointSpaceIDController: Error getting model interface from hardware");
+            ROS_ERROR_STREAM("CtrlJointSpaceID: Error getting model interface from hardware");
             return false;
         }
         try
@@ -157,7 +157,7 @@ namespace panda_torque_mpc
         }
         catch (hardware_interface::HardwareInterfaceException &ex)
         {
-            ROS_ERROR_STREAM("JointSpaceIDController: Exception getting model handle from interface: " << ex.what());
+            ROS_ERROR_STREAM("CtrlJointSpaceID: Exception getting model handle from interface: " << ex.what());
             return false;
         }
 
@@ -165,7 +165,7 @@ namespace panda_torque_mpc
         auto *effort_joint_interface = robot_hw->get<hardware_interface::EffortJointInterface>();
         if (effort_joint_interface == nullptr)
         {
-            ROS_ERROR_STREAM("JointSpaceIDController: Error getting effort joint interface from hardware");
+            ROS_ERROR_STREAM("CtrlJointSpaceID: Error getting effort joint interface from hardware");
             return false;
         }
         for (size_t i = 0; i < 7; ++i)
@@ -176,7 +176,7 @@ namespace panda_torque_mpc
             }
             catch (const hardware_interface::HardwareInterfaceException &ex)
             {
-                ROS_ERROR_STREAM("JointSpaceIDController: Exception getting joint handles: " << ex.what());
+                ROS_ERROR_STREAM("CtrlJointSpaceID: Exception getting joint handles: " << ex.what());
                 return false;
             }
         }
@@ -190,16 +190,16 @@ namespace panda_torque_mpc
         return true;
     }
 
-    void JointSpaceIDController::starting(const ros::Time &t0)
+    void CtrlJointSpaceID::starting(const ros::Time &t0)
     {
-        ROS_INFO_STREAM("JointSpaceIDController::starting");
+        ROS_INFO_STREAM("CtrlJointSpaceID::starting");
         t_init_ = t0;
         q_init_ = Eigen::Map<const Vector7d>(franka_state_handle_->getRobotState().q.data());
     }
 
-    void JointSpaceIDController::update(const ros::Time &t, const ros::Duration &period)
+    void CtrlJointSpaceID::update(const ros::Time &t, const ros::Duration &period)
     {
-        // ROS_INFO_STREAM("JointSpaceIDController::update t: " << t);
+        // ROS_INFO_STREAM("CtrlJointSpaceID::update t: " << t);
 
         // Time since start of the controller
         double Dt = (t - t_init_).toSec();
@@ -277,7 +277,7 @@ namespace panda_torque_mpc
         last_tau_d_ = tau_d_sat + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
     }
 
-    Vector7d JointSpaceIDController::compute_desired_torque(
+    Vector7d CtrlJointSpaceID::compute_desired_torque(
         const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered,
         const Vector7d &q_r, const Vector7d &dq_r, const Vector7d &ddq_r,
         JSIDVariant control_variant, bool use_pinocchio)
@@ -396,7 +396,7 @@ namespace panda_torque_mpc
         return tau_d;
     }
 
-    void JointSpaceIDController::compute_sinusoid_joint_reference(const Vector7d &delta_q, const Vector7d &period_q, const Vector7d &q0, double t,
+    void CtrlJointSpaceID::compute_sinusoid_joint_reference(const Vector7d &delta_q, const Vector7d &period_q, const Vector7d &q0, double t,
                                                                   Vector7d &q_r, Vector7d &dq_r, Vector7d &ddq_r)
     {
         // a and c coeff vectors obtained for each joint using constraints:
@@ -412,7 +412,7 @@ namespace panda_torque_mpc
         ddq_r = (-w.array().square() * a.array() * cos(w.array() * t)).matrix(); // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
     }
 
-    Vector7d JointSpaceIDController::saturateTorqueRate(const Vector7d &tau_d, const Vector7d &tau_d_prev, double delta_max)
+    Vector7d CtrlJointSpaceID::saturateTorqueRate(const Vector7d &tau_d, const Vector7d &tau_d_prev, double delta_max)
     {
 
         // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is 1000 * (1 / sampling_time).
@@ -437,13 +437,13 @@ namespace panda_torque_mpc
         return tau_d_sat;
     }
 
-    void JointSpaceIDController::stopping(const ros::Time &t0)
+    void CtrlJointSpaceID::stopping(const ros::Time &t0)
     {
-        ROS_INFO_STREAM("JointSpaceIDController::stopping");
+        ROS_INFO_STREAM("CtrlJointSpaceID::stopping");
         // TODO:
     }
 
 } // namespace panda_torque_mpc
 
-PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::JointSpaceIDController,
+PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::CtrlJointSpaceID,
                        controller_interface::ControllerBase)

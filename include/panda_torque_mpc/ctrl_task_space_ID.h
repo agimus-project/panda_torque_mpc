@@ -60,9 +60,6 @@ namespace panda_torque_mpc
         std::vector<hardware_interface::JointHandle> joint_handles_;
 
         // Torque saturation
-        Vector7d saturateTorqueRate(
-            const Vector7d &tau_d_calculated,
-            const Vector7d &tau_J_d);    // NOLINT (readability-identifier-naming)
         const double kDeltaTauMax_{1.0}; // using static constexpr creates an undefined symbol error
 
         // Controller parameters

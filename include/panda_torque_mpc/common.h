@@ -1,9 +1,9 @@
-#ifndef COMMON_H
-#define COMMON_H
+#pragma once
 
 #include <chrono>
 #include <ratio>
 #include <Eigen/Core>
+#include <ros/node_handle.h>
 
 
 
@@ -13,6 +13,9 @@ namespace panda_torque_mpc {
     using Vector6d = Eigen::Matrix<double, 6, 1>;
     using Vector7d = Eigen::Matrix<double, 7, 1>;
     using Matrix7d = Eigen::Matrix<double, 7, 7>;
+
+
+    Vector7d saturateTorqueRate(const Vector7d &tau_d, const Vector7d &tau_d_prev, double delta_max);
 
 
     struct TicTac
@@ -57,6 +60,7 @@ namespace panda_torque_mpc {
     };
 
 
+
     template <typename T>
     bool get_param_error_tpl(const ros::NodeHandle &nh, 
                              T &param, 
@@ -74,6 +78,7 @@ namespace panda_torque_mpc {
     }
 
 
+
     template<typename T>
     std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
         using namespace std;
@@ -81,7 +86,4 @@ namespace panda_torque_mpc {
         return os;
     }
 
-}
-
-
-#endif /* !COMMON_H */
+} // namespace panda_torque_mpc

@@ -69,6 +69,7 @@ add_library(panda_torque_mpc
   src/ctrl_log_update_dt.cpp
   src/ctrl_joint_space_ID.cpp
   src/ctrl_task_space_ID.cpp
+  src/common.cpp
 )
 
 target_link_libraries(panda_torque_mpc PUBLIC

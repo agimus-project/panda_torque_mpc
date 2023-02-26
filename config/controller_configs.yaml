@@ -3,9 +3,34 @@ ctrl_model_pinocchio_vs_franka:
   arm_id: $(arg arm_id)
   urdf_path: $(find panda_torque_mpc)/config/panda_inertias_nohand.urdf
 
+
 ctrl_log_update_dt:
   type: panda_torque_mpc/CtrlLogUpdateDt
   arm_id: $(arg arm_id)
+
+
+ctrl_playback_pd_plus:
+    type: panda_torque_mpc/CtrlPlaybackPDplus
+    arm_id: $(arg arm_id)
+    urdf_path: $(find panda_torque_mpc)/config/panda_inertias_nohand.urdf
+    joint_names:
+        - $(arg arm_id)_joint1
+        - $(arg arm_id)_joint2
+        - $(arg arm_id)_joint3
+        - $(arg arm_id)_joint4
+        - $(arg arm_id)_joint5
+        - $(arg arm_id)_joint6
+        - $(arg arm_id)_joint7
+    path_q: "/home/mfourmy/Downloads/panda_traj_rec_mid_q.csv"
+    path_v: "/home/mfourmy/Downloads/panda_traj_rec_mid_v.csv"
+    path_tau: "/home/mfourmy/Downloads/panda_traj_rec_mid_tau.csv"
+    scale_ff: 1.0 
+    Kp: 100 
+    Kd: 10 
+    publish_rate: 10.0
+    alpha_dq_filter: 0.99 # should be close to 1 and <= 1.0
+    saturate_dtau: true
+
 
 ctrl_joint_space_ID:
     type: panda_torque_mpc/CtrlJointSpaceID
@@ -19,7 +44,6 @@ ctrl_joint_space_ID:
         - $(arg arm_id)_joint5
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
-
     # Gains for IDControl
     # Kp: 500  # Stiff
     # Kd: 50  # Stiff

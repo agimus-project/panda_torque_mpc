@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iterator>
 #include <memory>
+#include <fstream>
 
 #include <controller_interface/controller_base.h>
 #include <hardware_interface/hardware_interface.h>
@@ -14,7 +15,6 @@
 #include <franka_hw/franka_model_interface.h>
 #include <franka_hw/franka_state_interface.h>
 
-#include <fstream>
 
 namespace
 {

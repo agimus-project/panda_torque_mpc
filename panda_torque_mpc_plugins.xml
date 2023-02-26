@@ -13,6 +13,13 @@
       Saves time and duration of update function to a file. 
     </description>
   </class>
+  <class name="panda_torque_mpc/CtrlPlaybackPDplus" 
+         type="panda_torque_mpc::CtrlPlaybackPDplus" 
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      Playback joint trajectory recorded in csv files. 
+    </description>
+  </class>
   <class name="panda_torque_mpc/CtrlJointSpaceID" 
          type="panda_torque_mpc::CtrlJointSpaceID" 
          base_class_type="controller_interface::ControllerBase">

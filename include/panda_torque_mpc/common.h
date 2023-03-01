@@ -30,11 +30,11 @@ namespace panda_torque_mpc {
             if (abs(tau_d_sat[i] - tau_d[i]) > 1e-3)
             {
                 // if (abs(delta_tau_i_sat - delta_tau_i) > 1e-3){
-                std::cout << "  i, tau_d[i]: " << i << ", " << tau_d[i] << std::endl;
-                std::cout << "tau_d_prev[i]   : " << tau_d_prev[i] << std::endl;
-                std::cout << "delta_tau_i     : " << delta_tau_i << std::endl;
-                std::cout << "delta_tau_i_sat : " << delta_tau_i_sat << std::endl;
-                std::cout << "tau_d_sat[i]    : " << tau_d_sat[i] << std::endl;
+                // std::cout << "  i, tau_d[i]: " << i << ", " << tau_d[i] << std::endl;
+                // std::cout << "tau_d_prev[i]   : " << tau_d_prev[i] << std::endl;
+                // std::cout << "delta_tau_i     : " << delta_tau_i << std::endl;
+                // std::cout << "delta_tau_i_sat : " << delta_tau_i_sat << std::endl;
+                // std::cout << "tau_d_sat[i]    : " << tau_d_sat[i] << std::endl;
             }
         }
         return tau_d_sat;

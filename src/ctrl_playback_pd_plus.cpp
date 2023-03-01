@@ -179,6 +179,9 @@ namespace panda_torque_mpc
         std::string path_q = traj_dir_ + "q.csv";
         std::string path_v = traj_dir_ + "v.csv";
         std::string path_tau = traj_dir_ + "tau.csv";
+        std::cout << "\n\n\n\n" << path_q << std::endl;
+        std::cout << "\n\n\n\n" << path_v << std::endl;
+        std::cout << "\n\n\n\n" << path_tau << std::endl;
         fs_q_.open(path_q);
         fs_v_.open(path_v);
         fs_tau_.open(path_tau);
@@ -194,6 +197,23 @@ namespace panda_torque_mpc
             ROS_ERROR_STREAM("path_tau: failed to open csv file " << path_tau);
             return false;
         }
+
+        // Store in advance all the lines in vectors to avoid reading the filestream at update freq (it was tested and was failing for unclear reasons)
+        while (get_vector_from_csv_fs_line(fs_q_,   q_r_) &&
+               get_vector_from_csv_fs_line(fs_v_,   dq_r_) &&
+               get_vector_from_csv_fs_line(fs_tau_, tau_ff_))
+        {
+            q_vec_.push_back(q_r_);
+            v_vec_.push_back(dq_r_);
+            tau_vec_.push_back(tau_ff_);
+        }
+
+        i_line_ = 0;
+        nb_lines_ = q_vec_.size();
+
+        fs_q_.close();
+        fs_v_.close();
+        fs_tau_.close();
 
         // ROS publishers
         configurations_publisher_.init(node_handle, "joint_configurations_comparison", 1);
@@ -224,17 +244,23 @@ namespace panda_torque_mpc
         // Filter the joint velocity measurements
         dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
 
-        // Read q_d, dq_d, tau_d from file
-        bool success_reading_q   = get_vector_from_csv_fs_line(fs_q_, q_r_);
-        bool success_reading_dq  = get_vector_from_csv_fs_line(fs_v_, dq_r_);
-        bool success_reading_tau = get_vector_from_csv_fs_line(fs_tau_, tau_ff_);
-
-        if (!success_reading_q || !success_reading_dq || !success_reading_tau)
+        // retrieve the current trajectory point
+        // Assumes that no update jump was done
+        if (i_line_ < nb_lines_)
         {
-            std::cout << "END of file or error reading" << std::endl;
+            q_r_ = q_vec_[i_line_];
+            dq_r_ = v_vec_[i_line_];
+            tau_ff_ = tau_vec_[i_line_];
+            i_line_++;
         }
 
+
         // Compute PD+ torque
+        // std::cout << "q_m: " << q_m.transpose() << std::endl;
+        // std::cout << "q_r_: " << q_r_.transpose() << std::endl;
+        // std::cout << "dq_m: " << dq_m.transpose() << std::endl;
+        // std::cout << "dq_r_: " << dq_r_.transpose() << std::endl;
+        // std::cout << "tau_ff_: " << dq_r_.transpose() << std::endl;
         Vector7d tau_d = scale_ff_*tau_ff_ - Kp_*(q_m - q_r_) - Kd_*(dq_m - dq_r_);
 
         // Remove gravity from commanded torque (assuming it was provided by tau_ff)
@@ -243,6 +269,15 @@ namespace panda_torque_mpc
 
         // Compare torques sent at previous iteration with current desired torques, saturate if needed
         Vector7d tau_d_sat = saturate_dtau_ ? saturateTorqueRate(tau_d, tau_J_d, kDeltaTauMax_) : tau_d;
+
+        // !!!!!!!!!!!!!!!!!!!!!!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!
+        // tau_d_sat = Vector7d::Zero();
+        // !!!!!!!!!!!!!!!!!!!!!!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!
 
         // Send Torque Command
         for (size_t i = 0; i < 7; ++i)
@@ -301,10 +336,6 @@ namespace panda_torque_mpc
     {
         ROS_INFO_STREAM("CtrlPlaybackPDplus::stopping");
         // TODO:
-
-        fs_q_.close();
-        fs_v_.close();
-        fs_tau_.close();
     }
 
 } // namespace panda_torque_mpc

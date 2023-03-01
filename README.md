@@ -8,16 +8,18 @@
 * Create environment:  
 `conda create -n panda_control python=3.9`  
 * Add package channels:  
-`mamba config --env --add channels conda-forge`    
-`mamba config --env --add channels robostack-staging`  
+`conda config --env --add channels conda-forge`    
+`conda config --env --add channels robostack-staging`  
 * Install ROS and other dependencies:  
-`mamba install ros-noetic-desktop-full catkin_tools ros-noetic-combined-robot-hw pinocchio`
+`mamba install ros-noetic-desktop-full catkin_tools ros-noetic-combined-robot-hw pinocchio tsid`
+* TOFIX: current problem with tsid install requires downgrading pinocchio:  
+`mamba install pinocchio=2.6.12`
 
 
 ## libfranka
 Check [compatibility](https://frankaemika.github.io/docs/compatibility.html "FCI-libfranka compatibily matrix") of your Franka Control Interface version to determine which libfranka version to install.
 
-At CIIRC, FCI version == 4.2.2  --> libfranka version >= 0.9.1 < 0.10.0. `robostack` conda channel provides 9.2 version which requires python 3.9 to be installed (hence `python=3.9` when creating the conda env). 
+At CIIRC, FCI version == 4.2.2  --> libfranka version >= 0.9.1 < 0.10.0. `robostack` conda channel provides 9.2 version which requires python 3.9 to be installed (hence `python=3.9` when creating the conda env).   
 `mamba install ros-noetic-libfranka`
 
 ## Franka ROS
@@ -41,7 +43,7 @@ In two different shells:
 `robot_ip` and `load_gripper` arguments should be changed accordingly for each launch files
 
 * Bring robot to init position  
-`roslaunch franka_example_controllers move_to_start.launch robot_ip:=192.168.102.11 load_gripper:=false robot:=panda`
+`roslaunch panda_torque_mpc move_to_start.launch robot_ip:=192.168.102.11 load_gripper:=false robot:=panda`
 * Start one of the custom controllers  
 `roslaunch panda_torque_mpc real_controllers.launch controller:=<controller-name> robot_ip:=192.168.102.11 load_gripper:=false robot:=panda`
 
@@ -49,15 +51,9 @@ In two different shells:
 The parameters of each controller are defined in `config/controller_configs.yaml`. To run one of them in simulation or real, replace <controller-name> with:
 * `ctrl_model_pinocchio_vs_franka`: compare Rigid Body Dynamics computation between pinocchio and libfranka
 * `ctrl_log_update_dt`: logs ::update time and duration parameters in a csv file to investigate RT control
+* `ctrl_playback_pd_plus`: reads a joint trajectory stored in csv files q.csv, v.csv, tau.csv and plays it back using PD+ 
 * `ctrl_joint_space_ID`: follow joint trajectory reference using different flavors of joint space Inverse Dynamics 
-* `ctrl_task_space_ID`: follow task space end-effector trajectory ($\mathbb{R}^3 or SE(3)) 
-
-
-## Troubleshooting
-* with move_to_start, if you experience a "RealTimeError" kind of message, open  
-`rosed franka_control franka_control_node.yaml`  
-and change `realtime_config` to `ignore`.  
-This means that your computer is not RealTime capable and Franka expects that by default.
+* `ctrl_task_space_ID`: follow task space end-effector trajectory ($\mathbb{R}^3$ or SE(3)) 
 
 
 # TODOLIST

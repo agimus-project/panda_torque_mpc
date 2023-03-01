@@ -21,10 +21,12 @@ ctrl_playback_pd_plus:
         - $(arg arm_id)_joint5
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
-    traj_dir: "/home/mfourmy/Downloads/panda_traj_rec_mid/"
+    # traj_dir: "/home/ros/Desktop/tsid_trajs/panda_traj_rec_slow/"
+    traj_dir: "/home/ros/Desktop/tsid_trajs/panda_traj_rec_mid/"
+    # traj_dir: "/home/ros/Desktop/tsid_trajs/panda_traj_rec_fast/"
     scale_ff: 1.0 
-    Kp: 100 
-    Kd: 10 
+    Kp: 100
+    Kd: 20
     publish_rate: 10.0
     alpha_dq_filter: 0.99 # should be close to 1 and <= 1.0
     saturate_dtau: true
@@ -122,9 +124,9 @@ ctrl_task_space_ID:
         - 5.0
         - 5.0
     publish_rate: 10.0
-    # 0: PosiPosture  # works
-    # 1: PosePosture  # not working -> pbe in jacobian
-    # 2: TSID         # TODO
+    # 0: PosiPosture
+    # 1: PosePosture  # TODO: not working -> pbe in jacobian
+    # 2: TSID
     control_variant: 2
     use_pinocchio: true
     alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0

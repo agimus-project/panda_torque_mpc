@@ -67,14 +67,6 @@ namespace panda_torque_mpc
         double alpha_dq_filter_;
         bool saturate_dtau_;
         
-        // other vars 
-        Vector7d q_r_;
-        Vector7d dq_r_;
-        Vector7d tau_ff_;
-        Vector7d dq_filtered_;
-        Vector7d last_q_r_;
-        Vector7d last_dq_r_;
-        Vector7d last_tau_d_;
 
         // Publishers
         franka_hw::TriggerRate rate_trigger_{1.0};
@@ -91,6 +83,21 @@ namespace panda_torque_mpc
         std::ifstream fs_v_;
         std::ifstream fs_tau_;
         std::string traj_dir_;
+        std::vector<Vector7d> q_vec_;
+        std::vector<Vector7d> v_vec_;
+        std::vector<Vector7d> tau_vec_;
+        unsigned int i_line_;
+        unsigned int nb_lines_;
+        Vector7d q_r_;
+        Vector7d dq_r_;
+        Vector7d tau_ff_;
+
+        // other vars 
+        Vector7d dq_filtered_;
+        Vector7d last_q_r_;
+        Vector7d last_dq_r_;
+        Vector7d last_tau_d_;
+
     };
 
 } // namespace panda_torque_mpc

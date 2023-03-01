@@ -1,7 +1,7 @@
 # panda_torque_mpc
 ------------------  
 
-# Building the project (tested with Ubuntu 20.05 - ROS noetic)
+# Building the project (tested with Ubuntu 20.04.05 - ROS noetic)
 ## conda/mamba env setup
 `mamba` is faster but you can use conda interchangeably.
 

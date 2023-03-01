@@ -60,22 +60,9 @@ namespace panda_torque_mpc
         }
 
 
-        if (!node_handle.getParam("path_q", path_q_))
+        if (!node_handle.getParam("traj_dir", traj_dir_))
         {
-            ROS_ERROR("CtrlPlaybackPDplus: Could not read parameter path_q");
-            return false;
-        }
-
-
-        if (!node_handle.getParam("path_v", path_v_))
-        {
-            ROS_ERROR("CtrlPlaybackPDplus: Could not read parameter path_v");
-            return false;
-        }
-
-        if (!node_handle.getParam("path_tau", path_tau_))
-        {
-            ROS_ERROR("CtrlPlaybackPDplus: Could not read parameter path_tau");
+            ROS_ERROR("CtrlPlaybackPDplus: Could not read parameter traj_dir");
             return false;
         }
 
@@ -189,19 +176,22 @@ namespace panda_torque_mpc
         }
 
         // Open trajectory files
-        fs_q_.open(path_q_);
-        fs_v_.open(path_v_);
-        fs_tau_.open(path_tau_);
+        std::string path_q = traj_dir_ + "q.csv";
+        std::string path_v = traj_dir_ + "v.csv";
+        std::string path_tau = traj_dir_ + "tau.csv";
+        fs_q_.open(path_q);
+        fs_v_.open(path_v);
+        fs_tau_.open(path_tau);
         if (!fs_q_.is_open()){
-            ROS_ERROR_STREAM("path_q_: failed to open csv file " << path_q_);
+            ROS_ERROR_STREAM("path_q: failed to open csv file " << path_q);
             return false;
         }
         if (!fs_v_.is_open()){
-            ROS_ERROR_STREAM("path_v_: failed to open csv file " << path_v_);
+            ROS_ERROR_STREAM("path_v: failed to open csv file " << path_v);
             return false;
         }
         if (!fs_tau_.is_open()){
-            ROS_ERROR_STREAM("path_tau_: failed to open csv file " << path_tau_);
+            ROS_ERROR_STREAM("path_tau: failed to open csv file " << path_tau);
             return false;
         }
 

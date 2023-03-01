@@ -90,9 +90,7 @@ namespace panda_torque_mpc
         std::ifstream fs_q_;
         std::ifstream fs_v_;
         std::ifstream fs_tau_;
-        std::string path_q_;
-        std::string path_v_;
-        std::string path_tau_;
+        std::string traj_dir_;
     };
 
 } // namespace panda_torque_mpc

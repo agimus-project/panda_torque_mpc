@@ -21,9 +21,7 @@ ctrl_playback_pd_plus:
         - $(arg arm_id)_joint5
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
-    path_q: "/home/mfourmy/Downloads/panda_traj_rec_mid_q.csv"
-    path_v: "/home/mfourmy/Downloads/panda_traj_rec_mid_v.csv"
-    path_tau: "/home/mfourmy/Downloads/panda_traj_rec_mid_tau.csv"
+    traj_dir: "/home/mfourmy/Downloads/panda_traj_rec_mid/"
     scale_ff: 1.0 
     Kp: 100 
     Kd: 10 

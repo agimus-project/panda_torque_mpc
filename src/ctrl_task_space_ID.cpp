@@ -37,10 +37,10 @@ namespace panda_torque_mpc
         if(!get_param_error_tpl<double>(nh, tau_limit_scale_, "tau_limit_scale"))  return false;
         if(!get_param_error_tpl<double>(nh, v_limit_scale_,   "v_limit_scale"))  return false;
 
-        std::vector<double> tsid_ee_mask;
-        if(!get_param_error_tpl<std::vector<double>>(nh, tsid_ee_mask, "tsid_ee_mask", 
+        std::vector<double> ee_task_mask_vec;
+        if(!get_param_error_tpl<std::vector<double>>(nh, ee_task_mask_vec, "ee_task_mask", 
                                                      [](std::vector<double> v) {return v.size() == 6;})) return false;
-        tsid_ee_mask_ = Eigen::Map<Vector6d>(tsid_ee_mask.data());
+        ee_task_mask_ = Eigen::Map<Vector6d>(ee_task_mask_vec.data());
 
         // Trajectory
         std::vector<double> delta_nu;
@@ -100,7 +100,11 @@ namespace panda_torque_mpc
         conf.kd_q = kd_q_; 
         conf.w_ee = w_ee_; 
         conf.w_q = w_q_; 
-        tsid_reaching_ = TsidManipulatorReaching(urdf_path, conf);
+        conf.tau_limit_scale = tau_limit_scale_;
+        conf.v_limit_scale = v_limit_scale_;
+        conf.ee_frame_name = ee_frame_pin_;
+        conf.ee_task_mask = ee_task_mask_;
+        tsid_reaching_ = TsidManipulatorReaching(urdf_path, conf)
         /////////////////////////////////////////////////
 
         ///////////////////

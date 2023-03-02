@@ -67,11 +67,12 @@ namespace panda_torque_mpc
         Vector6d delta_nu_, period_nu_; // trajectory specification
         bool use_pinocchio_;
         double alpha_dq_filter_;
+        
         // TSID parameters
         double kp_ee_, kd_ee_, kp_q_, kd_q_;      // task space control gains
         double w_ee_, w_q_;                       // tasks relative weights
         double tau_limit_scale_, v_limit_scale_;  // param for boundary constraints
-        Vector6d tsid_ee_mask_;
+        Vector6d ee_task_mask_;
 
         // Current update state
         pin::SE3 last_x_r_;

@@ -90,7 +90,6 @@ namespace panda_torque_mpc
             formulation_->addMotionTask(*eeTask_, conf_.w_ee, 1, 0.0);
 
             // 3) Actuation bound Constraint
-            // TODO: read from param server
             actuationBoundsTask_ = std::make_unique<TaskActuationBounds>("task-actuation-bounds", *tsid_robot_);
             Vector7d tau_max = conf_.tau_limit_scale * tsid_robot_->model().effortLimit;
             Vector7d tau_min = -tau_max;

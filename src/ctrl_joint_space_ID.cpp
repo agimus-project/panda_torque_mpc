@@ -415,7 +415,6 @@ namespace panda_torque_mpc
     void CtrlJointSpaceID::stopping(const ros::Time &t0)
     {
         ROS_INFO_STREAM("CtrlJointSpaceID::stopping");
-        // TODO:
     }
 
 } // namespace panda_torque_mpc

@@ -256,11 +256,6 @@ namespace panda_torque_mpc
 
 
         // Compute PD+ torque
-        // std::cout << "q_m: " << q_m.transpose() << std::endl;
-        // std::cout << "q_r_: " << q_r_.transpose() << std::endl;
-        // std::cout << "dq_m: " << dq_m.transpose() << std::endl;
-        // std::cout << "dq_r_: " << dq_r_.transpose() << std::endl;
-        // std::cout << "tau_ff_: " << dq_r_.transpose() << std::endl;
         Vector7d tau_d = scale_ff_*tau_ff_ - Kp_*(q_m - q_r_) - Kd_*(dq_m - dq_r_);
 
         // Remove gravity from commanded torque (assuming it was provided by tau_ff)
@@ -335,7 +330,6 @@ namespace panda_torque_mpc
     void CtrlPlaybackPDplus::stopping(const ros::Time &t0)
     {
         ROS_INFO_STREAM("CtrlPlaybackPDplus::stopping");
-        // TODO:
     }
 
 } // namespace panda_torque_mpc

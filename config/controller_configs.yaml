@@ -22,8 +22,12 @@ ctrl_playback_pd_plus:
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
     # traj_dir: "/home/ros/Desktop/tsid_trajs/panda_traj_rec_slow/"
-    traj_dir: "/home/ros/Desktop/tsid_trajs/panda_traj_rec_mid/"
+    # traj_dir: "/home/ros/Desktop/tsid_trajs/panda_traj_rec_mid/"
     # traj_dir: "/home/ros/Desktop/tsid_trajs/panda_traj_rec_fast/"
+    # traj_dir: "/home/ros/Desktop/croco_trajs/croco_panda_traj_slow/"
+    # traj_dir: "/home/ros/Desktop/croco_trajs/croco_panda_traj_mid/"
+    # traj_dir: "/home/ros/Desktop/croco_trajs/croco_panda_traj_fast/"
+    traj_dir: "/home/ros/Desktop/croco_trajs/croco_panda_traj_fffast/"
     scale_ff: 1.0 
     Kp: 100
     Kd: 20
@@ -90,7 +94,7 @@ ctrl_joint_space_ID:
     # 1: IDControlSimplified
     # 2: PDGravity
     # 3: PureGravity
-    control_variant: 0
+    control_variant: 3
     use_pinocchio: true
     alpha_dq_filter: 0.99 # should be close to 1 and <= 1.0
     saturate_dtau: true
@@ -110,9 +114,9 @@ ctrl_task_space_ID:
         - $(arg arm_id)_joint7
     # Trajectory simulation
     delta_nu:
-        - 0.07
-        - 0.07
-        - 0.07
+        - 0.09
+        - 0.09
+        - 0.09
         - 0.0
         - 0.0
         - 0.0
@@ -140,7 +144,7 @@ ctrl_task_space_ID:
     kp_q: 100
     kd_q: 40
     w_ee: 1
-    w_q: 0.01
-    tau_limit_scale: 0.01
-    v_limit_scale: 0.1
-    tsid_ee_mask: [1,1,1,1,1,1]
+    w_q: 0.001
+    tau_limit_scale: 0.5
+    v_limit_scale: 0.4
+    ee_task_mask: [1,1,1,1,1,1]

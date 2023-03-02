@@ -21,12 +21,14 @@ ctrl_playback_pd_plus:
         - $(arg arm_id)_joint5
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
-    # traj_dir: "/home/ros/Desktop/tsid_trajs/panda_traj_rec_slow/"
-    traj_dir: "/home/ros/Desktop/tsid_trajs/panda_traj_rec_mid/"
-    # traj_dir: "/home/ros/Desktop/tsid_trajs/panda_traj_rec_fast/"
+    # traj_dir: "/home/mfourmy/Downloads/tsid_panda_traj_slow/"
+    traj_dir: "/home/mfourmy/Downloads/croco_panda_traj_slow/"
+    # traj_dir: "/home/mfourmy/Downloads/croco_panda_traj_mid/"
+    # traj_dir: "/home/mfourmy/Downloads/croco_panda_traj_fast/"
+    # traj_dir: "/home/mfourmy/Downloads/croco_panda_traj_fffast/"
     scale_ff: 1.0 
-    Kp: 100
-    Kd: 20
+    Kp: 50 
+    Kd: 5 
     publish_rate: 10.0
     alpha_dq_filter: 0.99 # should be close to 1 and <= 1.0
     saturate_dtau: true

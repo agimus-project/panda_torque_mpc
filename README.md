@@ -34,9 +34,9 @@ In your catkin workspace src directory
 
 # Launch
 ## Simulation
-In two different shells:
+In two different shells (change use_gripper according to which urdf model you use for control):  
 
-* `roslaunch franka_gazebo panda.launch`
+* `roslaunch franka_gazebo panda.launch arm_id:=panda headless:=false use_gripper:=false`
 * `roslaunch panda_torque_mpc sim_controllers.launch controller:=<controller-name>`
 
 ## Real

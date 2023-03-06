@@ -104,7 +104,7 @@ namespace panda_torque_mpc
         conf.v_limit_scale = v_limit_scale_;
         conf.ee_frame_name = ee_frame_pin_;
         conf.ee_task_mask = ee_task_mask_;
-        tsid_reaching_ = TsidManipulatorReaching(urdf_path, conf)
+        tsid_reaching_ = TsidManipulatorReaching(urdf_path, conf);
         /////////////////////////////////////////////////
 
         ///////////////////

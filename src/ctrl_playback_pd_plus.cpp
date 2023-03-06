@@ -179,9 +179,10 @@ namespace panda_torque_mpc
         std::string path_q = traj_dir_ + "q.csv";
         std::string path_v = traj_dir_ + "v.csv";
         std::string path_tau = traj_dir_ + "tau.csv";
-        std::cout << "\n\n\n\n" << path_q << std::endl;
-        std::cout << "\n\n\n\n" << path_v << std::endl;
-        std::cout << "\n\n\n\n" << path_tau << std::endl;
+        std::cout << "Playback files:" << std::endl;
+        std::cout << path_q << std::endl;
+        std::cout << path_v << std::endl;
+        std::cout << path_tau << std::endl;
         fs_q_.open(path_q);
         fs_v_.open(path_v);
         fs_tau_.open(path_tau);

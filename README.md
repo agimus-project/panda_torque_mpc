@@ -55,6 +55,9 @@ The parameters of each controller are defined in `config/controller_configs.yaml
 * `ctrl_joint_space_ID`: follow joint trajectory reference using different flavors of joint space Inverse Dynamics 
 * `ctrl_task_space_ID`: follow task space end-effector trajectory ($\mathbb{R}^3$ or SE(3)) 
 
+## Pose publisher
+For now:  
+`ROS_NAMESPACE=/ctrl_task_space_ID rosrun panda_torque_mpc pose_publisher.py`
 
 # TODOLIST
 * Double check if `initialized` topic is streamed when using the real controller (not likely) 

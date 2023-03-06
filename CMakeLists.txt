@@ -36,6 +36,7 @@ add_message_files(FILES
   JointValuesComparison.msg
   TaskPoseComparison.msg
   TaskTwistComparison.msg
+  PoseTaskGoal.msg
 )
 
 generate_messages(DEPENDENCIES geometry_msgs)

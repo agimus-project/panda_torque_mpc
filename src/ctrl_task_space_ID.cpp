@@ -10,6 +10,7 @@
 #include <franka/robot_state.h>
 
 
+
 namespace panda_torque_mpc
 {
 
@@ -51,6 +52,9 @@ namespace panda_torque_mpc
         if(!get_param_error_tpl<std::vector<double>>(nh, period_nu, "period_nu", 
                                                      [](std::vector<double> v) {return v.size() == 6;})) return false;
         period_nu_ = Eigen::Map<Vector6d>(period_nu.data());
+        
+        // From a topic? 
+        if(!get_param_error_tpl<bool>(nh, use_external_pose_publisher_, "use_external_pose_publisher")) return false;
 
         double publish_rate(30.0);
         if (!nh.getParam("publish_rate", publish_rate))
@@ -164,9 +168,17 @@ namespace panda_torque_mpc
             }
         }
 
+        // Logs publishers
         task_pose_publisher_.init(nh, "task_pose_comparison", 1);
         task_twist_publisher_.init(nh, "task_twist_comparison", 1);
         torques_publisher_.init(nh, "joint_torques_comparison", 1);
+
+        // Pose subscriber
+        std::string target_pose_topic = "target_pose";
+        if (use_external_pose_publisher_)
+        {
+            pose_subscriber_ = nh.subscribe(target_pose_topic, 1, &CtrlTaskSpaceID::pose_callback, this);
+        }
 
         dq_filtered_ = Vector7d::Zero();
 
@@ -185,8 +197,12 @@ namespace panda_torque_mpc
         // Set posture reference once and for all
         tsid_reaching_.setPostureRef(q_init_);
 
-        ROS_INFO_STREAM("CtrlTaskSpaceID::starting x_init_: \n"
-                        << x_init_);
+        ROS_INFO_STREAM("CtrlTaskSpaceID::starting x_init_: \n" << x_init_);
+
+        // Set initial goal -> do not move from original pose
+        x_r_rtbox_.set(x_init_);
+        dx_r_rtbox_.set(pin::Motion::Zero());
+        ddx_r_rtbox_.set(pin::Motion::Zero());
     }
 
     void CtrlTaskSpaceID::update(const ros::Time &t, const ros::Duration &period)
@@ -196,13 +212,24 @@ namespace panda_torque_mpc
         // Time since start of the controller
         double Dt = (t - t_init_).toSec();
 
-        // compute desired configuration and configuration velocity
+        // Retrieve reference
         pin::SE3 x_r;
         pin::Motion dx_r, ddx_r;
-        TicTac tictac_ref;
-        compute_sinusoid_pose_reference(delta_nu_, period_nu_, x_init_, Dt, x_r, dx_r, ddx_r);
-        tictac_ref.print_tac("compute_sinusoid_pose_reference() took (ms): ");
+        x_r_rtbox_.get(x_r);
+        dx_r_rtbox_.get(dx_r);
+        ddx_r_rtbox_.get(ddx_r);
 
+        // compute desired configuration and configuration velocity
+        if (!use_external_pose_publisher_)
+        {
+            TicTac tictac_ref;
+            compute_sinusoid_pose_reference(delta_nu_, period_nu_, x_init_, Dt, x_r, dx_r, ddx_r);
+            // tictac_ref.print_tac("compute_sinusoid_pose_reference() took (ms): ");
+        }
+
+
+
+        std::cout << "update x_r trans" << x_r.translation().transpose() << std::endl;
         // Retrieve current measured robot state
         franka::RobotState robot_state = franka_state_handle_->getRobotState(); // return a const& of RobotState object -> not going to be modified
         Eigen::Map<Vector7d> q_m(robot_state.q.data());
@@ -221,7 +248,7 @@ namespace panda_torque_mpc
         // Compute desired torque
         TicTac tictac_comp;
         Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r, dx_r, ddx_r, control_variant_, use_pinocchio_);
-        tictac_comp.print_tac("compute_desired_torque() took (ms): ");
+        // tictac_comp.print_tac("compute_desired_torque() took (ms): ");
 
         // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
         // 1000 * (1 / sampling_time).
@@ -258,6 +285,7 @@ namespace panda_torque_mpc
             // EE twist
             Eigen::Vector3d v_o_e_err = nu_o_e_m.linear() - dx_r.linear();
             Eigen::Vector3d omg_o_e_err = nu_o_e_m.angular() - dx_r.angular();
+
 
             // EE Twists linear part
             task_twist_publisher_.msg_.commanded.linear.x = dx_r.linear()[0];
@@ -322,11 +350,11 @@ namespace panda_torque_mpc
         }
 
         // Store previous desired/reference values
-        last_x_r_ = x_r;
-        last_dx_r_ = dx_r;
+        x_r_rtbox_.get(last_x_r_);
+        dx_r_rtbox_.get(last_dx_r_);
         last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 
-        tictac.print_tac("update() took (ms): ");
+        // tictac.print_tac("update() took (ms): ");
     }
 
     Vector7d CtrlTaskSpaceID::compute_desired_torque(
@@ -380,7 +408,7 @@ namespace panda_torque_mpc
         {
         case TSIDVariant::PosiPosture:
         {
-            ROS_INFO_STREAM("TSIDVariant::PosiPosture, pinocchio: " << use_pinocchio_);
+            // ROS_INFO_STREAM("TSIDVariant::PosiPosture, pinocchio: " << use_pinocchio_);
             ////////////
             // EE POSITION + POSTURE tasks
             // Position task
@@ -411,10 +439,10 @@ namespace panda_torque_mpc
         }
         case TSIDVariant::PosePosture:
         {
-            ROS_INFO_STREAM("TSIDVariant::PosePosture, pinocchio: " << use_pinocchio_);
+            // ROS_INFO_STREAM("TSIDVariant::PosePosture, pinocchio: " << use_pinocchio_);
 
             // EE SE3 POSE + POSTURE tasks  --> NOPE, likely problem with the jacobian computation
-            // End effector pose task
+            // End effector pose taskquat_r_local
             // pin::SE3 e = x_r.inverse() * T_o_e_m;  // does not seem to be the issue
             pin::SE3 e = T_o_e_m.inverse() * x_r;
             pin::Motion de = nu_o_e_m - dx_r;
@@ -446,7 +474,7 @@ namespace panda_torque_mpc
             break;
         }
         case TSIDVariant::TSID:
-            ROS_INFO_STREAM("TSIDVariant::TSID, pinocchio: " << use_pinocchio_);
+            // ROS_INFO_STREAM("TSIDVariant::TSID, pinocchio: " << use_pinocchio_);
 
             tsid_reaching_.setEERef(x_r, dx_r, ddx_r);
             tsid_reaching_.solve(q_m, dq_m);
@@ -505,6 +533,47 @@ namespace panda_torque_mpc
 
         x_r = pose_0 * pin::exp6(nu);
         // ROS_INFO_STREAM("CtrlTaskSpaceID::compute_sinusoid_pose_reference x_r: \n" << x_r);
+    }
+
+    void CtrlTaskSpaceID::pose_callback(const PoseTaskGoal& msg)
+    {
+        std::cout << "CtrlTaskSpaceID::pose_callback PoseTaskGoal:" << std::endl;
+        std::cout << msg.pose.position.x << std::endl;
+        std::cout << msg.pose.position.y << std::endl;
+        std::cout << msg.pose.position.z << std::endl;
+        std::cout << msg.pose.orientation.x << std::endl;
+        std::cout << msg.pose.orientation.y << std::endl;
+        std::cout << msg.pose.orientation.z << std::endl;
+        std::cout << msg.pose.orientation.w << std::endl;
+
+        Eigen::Vector3d t_r_local; t_r_local << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
+        Eigen::Quaterniond quat_r_local(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
+        pin::SE3 x_r_local(quat_r_local, t_r_local);
+
+
+        pin::SE3 x_r;
+        pin::Motion dx_r, ddx_r;
+        // Set reference pose
+        // compose initial pose with relative/local transform
+        x_r = x_init_*x_r_local;
+        // Set reference twist
+        dx_r.linear().x() = msg.twist.linear.x;
+        dx_r.linear().y() = msg.twist.linear.y;
+        dx_r.linear().z() = msg.twist.linear.z;
+        dx_r.angular().x() = msg.twist.angular.x;
+        dx_r.angular().y() = msg.twist.angular.y;
+        dx_r.angular().z() = msg.twist.angular.z;
+        // Set reference spatial acceleration
+        ddx_r.linear().x() = msg.acceleration.linear.x;
+        ddx_r.linear().y() = msg.acceleration.linear.y;
+        ddx_r.linear().z() = msg.acceleration.linear.z;
+        ddx_r.angular().x() = msg.acceleration.angular.x;
+        ddx_r.angular().y() = msg.acceleration.angular.y;
+        ddx_r.angular().z() = msg.acceleration.angular.z;
+        // RT safe setting
+        x_r_rtbox_.set(x_r);
+        dx_r_rtbox_.set(dx_r);
+        ddx_r_rtbox_.set(ddx_r);
     }
 
     void CtrlTaskSpaceID::stopping(const ros::Time &t0)

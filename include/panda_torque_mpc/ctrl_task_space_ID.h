@@ -17,6 +17,7 @@
 #include <realtime_tools/realtime_publisher.h>
 #include <ros/node_handle.h>
 #include <ros/time.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #include <franka_hw/franka_cartesian_command_interface.h>
 #include <franka_hw/franka_model_interface.h>
@@ -92,6 +93,10 @@ namespace panda_torque_mpc
         realtime_tools::RealtimePublisher<TaskPoseComparison> task_pose_publisher_;
         realtime_tools::RealtimePublisher<TaskTwistComparison> task_twist_publisher_;
         realtime_tools::RealtimePublisher<JointValuesComparison> torques_publisher_;
+
+        // Subscribers
+        ros::Subscriber pose_subscriber;
+
 
         // Pinocchio objects
         pin::Model model_pin_;

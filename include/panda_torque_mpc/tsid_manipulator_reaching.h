@@ -93,7 +93,8 @@ namespace panda_torque_mpc
             actuationBoundsTask_ = std::make_unique<TaskActuationBounds>("task-actuation-bounds", *tsid_robot_);
             Vector7d tau_max = conf_.tau_limit_scale * tsid_robot_->model().effortLimit;
             Vector7d tau_min = -tau_max;
-            std::cout << tau_max.transpose() << std::endl;
+            std::cout << "tau_min: " << tau_min.transpose() << std::endl;
+            std::cout << "tau_max: " << tau_max.transpose() << std::endl;
             actuationBoundsTask_->setBounds(tau_min, tau_max);
             if (conf_.w_torque_bounds > 0.0)
                 formulation_->addActuationTask(*actuationBoundsTask_, conf_.w_torque_bounds, 0, 0.0);
@@ -105,10 +106,12 @@ namespace panda_torque_mpc
             jointBoundsTask_ = std::make_unique<TaskJointBounds>("task-joint-bounds", *tsid_robot_, dt_margin);
             Vector7d v_max = conf_.v_limit_scale * tsid_robot_->model().velocityLimit;
             Vector7d v_min = -v_max;
-            std::cout << v_max.transpose() << std::endl;
+            std::cout << "v_min: " << v_max.transpose() << std::endl;
+            std::cout << "v_max: " << v_max.transpose() << std::endl;            
             jointBoundsTask_->setVelocityBounds(v_min, v_max);
             if (conf_.w_joint_bounds > 0.0)
                 formulation_->addMotionTask(*jointBoundsTask_, conf_.w_joint_bounds, 0, 0.0);
+
 
             // SOLVER
             solver_qp_ = std::make_unique<SolverHQuadProgFast>("qp solver");

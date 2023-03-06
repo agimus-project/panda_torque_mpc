@@ -144,5 +144,5 @@ ctrl_task_space_ID:
     w_ee: 1
     w_q: 0.001
     tau_limit_scale: 0.5
-    v_limit_scale: 0.4
+    v_limit_scale: 0.2
     ee_task_mask: [1,1,1,1,1,1]

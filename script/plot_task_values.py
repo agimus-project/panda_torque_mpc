@@ -11,23 +11,24 @@ CONTROLLER_NAME = 'ctrl_task_space_ID'
 
 DIRECTORY = '../bags/'
 EXPE_NAMES = [
-  'expe',
-#   'stiffer',
+    'expe',
+    #   'stiffer',
 ]
 
 
 BAG_NAMES = [f'{CONTROLLER_NAME}_{expe}.bag' for expe in EXPE_NAMES]
 BAG_PATHS = [os.path.join(DIRECTORY, name) for name in BAG_NAMES]
 
+print('Reading ', BAG_PATHS[0])
 d_res = read_tsid_bag(BAG_PATHS[0], CONTROLLER_NAME)
 
 # JOINTS_TO_PLOT = [1,1,1,1,1,1,1]
 COLORS = 'rgbcmyk'
 MSIZE = 5
 
-fig_x, ax_x = plt.subplots(2,1)
-fig_dx, ax_dx = plt.subplots(2,1)
-fig_tau, ax_tau = plt.subplots(1,1)
+fig_x, ax_x = plt.subplots(2, 1)
+fig_dx, ax_dx = plt.subplots(2, 1)
+fig_tau, ax_tau = plt.subplots(1, 1)
 
 fig_x.canvas.manager.set_window_title('Task Pose')
 fig_dx.canvas.manager.set_window_title('Task vel')
@@ -42,20 +43,25 @@ FIELD = 'commanded'
 for i in range(3):
     c = COLORS[i]
     sym = '.'
-    ax_x[0].plot(d_res['t'], d_res['x'][FIELD][:,i], f'{c}{sym}', label=f'x{i}', markersize=MSIZE)
-    ax_dx[0].plot(d_res['t'], d_res['dx'][FIELD][:,i], f'{c}{sym}', label=f'dx{i}', markersize=MSIZE)
+    ax_x[0].plot(d_res['t'], d_res['x'][FIELD][:, i],
+                 f'{c}{sym}', label=f'x{i}', markersize=MSIZE)
+    ax_dx[0].plot(d_res['t'], d_res['dx'][FIELD][:, i],
+                  f'{c}{sym}', label=f'dx{i}', markersize=MSIZE)
 
 for i in range(3):
     c = COLORS[i]
     sym = '.'
-    ax_x[1].plot(d_res['t'], d_res['x'][FIELD][:,3+i], f'{c}{sym}', label=f'x{i}', markersize=MSIZE)
-    ax_dx[1].plot(d_res['t'], d_res['dx'][FIELD][:,3+i], f'{c}{sym}', label=f'dx{i}', markersize=MSIZE)
+    ax_x[1].plot(d_res['t'], d_res['x'][FIELD][:, 3+i],
+                 f'{c}{sym}', label=f'x{i}', markersize=MSIZE)
+    ax_dx[1].plot(d_res['t'], d_res['dx'][FIELD][:, 3+i],
+                  f'{c}{sym}', label=f'dx{i}', markersize=MSIZE)
 
 
 for i in range(7):
     c = COLORS[i]
     sym = '.'
-    ax_tau.plot(d_res['t'], d_res['tau'][FIELD][:,i], f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
+    ax_tau.plot(d_res['t'], d_res['tau'][FIELD][:, i],
+                f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
 
 
 ax_x[0].set_title(FIELD)

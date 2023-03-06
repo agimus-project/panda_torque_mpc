@@ -7,7 +7,7 @@ from actionlib import SimpleActionClient
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from control_msgs.msg import FollowJointTrajectoryAction, \
-                             FollowJointTrajectoryGoal, FollowJointTrajectoryResult
+    FollowJointTrajectoryGoal, FollowJointTrajectoryResult
 
 ros.init_node('move_to_start')
 
@@ -37,7 +37,8 @@ point.time_from_start = ros.Duration.from_sec(
 )
 goal = FollowJointTrajectoryGoal()
 
-goal.trajectory.joint_names, point.positions = [list(x) for x in zip(*pose.items())]
+goal.trajectory.joint_names, point.positions = [
+    list(x) for x in zip(*pose.items())]
 point.velocities = [0] * len(pose)
 
 goal.trajectory.points.append(point)

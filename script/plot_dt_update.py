@@ -3,9 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 
-font = {'family' : 'normal',
-        'weight' : 'normal',
-        'size'   : 22}
+font = {'family': 'normal',
+        'weight': 'normal',
+        'size': 22}
 
 matplotlib.rc('font', **font)
 
@@ -13,9 +13,9 @@ path = '/home/ros/.ros/test_panfa_time_vec_120s.csv'
 
 df = pd.read_csv(path, sep=",")
 t_arr = df['t'].to_numpy()
-t0 =  t_arr[0]
+t0 = t_arr[0]
 t_arr = t_arr - t0
-t_shift_arr = np.roll(t_arr,1)
+t_shift_arr = np.roll(t_arr, 1)
 dt_arr = t_arr - t_shift_arr
 dur_arr = df['dur'].to_numpy()
 

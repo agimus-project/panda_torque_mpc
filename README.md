@@ -55,10 +55,11 @@ The parameters of each controller are defined in `config/controller_configs.yaml
 * `ctrl_joint_space_ID`: follow joint trajectory reference using different flavors of joint space Inverse Dynamics 
 * `ctrl_task_space_ID`: follow task space end-effector trajectory ($\mathbb{R}^3$ or SE(3)) 
 
-## Pose publisher
-For now:  
-`ROS_NAMESPACE=/ctrl_task_space_ID rosrun panda_torque_mpc pose_publisher.py`
-
+## Realsense T265 demo (launch in this order)
+`roslaunch realsense2_camera demo_t265.launch`  
+`ROS_NAMESPACE=/ctrl_task_space_ID rosrun panda_torque_mpc pose_publisher.py`  
+`roslaunch franka_gazebo panda.launch arm_id:=panda headless:=false use_gripper:=false`  
+`roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_task_space_ID`  
 # TODOLIST
 * Double check if `initialized` topic is streamed when using the real controller (not likely) 
 * Switch between the urdf files depending on `load_gripper` argument

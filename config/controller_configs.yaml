@@ -47,10 +47,10 @@ ctrl_joint_space_ID:
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
     # Gains for IDControl
-    # Kp: 500  # Stiff
-    # Kd: 50  # Stiff
-    Kp: 100 
-    Kd: 10 
+    Kp: 500  # Stiff
+    Kd: 50  # Stiff
+    # Kp: 100 
+    # Kd: 10 
     # Kp: 50
     # Kd: 5
     # Gains for IDControlSimplified
@@ -137,7 +137,7 @@ ctrl_task_space_ID:
     # kp_ee: 500  # Stiff
     # kd_ee: 100 
     kp_ee: 100 
-    kd_ee: 20 
+    kd_ee: 60 
     # kp_ee: 20
     # kd_ee: 5 
     kp_q: 100
@@ -145,5 +145,6 @@ ctrl_task_space_ID:
     w_ee: 1
     w_q: 0.001
     tau_limit_scale: 0.5
-    v_limit_scale: 0.2
+    v_limit_scale: 0.6
     ee_task_mask: [1,1,1,1,1,1]
+    # ee_task_mask: [1,1,1,0,0,0]

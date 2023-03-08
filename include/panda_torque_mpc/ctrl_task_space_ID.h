@@ -15,6 +15,7 @@
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/robot_hw.h>
 #include <realtime_tools/realtime_publisher.h>
+#include <realtime_tools/realtime_box.h>
 #include <ros/node_handle.h>
 #include <ros/time.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -26,10 +27,12 @@
 #include "panda_torque_mpc/JointValuesComparison.h"
 #include "panda_torque_mpc/TaskPoseComparison.h"
 #include "panda_torque_mpc/TaskTwistComparison.h"
+#include "panda_torque_mpc/PoseTaskGoal.h"
 
 #include "panda_torque_mpc/common.h"
 
 #include "tsid_manipulator_reaching.h"
+
 
 namespace panda_torque_mpc
 {
@@ -86,7 +89,7 @@ namespace panda_torque_mpc
         // initial values
         ros::Time t_init_;
         Vector7d q_init_;
-        pin::SE3 x_init_;
+        pin::SE3 T_b_e0_;
 
         // Publishers
         franka_hw::TriggerRate rate_trigger_{1.0};
@@ -95,8 +98,13 @@ namespace panda_torque_mpc
         realtime_tools::RealtimePublisher<JointValuesComparison> torques_publisher_;
 
         // Subscribers
-        ros::Subscriber pose_subscriber;
-
+        ros::Subscriber pose_subscriber_;
+        bool use_external_pose_publisher_;
+        pin::SE3 T_w_t0_;  // initial value of broadcasted absolute pose 
+        bool pose_frames_not_aligned_;
+        realtime_tools::RealtimeBox<pin::SE3> x_r_rtbox_;
+        realtime_tools::RealtimeBox<pin::Motion> dx_r_rtbox_;
+        realtime_tools::RealtimeBox<pin::Motion> ddx_r_rtbox_;
 
         // Pinocchio objects
         pin::Model model_pin_;
@@ -142,6 +150,8 @@ namespace panda_torque_mpc
 
         // void setup_tsid_formulation(const std::string urdf_path& urdf_path,
         //                             tsid::robots::RobotWrapper& tsid_robot, tsid::InverseDynamicsFormulationAccForce tsid_formulation);
+
+        void pose_callback(const PoseTaskGoal& msg);
     };
 
 } // namespace panda_torque_mpc

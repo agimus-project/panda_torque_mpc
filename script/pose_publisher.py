@@ -10,9 +10,9 @@ from panda_torque_mpc.msg import PoseTaskGoal
 
 LISTEN_TO_TF = True
 
-FREQ = 20
+FREQ = 30
 DT = 1/FREQ
-DELAY = 0.02
+DELAY = 0.01
 VERBOSE = True
 reference_frame = "camera_odom_frame"; 
 pose_frame = "camera_link"; 

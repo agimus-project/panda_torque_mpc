@@ -134,10 +134,10 @@ ctrl_task_space_ID:
     use_pinocchio: true
     alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0
     # Controller configs
-    # kp_ee: 500  # Stiff
-    # kd_ee: 100 
-    kp_ee: 100 
-    kd_ee: 60 
+    kp_ee: 500  # Stiff
+    kd_ee: 200 
+    # kp_ee: 100 
+    # kd_ee: 60 
     # kp_ee: 20
     # kd_ee: 5 
     kp_q: 100

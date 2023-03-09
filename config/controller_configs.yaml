@@ -1,7 +1,7 @@
 ctrl_model_pinocchio_vs_franka:
   type: panda_torque_mpc/CtrlModelPinocchioVsFranka
   arm_id: $(arg arm_id)
-  urdf_path: $(find panda_torque_mpc)/config/panda_inertias_nohand.urdf
+  urdf_path: $(find panda_torque_mpc)/res/panda_inertias_nohand.urdf
 
 
 ctrl_log_update_dt:
@@ -12,7 +12,7 @@ ctrl_log_update_dt:
 ctrl_playback_pd_plus:
     type: panda_torque_mpc/CtrlPlaybackPDplus
     arm_id: $(arg arm_id)
-    urdf_path: $(find panda_torque_mpc)/config/panda_inertias_nohand.urdf
+    urdf_path: $(find panda_torque_mpc)/res/panda_inertias_nohand.urdf
     joint_names:
         - $(arg arm_id)_joint1
         - $(arg arm_id)_joint2
@@ -37,7 +37,7 @@ ctrl_playback_pd_plus:
 ctrl_joint_space_ID:
     type: panda_torque_mpc/CtrlJointSpaceID
     arm_id: $(arg arm_id)
-    urdf_path: $(find panda_torque_mpc)/config/panda_inertias_nohand.urdf
+    urdf_path: $(find panda_torque_mpc)/res/panda_inertias_nohand.urdf
     joint_names:
         - $(arg arm_id)_joint1
         - $(arg arm_id)_joint2
@@ -101,7 +101,7 @@ ctrl_joint_space_ID:
 ctrl_task_space_ID:
     type: panda_torque_mpc/CtrlTaskSpaceID
     arm_id: $(arg arm_id)
-    urdf_path: $(find panda_torque_mpc)/config/panda_inertias_nohand.urdf
+    urdf_path: $(find panda_torque_mpc)/res/panda_inertias_nohand.urdf
     joint_names:
         - $(arg arm_id)_joint1
         - $(arg arm_id)_joint2

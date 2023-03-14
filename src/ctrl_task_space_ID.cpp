@@ -90,7 +90,6 @@ namespace panda_torque_mpc
         }
 
         // Define corresponding frame id for pinocchio and Franka (see ctrl_model_pinocchio_vs_franka)
-        franka_frame_ = franka::Frame::kFlange;
         ee_frame_pin_ = "panda_link8";
         ee_frame_id_ = model_pin_.getFrameId(ee_frame_pin_);
 
@@ -477,10 +476,12 @@ namespace panda_torque_mpc
 
             tsid_reaching_.setEERef(x_r, dx_r, ddx_r);
             tsid_reaching_.solve(q_m, dq_m);
-            ddq_d = tsid_reaching_.getAccelerations();
+            // ddq_d = tsid_reaching_.getAccelerations();
             Eigen::VectorXd tau_d = tsid_reaching_.getTorques();
-            // std::cout << "ddq_d: " << ddq_d.transpose() << std::endl;
-            // std::cout << "tau_d: " << tau_d.transpose() << std::endl;
+
+            // TSID soft directly returns torques as a result of the optim, just use that (minus gravity compensation)
+            pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m); // data.g == generalized gravity
+            return tau_d - data_pin_.g;
 
             break;
         }

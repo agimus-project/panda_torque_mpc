@@ -114,7 +114,6 @@ namespace panda_torque_mpc
         TsidManipulatorReaching tsid_reaching_;
 
         // other
-        franka::Frame franka_frame_;
         std::string ee_frame_pin_;
         pin::FrameIndex ee_frame_id_;
 

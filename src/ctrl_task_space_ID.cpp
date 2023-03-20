@@ -567,24 +567,41 @@ namespace panda_torque_mpc
             pose_frames_not_aligned_ = false;
         }
 
-        // We want to apply to the robot end-effector the same transformation
-        // as the target pose in the initial pose of the target/robot
+        /**
+         * Problem formulation
+         * 
+         * We want to apply to the robot end-effector the same motion as the camera/target
+         * with respect to the initial time 0.
+         * 
+         * Given T_b_e0, T_w_t0_ (recorded at initial time), T_w_t, T_b_e (latest values), 
+         * define T_e0_e so that the composition  
+         * 
+         * T_be = T_b_e0 * T_e0_e
+         * 
+         * produces interesting motion.
+         * 
+         * 3 ideas:
+        */
+
+        // // Idea 1: T_e0_e := T_t0_t
+        // //   -> BAD: coupled tranlsation and rotation, produces unintuitive motion  
         // pin::SE3 T_e0_e = T_w_t0_*T_w_t;
+
+        // Idea 2: b_p_e0_e := w_p_t0_t  and    R_e0_e := I_3
+        //   -> equal relative positions, gives good results but only position target is given
         pin::SE3 T_e0_e = pin::SE3::Identity();
         auto R_e0_b = T_b_e0_.rotation().transpose();
-        // Align w and b frames -> assume w = b
         T_e0_e.translation() = R_e0_b * (T_w_t.translation() - T_w_t0_.translation());
 
+        // // Idea 3: b_p_e0_e := w_p_t0_t  and    R_e0_e := R_t0_b*R_b_t
+        // pin::SE3 T_e0_e = pin::SE3::Identity();
+        // auto R_e0_b = T_b_e0_.rotation().transpose();
+        // T_e0_e.translation() = R_e0_b * (T_w_t.translation() - T_w_t0_.translation());
+        // T_e0_e.rotation() = T_w_t0_.rotation().transpose() * T_w_t.rotation();
 
-        // std::cout << T_w_t.translation().transpose() << std::endl;
-        // std::cout << T_w_t0_.translation().transpose() << std::endl;
-        // std::cout << T_e0_e.translation().transpose() << std::endl;
-
-
-        // Set reference po se
+        // Set reference pose
         // compose initial pose with relative/local transform
         pin::SE3 T_be = T_b_e0_*T_e0_e;
-        std::cout << "callback T_be trans" << T_be.translation().transpose() << std::endl;
 
         pin::Motion nu_wt;
         // Set reference twist

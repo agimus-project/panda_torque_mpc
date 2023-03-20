@@ -49,7 +49,7 @@ namespace panda_torque_mpc {
         */
 
         using clock = std::chrono::steady_clock;
-        using nanoseconds = std::chrono::duration<int, std::nano>;
+        using nanoseconds = std::chrono::duration<uint64_t, std::nano>;
 
         // member variables
         std::chrono::time_point<clock, nanoseconds> tstart;
@@ -94,7 +94,8 @@ namespace panda_torque_mpc {
             ROS_ERROR_STREAM("Error reading/checking parameter " << param_name << ", " << param);
             return false;
         }
-        else{
+        else
+        {
             return true;
         }
     }

@@ -17,22 +17,28 @@
          type="panda_torque_mpc::CtrlPlaybackPDplus" 
          base_class_type="controller_interface::ControllerBase">
     <description>
-      Playback joint trajectory recorded in csv files. 
+      Playback joint trajectory recorded in csv files using. 
     </description>
   </class>
   <class name="panda_torque_mpc/CtrlJointSpaceID" 
          type="panda_torque_mpc::CtrlJointSpaceID" 
          base_class_type="controller_interface::ControllerBase">
     <description>
-      A controller that tracks a self generated joint trajectory using PD+ control. 
+      Tracks a self generated joint trajectory using PD+ control. 
     </description>
   </class>
   <class name="panda_torque_mpc/CtrlTaskSpaceID" 
          type="panda_torque_mpc::CtrlTaskSpaceID" 
          base_class_type="controller_interface::ControllerBase">
     <description>
-      A controller that tracks a self generated end effector trajectory using task space PD+ control. 
+      A controller that tracks an end effector trajectory (self generated or from ROS topic) using task space inverse dynamics. 
     </description>
   </class>
-
+  <class name="panda_torque_mpc/CtrlMpcCroco" 
+         type="panda_torque_mpc::CtrlMpcCroco" 
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller that tracks and end effector trajectory using closed loop MPC implemented with Crocoddyl. 
+    </description>
+  </class>
 </library>

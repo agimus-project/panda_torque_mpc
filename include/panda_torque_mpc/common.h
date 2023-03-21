@@ -49,6 +49,8 @@ namespace panda_torque_mpc {
         */
 
         using clock = std::chrono::steady_clock;
+        // Duration represented in nanoseconds as 64 bit unsigned int 
+        //   -> would take ~600 years before integer overflow
         using nanoseconds = std::chrono::duration<uint64_t, std::nano>;
 
         // member variables

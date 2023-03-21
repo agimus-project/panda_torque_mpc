@@ -126,7 +126,7 @@ ctrl_task_space_ID:
         - 5.0
         - 5.0
     publish_rate: 10.0
-    use_external_pose_publisher: true
+    use_external_pose_publisher: false
     # 0: PosiPosture
     # 1: PosePosture  # TODO: not working -> pbe in jacobian
     # 2: TSID
@@ -148,3 +148,49 @@ ctrl_task_space_ID:
     v_limit_scale: 0.6
     ee_task_mask: [1,1,1,1,1,1]
     # ee_task_mask: [1,1,1,0,0,0]
+
+
+
+ctrl_mpc_croco:
+    type: panda_torque_mpc/CtrlMpcCroco
+    arm_id: $(arg arm_id)
+    urdf_path: $(find panda_torque_mpc)/res/panda_inertias_nohand.urdf
+    joint_names:
+        - $(arg arm_id)_joint1
+        - $(arg arm_id)_joint2
+        - $(arg arm_id)_joint3
+        - $(arg arm_id)_joint4
+        - $(arg arm_id)_joint5
+        - $(arg arm_id)_joint6
+        - $(arg arm_id)_joint7
+    # Trajectory simulation
+    delta_nu:
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+    period_nu:
+        - 4.0
+        - 4.0
+        - 4.0
+        - 5.0
+        - 5.0
+        - 5.0
+    publish_rate: 10.0
+    # use_external_pose_publisher: true
+    alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0
+    ####################
+    # Controller configs
+    nb_shooting_nodes: 30
+    dt_ocp: 0.01
+    armature: [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
+    w_frame_running: 100.0
+    w_frame_terminal: 1000.0
+    w_x_reg_running: 1.0
+    w_x_reg_terminal: 0.01
+    scale_q_reg: 0.1
+    w_u_reg_running: 0.01
+    diag_u_reg_running: [1.0,1.0,1.0,1.0,1.0,1.0,1.0]
+    

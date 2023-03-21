@@ -31,6 +31,7 @@ if(NOT Franka_FOUND)
 endif()
 find_package(pinocchio REQUIRED)
 find_package(tsid REQUIRED)
+find_package(crocoddyl REQUIRED)
 
 add_message_files(FILES
   JointValuesComparison.msg
@@ -71,6 +72,7 @@ add_library(panda_torque_mpc
   src/ctrl_playback_pd_plus.cpp
   src/ctrl_joint_space_ID.cpp
   src/ctrl_task_space_ID.cpp
+  src/ctrl_mpc_croco.cpp
 )
 
 target_link_libraries(panda_torque_mpc PUBLIC
@@ -90,3 +92,4 @@ target_include_directories(panda_torque_mpc PUBLIC
 
 target_link_libraries(panda_torque_mpc PUBLIC pinocchio::pinocchio pinocchio::pinocchio_headers)
 target_link_libraries(panda_torque_mpc PUBLIC tsid::tsid)
+target_link_libraries(panda_torque_mpc PUBLIC crocoddyl::crocoddyl)

@@ -31,7 +31,7 @@
 
 #include "panda_torque_mpc/common.h"
 
-#include "croccodyl_reaching.h"
+#include "crocoddyl_reaching.h"
 
 
 

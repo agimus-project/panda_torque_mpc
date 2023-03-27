@@ -59,8 +59,8 @@ namespace panda_torque_mpc
                                                      [](std::vector<double> v) {return v.size() == 6;})) return false;
         period_nu_ = Eigen::Map<Vector6d>(period_nu.data());
         
-        // // From a topic? 
-        // if(!get_param_error_tpl<bool>(nh, use_external_pose_publisher_, "use_external_pose_publisher")) return false;
+        // From a topic? 
+        if(!get_param_error_tpl<bool>(nh, use_external_pose_publisher_, "use_external_pose_publisher")) return false;
 
         double publish_rate(30.0);
         if (!nh.getParam("publish_rate", publish_rate))
@@ -173,16 +173,16 @@ namespace panda_torque_mpc
         task_twist_publisher_.init(nh, "task_twist_comparison", 1);
         torques_publisher_.init(nh, "joint_torques_comparison", 1);
 
-        // // Pose subscriber
-        // std::string target_pose_topic = "target_pose";
-        // if (use_external_pose_publisher_)
-        // {
-        //     pose_subscriber_ = nh.subscribe(target_pose_topic, 1, &CtrlMpcCroco::pose_callback, this);
-        // }
+        // Pose subscriber
+        std::string target_pose_topic = "target_pose";
+        if (use_external_pose_publisher_)
+        {
+            pose_subscriber_ = nh.subscribe(target_pose_topic, 1, &CtrlMpcCroco::pose_callback, this);
+        }
 
         // init some variables
         dq_filtered_ = Vector7d::Zero();
-        // pose_frames_not_aligned_ = true;
+        pose_frames_not_aligned_ = true;
 
         return true;
     }
@@ -216,11 +216,17 @@ namespace panda_torque_mpc
         // Time since start of the controller
         double Dt = (t - t_init_).toSec();
 
-        // Retrieve reference
+        // Instanciate reference pose variables
         pin::SE3 x_r; 
         pin::Motion dx_r, ddx_r;
-        compute_sinusoid_pose_reference(delta_nu_, period_nu_, T_b_e0_, Dt, x_r, dx_r, ddx_r);
-        x_r_rtbox_.set(x_r); dx_r_rtbox_.set(dx_r); ddx_r_rtbox_.set(ddx_r);
+
+        // compute end effector reference if no topic reference exists
+        if (!use_external_pose_publisher_)
+        {
+            compute_sinusoid_pose_reference(delta_nu_, period_nu_, T_b_e0_, Dt, x_r, dx_r, ddx_r);
+            x_r_rtbox_.set(x_r); dx_r_rtbox_.set(dx_r); ddx_r_rtbox_.set(ddx_r);
+        }    
+
 
         // Retrieve current measured robot state
         franka::RobotState robot_state = franka_state_handle_->getRobotState(); // return a const& of RobotState object -> not going to be modified
@@ -237,8 +243,9 @@ namespace panda_torque_mpc
         // filter the joint velocity measurements
         dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
 
-        // Compute desired torque
         TicTac tictac_comp;
+        // Compute desired torque according to current stored reference
+        x_r_rtbox_.get(x_r); dx_r_rtbox_.get(dx_r); ddx_r_rtbox_.get(ddx_r);
         Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r, config_croco_);
         tictac_comp.print_tac("compute_desired_torque() took (ms): ");
 
@@ -427,79 +434,97 @@ namespace panda_torque_mpc
         x_r = pose_0 * pin::exp6(nu);
     }
 
-    // void CtrlMpcCroco::pose_callback(const PoseTaskGoal& msg)
-    // {   
+    void CtrlMpcCroco::pose_callback(const PoseTaskGoal& msg)
+    {   
 
-    //     /**
-    //      * T_a_b: SE3 transformation from frame b to a, a_vec = T_a_b * b_vec
-    //      * 
-    //      * Frames:
-    //      * - w: "world" reference frame of the pose message
-    //      * - t: "target" frame of the pose message
-    //      * - b: "base" frame of the robot (root of the kinematic tree)
-    //      * - e: "end" effector of the robot
-    //     */
+        /**
+         * T_a_b: SE3 transformation from frame b to a, a_vec = T_a_b * b_vec
+         * 
+         * Frames:
+         * - w: "world" reference frame of the pose message
+         * - t: "target" frame of the pose message
+         * - b: "base" frame of the robot (root of the kinematic tree)
+         * - e: "end" effector of the robot
+        */
 
-    //     std::cout << "CtrlMpcCroco::pose_callback PoseTaskGoal:" << std::endl;
-    //     std::cout << msg.pose.position.x << std::endl;
-    //     std::cout << msg.pose.position.y << std::endl;
-    //     std::cout << msg.pose.position.z << std::endl;
-    //     std::cout << msg.pose.orientation.x << std::endl;
-    //     std::cout << msg.pose.orientation.y << std::endl;
-    //     std::cout << msg.pose.orientation.z << std::endl;
-    //     std::cout << msg.pose.orientation.w << std::endl;
+        std::cout << "CtrlMpcCroco::pose_callback PoseTaskGoal:" << std::endl;
+        std::cout << msg.pose.position.x << std::endl;
+        std::cout << msg.pose.position.y << std::endl;
+        std::cout << msg.pose.position.z << std::endl;
+        std::cout << msg.pose.orientation.x << std::endl;
+        std::cout << msg.pose.orientation.y << std::endl;
+        std::cout << msg.pose.orientation.z << std::endl;
+        std::cout << msg.pose.orientation.w << std::endl;
 
-    //     Eigen::Vector3d t_bt; t_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
-    //     Eigen::Quaterniond quat_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
-    //     pin::SE3 T_w_t(quat_bt, t_bt);
+        Eigen::Vector3d t_bt; t_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
+        Eigen::Quaterniond quat_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
+        pin::SE3 T_w_t(quat_bt, t_bt);
 
-    //     if (pose_frames_not_aligned_)
-    //     {
-    //         T_w_t0_ = T_w_t;
-    //         pose_frames_not_aligned_ = false;
-    //     }
+        if (pose_frames_not_aligned_)
+        {
+            T_w_t0_ = T_w_t;
+            pose_frames_not_aligned_ = false;
+        }
 
-    //     // We want to apply to the robot end-effector the same transformation
-    //     // as the target pose in the initial pose of the target/robot
-    //     // pin::SE3 T_e0_e = T_w_t0_*T_w_t;
-    //     pin::SE3 T_e0_e = pin::SE3::Identity();
-    //     auto R_e0_b = T_b_e0_.rotation().transpose();
-    //     // Align w and b frames -> assume w = b
-    //     T_e0_e.translation() = R_e0_b * (T_w_t.translation() - T_w_t0_.translation());
+        /**
+         * Problem formulation
+         * 
+         * We want to apply to the robot end-effector the same motion as the camera/target
+         * with respect to the initial time 0.
+         * 
+         * Given T_b_e0, T_w_t0_ (recorded at initial time), T_w_t, T_b_e (latest values), 
+         * define T_e0_e so that the composition  
+         * 
+         * T_be = T_b_e0 * T_e0_e
+         * 
+         * produces interesting motion.
+         * 
+         * 3 ideas:
+        */
 
+        // // Idea 1: T_e0_e := T_t0_t
+        // //   -> BAD: coupled tranlsation and rotation, produces unintuitive motion  
+        // pin::SE3 T_e0_e = T_w_t0_*T_w_t;
 
-    //     // std::cout << T_w_t.translation().transpose() << std::endl;
-    //     // std::cout << T_w_t0_.translation().transpose() << std::endl;
-    //     // std::cout << T_e0_e.translation().transpose() << std::endl;
+        // Idea 2: b_p_e0_e := w_p_t0_t  and    R_e0_e := I_3
+        //   -> equal relative positions, gives good results but only position target is given
+        pin::SE3 T_e0_e = pin::SE3::Identity();
+        auto R_e0_b = T_b_e0_.rotation().transpose();
+        T_e0_e.translation() = R_e0_b * (T_w_t.translation() - T_w_t0_.translation());
 
+        // // Idea 3: b_p_e0_e := w_p_t0_t  and    R_e0_e := R_t0_b*R_b_t
+        // pin::SE3 T_e0_e = pin::SE3::Identity();
+        // auto R_e0_b = T_b_e0_.rotation().transpose();
+        // T_e0_e.translation() = R_e0_b * (T_w_t.translation() - T_w_t0_.translation());
+        // T_e0_e.rotation() = T_w_t0_.rotation().transpose() * T_w_t.rotation();
 
-    //     // Set reference po se
-    //     // compose initial pose with relative/local transform
-    //     pin::SE3 T_be = T_b_e0_*T_e0_e;
-    //     std::cout << "callback T_be trans" << T_be.translation().transpose() << std::endl;
+        // Set reference pose
+        // compose initial pose with relative/local transform
+        pin::SE3 T_be = T_b_e0_*T_e0_e;
 
-    //     pin::Motion nu_wt;
-    //     // Set reference twist
-    //     nu_wt.linear().x() = msg.twist.linear.x;
-    //     nu_wt.linear().y() = msg.twist.linear.y;
-    //     nu_wt.linear().z() = msg.twist.linear.z;
-    //     nu_wt.angular().x() = msg.twist.angular.x;
-    //     nu_wt.angular().y() = msg.twist.angular.y;
-    //     nu_wt.angular().z() = msg.twist.angular.z;
-    //     // Set reference spatial acceleration
-    //     pin::Motion a_wt;
-    //     a_wt.linear().x() = msg.acceleration.linear.x;
-    //     a_wt.linear().y() = msg.acceleration.linear.y;
-    //     a_wt.linear().z() = msg.acceleration.linear.z;
-    //     a_wt.angular().x() = msg.acceleration.angular.x;
-    //     a_wt.angular().y() = msg.acceleration.angular.y;
-    //     a_wt.angular().z() = msg.acceleration.angular.z;
-    //     // RT safe setting
-    //     x_r_rtbox_.set(T_be);
-    //     dx_r_rtbox_.set(nu_wt);
-    //     ddx_r_rtbox_.set(a_wt);
-    // }
+        pin::Motion nu_wt;
+        // Set reference twist
+        nu_wt.linear().x() = msg.twist.linear.x;
+        nu_wt.linear().y() = msg.twist.linear.y;
+        nu_wt.linear().z() = msg.twist.linear.z;
+        nu_wt.angular().x() = msg.twist.angular.x;
+        nu_wt.angular().y() = msg.twist.angular.y;
+        nu_wt.angular().z() = msg.twist.angular.z;
+        // Set reference spatial acceleration
+        pin::Motion a_wt;
+        a_wt.linear().x() = msg.acceleration.linear.x;
+        a_wt.linear().y() = msg.acceleration.linear.y;
+        a_wt.linear().z() = msg.acceleration.linear.z;
+        a_wt.angular().x() = msg.acceleration.angular.x;
+        a_wt.angular().y() = msg.acceleration.angular.y;
+        a_wt.angular().z() = msg.acceleration.angular.z;
 
+        // RT safe setting
+        x_r_rtbox_.set(T_be);
+        dx_r_rtbox_.set(nu_wt);
+        ddx_r_rtbox_.set(a_wt);
+    }
+    
     void CtrlMpcCroco::stopping(const ros::Time &t0)
     {
         ROS_INFO_STREAM("CtrlMpcCroco::stopping");

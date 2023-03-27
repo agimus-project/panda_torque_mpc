@@ -85,10 +85,10 @@ namespace panda_torque_mpc
         realtime_tools::RealtimePublisher<JointValuesComparison> torques_publisher_;
 
         // Subscribers
-        // ros::Subscriber pose_subscriber_;
-        // bool use_external_pose_publisher_;
-        // pin::SE3 T_w_t0_; // initial value of broadcasted absolute pose
-        // bool pose_frames_not_aligned_;
+        ros::Subscriber pose_subscriber_;
+        bool use_external_pose_publisher_;
+        pin::SE3 T_w_t0_; // initial value of broadcasted absolute pose
+        bool pose_frames_not_aligned_;
         realtime_tools::RealtimeBox<pin::SE3> x_r_rtbox_;
         realtime_tools::RealtimeBox<pin::Motion> dx_r_rtbox_;
         realtime_tools::RealtimeBox<pin::Motion> ddx_r_rtbox_;
@@ -129,6 +129,8 @@ namespace panda_torque_mpc
          */
         void compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pin::SE3 &pose_0, double t,
                                              pin::SE3 &x_r, pin::Motion &dx_r, pin::Motion &ddx_r);
+
+        void pose_callback(const PoseTaskGoal& msg);
 
     };
 

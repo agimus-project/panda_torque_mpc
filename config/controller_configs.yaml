@@ -126,7 +126,7 @@ ctrl_task_space_ID:
         - 5.0
         - 5.0
     publish_rate: 10.0
-    use_external_pose_publisher: false
+    use_external_pose_publisher: true
     # 0: PosiPosture
     # 1: PosePosture  # TODO: not working -> pbe in jacobian
     # 2: TSID
@@ -172,22 +172,22 @@ ctrl_mpc_croco:
         - 0.0
         - 0.0
     period_nu:
-        - 4.0
-        - 4.0
-        - 4.0
+        - 5.0
+        - 5.0
+        - 5.0
         - 5.0
         - 5.0
         - 5.0
     publish_rate: 10.0
-    # use_external_pose_publisher: true
+    use_external_pose_publisher: true
     alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0
     ####################
     # Controller configs
     nb_shooting_nodes: 10
     dt_ocp: 0.01
     nb_iterations_max: 1
-    # armature: [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
-    armature: [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
+    armature: [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
+    # armature: [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
     
     w_frame_running:  100
     w_frame_terminal: 100

@@ -213,20 +213,16 @@ namespace panda_torque_mpc
         // Time since start of the controller
         double Dt = (t - t_init_).toSec();
 
-        // Retrieve reference
-        pin::SE3 x_r;
+        // Instanciate reference pose variables
+        pin::SE3 x_r; 
         pin::Motion dx_r, ddx_r;
-        x_r_rtbox_.get(x_r);
-        dx_r_rtbox_.get(dx_r);
-        ddx_r_rtbox_.get(ddx_r);
 
-        // compute desired configuration and configuration velocity
+        // compute end effector reference if no topic reference exists
         if (!use_external_pose_publisher_)
         {
-            TicTac tictac_ref;
             compute_sinusoid_pose_reference(delta_nu_, period_nu_, T_b_e0_, Dt, x_r, dx_r, ddx_r);
-            // tictac_ref.print_tac("compute_sinusoid_pose_reference() took (ms): ");
-        }
+            x_r_rtbox_.set(x_r); dx_r_rtbox_.set(dx_r); ddx_r_rtbox_.set(ddx_r);
+        }    
 
         // Retrieve current measured robot state
         franka::RobotState robot_state = franka_state_handle_->getRobotState(); // return a const& of RobotState object -> not going to be modified
@@ -243,10 +239,11 @@ namespace panda_torque_mpc
         // filter the joint velocity measurements
         dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
 
-        // Compute desired torque
         TicTac tictac_comp;
+        // Compute desired torque according to current stored reference
+        x_r_rtbox_.get(x_r); dx_r_rtbox_.get(dx_r); ddx_r_rtbox_.get(ddx_r);
         Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r, dx_r, ddx_r, control_variant_, use_pinocchio_);
-        // tictac_comp.print_tac("compute_desired_torque() took (ms): ");
+        tictac_comp.print_tac("compute_desired_torque() took (ms): ");
 
         // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
         // 1000 * (1 / sampling_time).
@@ -352,7 +349,7 @@ namespace panda_torque_mpc
         dx_r_rtbox_.get(last_dx_r_);
         last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 
-        // tictac.print_tac("update() took (ms): ");
+        tictac.print_tac("update() took (ms): ");
     }
 
     Vector7d CtrlTaskSpaceID::compute_desired_torque(
@@ -619,6 +616,7 @@ namespace panda_torque_mpc
         a_wt.angular().x() = msg.acceleration.angular.x;
         a_wt.angular().y() = msg.acceleration.angular.y;
         a_wt.angular().z() = msg.acceleration.angular.z;
+
         // RT safe setting
         x_r_rtbox_.set(T_be);
         dx_r_rtbox_.set(nu_wt);

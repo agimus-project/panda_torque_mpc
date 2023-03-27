@@ -353,7 +353,6 @@ namespace panda_torque_mpc
         const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r, const CrocoddylConfig& conf)
     {
 
-        std::cout << "x_r:\n" << x_r.translation().transpose() << std::endl;
         // pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_d);
         pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m); // data.g == generalized gravity
         // Vector7d tau_grav = pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);
@@ -406,9 +405,6 @@ namespace panda_torque_mpc
         croco_reaching_.ddp_->solve(xs_init, us_init, conf.nb_iterations_max, false);
 
         Vector7d tau_d = croco_reaching_.ddp_->get_us()[0] - tau_grav;
-
-        std::cout << "get_us()[0]" << std::endl;
-        std::cout << croco_reaching_.ddp_->get_us()[0].transpose() << std::endl;
 
         return tau_d;
     }

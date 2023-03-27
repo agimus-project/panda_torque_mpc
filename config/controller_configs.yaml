@@ -165,9 +165,9 @@ ctrl_mpc_croco:
         - $(arg arm_id)_joint7
     # Trajectory simulation
     delta_nu:
-        - 0.0
-        - 0.0
-        - 0.0
+        - 0.09
+        - 0.09
+        - 0.09
         - 0.0
         - 0.0
         - 0.0
@@ -183,14 +183,16 @@ ctrl_mpc_croco:
     alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0
     ####################
     # Controller configs
-    nb_shooting_nodes: 30
+    nb_shooting_nodes: 25
     dt_ocp: 0.01
-    armature: [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
-    w_frame_running: 100.0
-    w_frame_terminal: 1000.0
-    w_x_reg_running: 1.0
-    w_x_reg_terminal: 0.01
-    scale_q_reg: 0.1
+    nb_iterations_max: 1
+    # armature: [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
+    armature: [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
+    
+    w_frame_running:  100
+    w_frame_terminal: 100
+    w_x_reg_running: 0.1
+    w_x_reg_terminal: 1.0
+    scale_q_vs_v_reg: 0.1
     w_u_reg_running: 0.01
     diag_u_reg_running: [1.0,1.0,1.0,1.0,1.0,1.0,1.0]
-    

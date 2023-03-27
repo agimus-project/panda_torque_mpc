@@ -114,7 +114,7 @@ namespace panda_torque_mpc
          * @param[in] x_r target end effector pose
          */
         Vector7d compute_desired_torque(
-            const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r);
+            const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r, const CrocoddylConfig&);
 
         /**
          * \brief Generate a (cos)sinusoidal target trajectory of end effector pose.

@@ -84,7 +84,11 @@ namespace panda_torque_mpc {
     };
 
 
-
+    /**
+     * Does not work with 
+     * T in {size_t}
+     * 
+    */
     template <typename T>
     bool get_param_error_tpl(const ros::NodeHandle &nh, 
                              T &param, 

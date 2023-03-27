@@ -24,17 +24,18 @@ namespace panda_torque_mpc
         if(!get_param_error_tpl<std::string>(nh, arm_id, "arm_id")) return false;
 
         // Croco params
-        int nb_shooting_nodes;
-        double dt_ocp, w_frame_running, w_frame_terminal, w_x_reg_running, w_x_reg_terminal, scale_q_reg, w_u_reg_running;
+        int nb_shooting_nodes, nb_iterations_max;
+        double dt_ocp, w_frame_running, w_frame_terminal, w_x_reg_running, w_x_reg_terminal, scale_q_vs_v_reg, w_u_reg_running;
         std::vector<double> armature, diag_u_reg_running;
 
         if(!get_param_error_tpl<int>(nh, nb_shooting_nodes, "nb_shooting_nodes")) return false;
         if(!get_param_error_tpl<double>(nh, dt_ocp, "dt_ocp")) return false;
+        if(!get_param_error_tpl<int>(nh, nb_iterations_max, "nb_iterations_max")) return false;
         if(!get_param_error_tpl<double>(nh, w_frame_running, "w_frame_running")) return false;
         if(!get_param_error_tpl<double>(nh, w_frame_terminal, "w_frame_terminal")) return false;
         if(!get_param_error_tpl<double>(nh, w_x_reg_running, "w_x_reg_running")) return false;
         if(!get_param_error_tpl<double>(nh, w_x_reg_terminal, "w_x_reg_terminal")) return false;
-        if(!get_param_error_tpl<double>(nh, scale_q_reg, "scale_q_reg")) return false;
+        if(!get_param_error_tpl<double>(nh, scale_q_vs_v_reg, "scale_q_vs_v_reg")) return false;
         if(!get_param_error_tpl<double>(nh, w_u_reg_running, "w_u_reg_running")) return false;
 
         if(!get_param_error_tpl<std::vector<double>>(nh, armature, "armature", 
@@ -96,12 +97,13 @@ namespace panda_torque_mpc
         /////////////////////////////////////////////////
         config_croco_.T = nb_shooting_nodes;
         config_croco_.dt_ocp = dt_ocp;
+        config_croco_.nb_iterations_max = nb_iterations_max;
         config_croco_.ee_frame_name = ee_frame_pin_;
         config_croco_.w_frame_running = w_frame_running;
         config_croco_.w_frame_terminal = w_frame_terminal;
         config_croco_.w_x_reg_running = w_x_reg_running;
         config_croco_.w_x_reg_terminal = w_x_reg_terminal;
-        config_croco_.scale_q_reg = scale_q_reg;
+        config_croco_.scale_q_vs_v_reg = scale_q_vs_v_reg;
         config_croco_.w_u_reg_running = w_u_reg_running;
         config_croco_.armature = Eigen::Map<Eigen::Matrix<double,7,1>>(armature.data());
         config_croco_.diag_u_reg_running = Eigen::Map<Eigen::Matrix<double,7,1>>(diag_u_reg_running.data());
@@ -200,6 +202,11 @@ namespace panda_torque_mpc
         x_r_rtbox_.set(T_b_e0_);
         dx_r_rtbox_.set(pin::Motion::Zero());
         ddx_r_rtbox_.set(pin::Motion::Zero());
+
+        // Set initial posture reference
+        Eigen::Matrix<double, 14, 1> x_init;
+        x_init << q_init_, Vector7d::Zero();
+        croco_reaching_.set_posture_ref(x_init);
     }
 
     void CtrlMpcCroco::update(const ros::Time &t, const ros::Duration &period)
@@ -210,13 +217,10 @@ namespace panda_torque_mpc
         double Dt = (t - t_init_).toSec();
 
         // Retrieve reference
-        pin::SE3 x_r;
+        pin::SE3 x_r; 
         pin::Motion dx_r, ddx_r;
-        x_r_rtbox_.get(x_r);
-        dx_r_rtbox_.get(dx_r);
-        ddx_r_rtbox_.get(ddx_r);
-
         compute_sinusoid_pose_reference(delta_nu_, period_nu_, T_b_e0_, Dt, x_r, dx_r, ddx_r);
+        x_r_rtbox_.set(x_r); dx_r_rtbox_.set(dx_r); ddx_r_rtbox_.set(ddx_r);
 
         // Retrieve current measured robot state
         franka::RobotState robot_state = franka_state_handle_->getRobotState(); // return a const& of RobotState object -> not going to be modified
@@ -235,7 +239,7 @@ namespace panda_torque_mpc
 
         // Compute desired torque
         TicTac tictac_comp;
-        Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r);
+        Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r, config_croco_);
         tictac_comp.print_tac("compute_desired_torque() took (ms): ");
 
         // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
@@ -338,43 +342,48 @@ namespace panda_torque_mpc
         }
 
         // Store previous desired/reference values
-        x_r_rtbox_.get(last_x_r_);
-        dx_r_rtbox_.get(last_dx_r_);
+        last_x_r_ = x_r;
+        last_dx_r_ = dx_r;
         last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 
         tictac.print_tac("update() took (ms): ");
     }
 
     Vector7d CtrlMpcCroco::compute_desired_torque(
-        const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r)
+        const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r, const CrocoddylConfig& conf)
     {
-        std::cout << "x_r\n" << x_r << std::endl; 
+
+        std::cout << "x_r:\n" << x_r.translation().transpose() << std::endl;
         // pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_d);
-        // pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m); // data.g == generalized gravity
-        Vector7d tau_grav = pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);
+        pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m); // data.g == generalized gravity
+        // Vector7d tau_grav = pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);
+        Vector7d tau_grav = data_pin_.g;
 
         // Initialise the MPC solver from current state ("closed loop" MPC)
-        Eigen::Matrix<double, 14, 1> x0;
-        x0 << q_m, dq_m;
+        Eigen::Matrix<double, 14, 1> x_m;
+        x_m << q_m, dq_m;
 
         std::vector<Eigen::Matrix<double, -1, 1>> xs_init;
         std::vector<Eigen::Matrix<double, -1, 1>> us_init;
         
 
         // !!!!!!!!!!!!!!!
-        // Very strange if/else logic...
-        // First iteration should not be checked like that
+        // goal_translation_set_ is used to detect if a problem has been already solved
+        // A bit werid
         // !!!!!!!!!!!!!!!
-        if (croco_reaching_.goal_translation_set_)
+        if (!croco_reaching_.goal_translation_set_)
         {
             // if first occurence, use a sensible prior (no movement and gravity compensation)
             xs_init.reserve(config_croco_.T);
             us_init.reserve(config_croco_.T);
+            // x_init is size T+1
+            // u_init is size T (terminal node has no control variable attached)
             for (int i = 0; i < config_croco_.T; i++)
             {
-                xs_init.push_back(x0);
+                xs_init.push_back(x_m);
                 us_init.push_back(tau_grav);
             }
+            xs_init.push_back(x_m);
         }
         else
         {
@@ -390,25 +399,22 @@ namespace panda_torque_mpc
             // us_init.erase( std::end(us_init)-1);
         }
 
-        croco_reaching_.set_goal_translation(x_r.translation());
+        // Set initial state and end-effector ref
+        croco_reaching_.ddp_->get_problem()->set_x0(x_m);
+        croco_reaching_.set_ee_ref(x_r.translation());
 
-
-        // Terminal node
-        // TODO: !!!! xs_init is not already the right size?? 
-        xs_init.push_back(x0);
-
-        int nb_iterations_ = 1;
-        std::cout << "ddp problem initialized " << std::endl;
-        croco_reaching_.ddp_->solve(xs_init, us_init, nb_iterations_, false);
-        std::cout << "ddp problem solved, nb iterations: " << croco_reaching_.ddp_->get_iter() << std::endl;
+        croco_reaching_.ddp_->solve(xs_init, us_init, conf.nb_iterations_max, false);
 
         Vector7d tau_d = croco_reaching_.ddp_->get_us()[0] - tau_grav;
+
+        std::cout << "get_us()[0]" << std::endl;
+        std::cout << croco_reaching_.ddp_->get_us()[0].transpose() << std::endl;
 
         return tau_d;
     }
 
     void CtrlMpcCroco::compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pin::SE3 &pose_0, double t,
-                                                                pin::SE3 &x_r, pin::Motion &dx_r, pin::Motion &ddx_r)
+                                                       pin::SE3 &x_r, pin::Motion &dx_r, pin::Motion &ddx_r)
     {
         // Ai and Ci obtained for each joint using constraints:
         // T(t=0.0) = pose_0
@@ -422,12 +428,7 @@ namespace panda_torque_mpc
         dx_r = pin::Motion((-w.array() * a.array() * sin(w.array() * t)).matrix());
         ddx_r = pin::Motion((-w.array().square() * a.array() * cos(w.array() * t)).matrix()); // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
 
-        // ROS_INFO_STREAM("CtrlMpcCroco::compute_sinusoid_pose_reference pose_0: \n" << pose_0);
-        // ROS_INFO_STREAM("CtrlMpcCroco::compute_sinusoid_pose_reference nu: \n" << nu.transpose());
-        // ROS_INFO_STREAM("CtrlMpcCroco::compute_sinusoid_pose_reference pin::exp6(nu): \n" << pin::exp6(nu));
-
         x_r = pose_0 * pin::exp6(nu);
-        // ROS_INFO_STREAM("CtrlMpcCroco::compute_sinusoid_pose_reference x_r: \n" << x_r);
     }
 
     // void CtrlMpcCroco::pose_callback(const PoseTaskGoal& msg)

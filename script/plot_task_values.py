@@ -6,11 +6,12 @@ import matplotlib.pyplot as plt
 
 from read_plot_utils import read_tsid_bag
 
-CONTROLLER_NAME = 'ctrl_task_space_ID'
-
+# CONTROLLER_NAME = 'ctrl_task_space_ID'
+CONTROLLER_NAME = 'ctrl_mpc_croco'
 
 DIRECTORY = '../bags/'
 EXPE_NAMES = [
+    # 'expe_ref',
     'expe',
     #   'stiffer',
 ]
@@ -26,18 +27,18 @@ d_res = read_tsid_bag(BAG_PATHS[0], CONTROLLER_NAME)
 COLORS = 'rgbcmyk'
 MSIZE = 5
 
-fig_x, ax_x = plt.subplots(2, 1)
 fig_dx, ax_dx = plt.subplots(2, 1)
 fig_tau, ax_tau = plt.subplots(1, 1)
+fig_x, ax_x = plt.subplots(2, 1)
 
 fig_x.canvas.manager.set_window_title('Task Pose')
 fig_dx.canvas.manager.set_window_title('Task vel')
 fig_tau.canvas.manager.set_window_title('Joint torques')
 
 
-FIELD = 'commanded'
-# FIELD = 'measurement'
-# FIELD = 'error'
+# FIELD = 'commanded'
+# FIELD = 'measured'
+FIELD = 'error'
 
 # position/linear part
 for i in range(3):
@@ -47,6 +48,7 @@ for i in range(3):
                  f'{c}{sym}', label=f'x{i}', markersize=MSIZE)
     ax_dx[0].plot(d_res['t'], d_res['dx'][FIELD][:, i],
                   f'{c}{sym}', label=f'dx{i}', markersize=MSIZE)
+
 
 for i in range(3):
     c = COLORS[i]
@@ -62,7 +64,6 @@ for i in range(7):
     sym = '.'
     ax_tau.plot(d_res['t'], d_res['tau'][FIELD][:, i],
                 f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
-
 
 ax_x[0].set_title(FIELD)
 ax_dx[0].set_title(FIELD)

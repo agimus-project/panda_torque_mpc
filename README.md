@@ -65,3 +65,4 @@ The parameters of each controller are defined in `config/controller_configs.yaml
 * Switch between the urdf files depending on `load_gripper` argument
 * Figure out why measured torque signs are inverted between simulation and real robot.
 Do the sign flipping in code automatically
+* Switch to `#include <example-robot-data/path.hpp>` + EXAMPLE_ROBOT_DATA_MODEL_DIR

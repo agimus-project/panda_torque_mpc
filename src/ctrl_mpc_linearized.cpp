@@ -1,4 +1,4 @@
-#include "panda_torque_mpc/ctrl_mpc_croco.h"
+#include "panda_torque_mpc/ctrl_mpc_linearized.h"
 
 #include <cmath>
 #include <memory>
@@ -9,12 +9,15 @@
 
 #include <franka/robot_state.h>
 
+#include <linear_feedback_controller_msgs/eigen_conversions.hpp>
+
+
 
 
 namespace panda_torque_mpc
 {
 
-    bool CtrlMpcCroco::init(hardware_interface::RobotHW *robot_hw,
+    bool CtrlMpcLinearized::init(hardware_interface::RobotHW *robot_hw,
                                      ros::NodeHandle &nh)
     {
         ///////////////////
@@ -22,26 +25,6 @@ namespace panda_torque_mpc
         ///////////////////
         std::string arm_id;
         if(!get_param_error_tpl<std::string>(nh, arm_id, "arm_id")) return false;
-
-        // Croco params
-        int nb_shooting_nodes;
-        double dt_ocp, w_frame_running, w_frame_terminal, w_x_reg_running, w_x_reg_terminal, scale_q_reg, w_u_reg_running;
-        std::vector<double> armature, diag_u_reg_running;
-
-        if(!get_param_error_tpl<int>(nh, nb_shooting_nodes, "nb_shooting_nodes")) return false;
-        if(!get_param_error_tpl<double>(nh, dt_ocp, "dt_ocp")) return false;
-        if(!get_param_error_tpl<double>(nh, w_frame_running, "w_frame_running")) return false;
-        if(!get_param_error_tpl<double>(nh, w_frame_terminal, "w_frame_terminal")) return false;
-        if(!get_param_error_tpl<double>(nh, w_x_reg_running, "w_x_reg_running")) return false;
-        if(!get_param_error_tpl<double>(nh, w_x_reg_terminal, "w_x_reg_terminal")) return false;
-        if(!get_param_error_tpl<double>(nh, scale_q_reg, "scale_q_reg")) return false;
-        if(!get_param_error_tpl<double>(nh, w_u_reg_running, "w_u_reg_running")) return false;
-
-        if(!get_param_error_tpl<std::vector<double>>(nh, armature, "armature", 
-                                                          [](std::vector<double> v) {return v.size() == 7;})) return false;
-        if(!get_param_error_tpl<std::vector<double>>(nh, diag_u_reg_running, "diag_u_reg_running", 
-                                                          [](std::vector<double> v) {return v.size() == 7;})) return false;
-
 
         // Panda
         std::vector<std::string> joint_names;
@@ -61,12 +44,20 @@ namespace panda_torque_mpc
         // // From a topic? 
         // if(!get_param_error_tpl<bool>(nh, use_external_pose_publisher_, "use_external_pose_publisher")) return false;
 
-        double publish_rate(30.0);
-        if (!nh.getParam("publish_rate", publish_rate))
+        double publish_log_rate(30.0);
+        if (!nh.getParam("publish_log_rate", publish_log_rate))
         {
-            ROS_INFO_STREAM("CtrlMpcCroco: publish_rate not found. Defaulting to " << publish_rate);
+            ROS_INFO_STREAM("CtrlMpcLinearized: publish_log_rate not found. Defaulting to " << publish_log_rate);
         }
-        rate_trigger_ = franka_hw::TriggerRate(publish_rate);
+        rate_trigger_logs_ = franka_hw::TriggerRate(publish_log_rate);
+
+        double publish_ref_rate(10.0);
+        if (!nh.getParam("publish_ref_rate", publish_ref_rate))
+        {
+            ROS_INFO_STREAM("CtrlMpcLinearized: publish_ref_rate not found. Defaulting to " << publish_ref_rate);
+        }
+        rate_trigger_ref_ = franka_hw::TriggerRate(publish_ref_rate);
+
 
         if(!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter")) return false;
 
@@ -91,24 +82,6 @@ namespace panda_torque_mpc
         ee_frame_pin_ = "panda_link8";
         ee_frame_id_ = model_pin_.getFrameId(ee_frame_pin_);
 
-        /////////////////////////////////////////////////
-        //                    MPC                      //
-        /////////////////////////////////////////////////
-        config_croco_.T = nb_shooting_nodes;
-        config_croco_.dt_ocp = dt_ocp;
-        config_croco_.ee_frame_name = ee_frame_pin_;
-        config_croco_.w_frame_running = w_frame_running;
-        config_croco_.w_frame_terminal = w_frame_terminal;
-        config_croco_.w_x_reg_running = w_x_reg_running;
-        config_croco_.w_x_reg_terminal = w_x_reg_terminal;
-        config_croco_.scale_q_reg = scale_q_reg;
-        config_croco_.w_u_reg_running = w_u_reg_running;
-        config_croco_.armature = Eigen::Map<Eigen::Matrix<double,7,1>>(armature.data());
-        config_croco_.diag_u_reg_running = Eigen::Map<Eigen::Matrix<double,7,1>>(diag_u_reg_running.data());
-
-        croco_reaching_ = CrocoddylReaching(model_pin_, config_croco_);
-        /////////////////////////////////////////////////
-
         ///////////////////
         // Claim interfaces
         ///////////////////
@@ -116,7 +89,7 @@ namespace panda_torque_mpc
         auto *franka_state_interface = robot_hw->get<franka_hw::FrankaStateInterface>();
         if (franka_state_interface == nullptr)
         {
-            ROS_ERROR("CtrlMpcCroco: Could not get Franka state interface from hardware");
+            ROS_ERROR("CtrlMpcLinearized: Could not get Franka state interface from hardware");
             return false;
         }
         try
@@ -125,7 +98,7 @@ namespace panda_torque_mpc
         }
         catch (const hardware_interface::HardwareInterfaceException &e)
         {
-            ROS_ERROR_STREAM("CtrlMpcCroco: Exception getting franka state handle: " << e.what());
+            ROS_ERROR_STREAM("CtrlMpcLinearized: Exception getting franka state handle: " << e.what());
             return false;
         }
 
@@ -133,7 +106,7 @@ namespace panda_torque_mpc
         auto *model_interface = robot_hw->get<franka_hw::FrankaModelInterface>();
         if (model_interface == nullptr)
         {
-            ROS_ERROR_STREAM("CtrlMpcCroco: Error getting model interface from hardware");
+            ROS_ERROR_STREAM("CtrlMpcLinearized: Error getting model interface from hardware");
             return false;
         }
         try
@@ -142,7 +115,7 @@ namespace panda_torque_mpc
         }
         catch (hardware_interface::HardwareInterfaceException &e)
         {
-            ROS_ERROR_STREAM("CtrlMpcCroco: Exception getting model handle from interface: " << e.what());
+            ROS_ERROR_STREAM("CtrlMpcLinearized: Exception getting model handle from interface: " << e.what());
             return false;
         }
 
@@ -150,7 +123,7 @@ namespace panda_torque_mpc
         auto *effort_joint_interface = robot_hw->get<hardware_interface::EffortJointInterface>();
         if (effort_joint_interface == nullptr)
         {
-            ROS_ERROR_STREAM("CtrlMpcCroco: Error getting effort joint interface from hardware");
+            ROS_ERROR_STREAM("CtrlMpcLinearized: Error getting effort joint interface from hardware");
             return false;
         }
         for (size_t i = 0; i < 7; ++i)
@@ -161,7 +134,7 @@ namespace panda_torque_mpc
             }
             catch (const hardware_interface::HardwareInterfaceException &e)
             {
-                ROS_ERROR_STREAM("CtrlMpcCroco: Exception getting joint handles: " << e.what());
+                ROS_ERROR_STREAM("CtrlMpcLinearized: Exception getting joint handles: " << e.what());
                 return false;
             }
         }
@@ -171,12 +144,11 @@ namespace panda_torque_mpc
         task_twist_publisher_.init(nh, "task_twist_comparison", 1);
         torques_publisher_.init(nh, "joint_torques_comparison", 1);
 
-        // // Pose subscriber
-        // std::string target_pose_topic = "target_pose";
-        // if (use_external_pose_publisher_)
-        // {
-        //     pose_subscriber_ = nh.subscribe(target_pose_topic, 1, &CtrlMpcCroco::pose_callback, this);
-        // }
+        // End effector reference publisher
+        // TODO: Topic in param server
+        ref_publisher_.init(nh, "ee_pose_ref", 1);
+
+        // Subscriber to 
 
         // init some variables
         dq_filtered_ = Vector7d::Zero();
@@ -185,16 +157,16 @@ namespace panda_torque_mpc
         return true;
     }
 
-    void CtrlMpcCroco::starting(const ros::Time &t0)
+    void CtrlMpcLinearized::starting(const ros::Time &t0)
     {
-        ROS_INFO_STREAM("CtrlMpcCroco::starting");
+        ROS_INFO_STREAM("CtrlMpcLinearized::starting");
         t_init_ = t0;
         q_init_ = Eigen::Map<const Vector7d>(franka_state_handle_->getRobotState().q.data());
         pin::forwardKinematics(model_pin_, data_pin_, q_init_);
         pin::updateFramePlacements(model_pin_, data_pin_);
         T_b_e0_ = data_pin_.oMf[ee_frame_id_];
 
-        ROS_INFO_STREAM("CtrlMpcCroco::starting T_b_e0_: \n" << T_b_e0_);
+        ROS_INFO_STREAM("CtrlMpcLinearized::starting T_b_e0_: \n" << T_b_e0_);
 
         // Set initial goal -> do not move from original pose
         x_r_rtbox_.set(T_b_e0_);
@@ -202,20 +174,16 @@ namespace panda_torque_mpc
         ddx_r_rtbox_.set(pin::Motion::Zero());
     }
 
-    void CtrlMpcCroco::update(const ros::Time &t, const ros::Duration &period)
+    void CtrlMpcLinearized::update(const ros::Time &t, const ros::Duration &period)
     {
         TicTac tictac;
 
         // Time since start of the controller
         double Dt = (t - t_init_).toSec();
 
-        // Retrieve reference
+        // Retrieve references from
         pin::SE3 x_r;
         pin::Motion dx_r, ddx_r;
-        x_r_rtbox_.get(x_r);
-        dx_r_rtbox_.get(dx_r);
-        ddx_r_rtbox_.get(ddx_r);
-
         compute_sinusoid_pose_reference(delta_nu_, period_nu_, T_b_e0_, Dt, x_r, dx_r, ddx_r);
 
         // Retrieve current measured robot state
@@ -235,6 +203,7 @@ namespace panda_torque_mpc
 
         // Compute desired torque
         TicTac tictac_comp;
+        // Retrieve the reference
         Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r);
         tictac_comp.print_tac("compute_desired_torque() took (ms): ");
 
@@ -345,7 +314,7 @@ namespace panda_torque_mpc
         tictac.print_tac("update() took (ms): ");
     }
 
-    Vector7d CtrlMpcCroco::compute_desired_torque(
+    Vector7d CtrlMpcLinearized::compute_desired_torque(
         const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r)
     {
         std::cout << "x_r\n" << x_r << std::endl; 
@@ -407,7 +376,7 @@ namespace panda_torque_mpc
         return tau_d;
     }
 
-    void CtrlMpcCroco::compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pin::SE3 &pose_0, double t,
+    void CtrlMpcLinearized::compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pin::SE3 &pose_0, double t,
                                                                 pin::SE3 &x_r, pin::Motion &dx_r, pin::Motion &ddx_r)
     {
         // Ai and Ci obtained for each joint using constraints:
@@ -422,15 +391,15 @@ namespace panda_torque_mpc
         dx_r = pin::Motion((-w.array() * a.array() * sin(w.array() * t)).matrix());
         ddx_r = pin::Motion((-w.array().square() * a.array() * cos(w.array() * t)).matrix()); // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
 
-        // ROS_INFO_STREAM("CtrlMpcCroco::compute_sinusoid_pose_reference pose_0: \n" << pose_0);
-        // ROS_INFO_STREAM("CtrlMpcCroco::compute_sinusoid_pose_reference nu: \n" << nu.transpose());
-        // ROS_INFO_STREAM("CtrlMpcCroco::compute_sinusoid_pose_reference pin::exp6(nu): \n" << pin::exp6(nu));
+        // ROS_INFO_STREAM("CtrlMpcLinearized::compute_sinusoid_pose_reference pose_0: \n" << pose_0);
+        // ROS_INFO_STREAM("CtrlMpcLinearized::compute_sinusoid_pose_reference nu: \n" << nu.transpose());
+        // ROS_INFO_STREAM("CtrlMpcLinearized::compute_sinusoid_pose_reference pin::exp6(nu): \n" << pin::exp6(nu));
 
         x_r = pose_0 * pin::exp6(nu);
-        // ROS_INFO_STREAM("CtrlMpcCroco::compute_sinusoid_pose_reference x_r: \n" << x_r);
+        // ROS_INFO_STREAM("CtrlMpcLinearized::compute_sinusoid_pose_reference x_r: \n" << x_r);
     }
 
-    // void CtrlMpcCroco::pose_callback(const PoseTaskGoal& msg)
+    // void CtrlMpcLinearized::pose_callback(const PoseTaskGoal& msg)
     // {   
 
     //     /**
@@ -443,7 +412,7 @@ namespace panda_torque_mpc
     //      * - e: "end" effector of the robot
     //     */
 
-    //     std::cout << "CtrlMpcCroco::pose_callback PoseTaskGoal:" << std::endl;
+    //     std::cout << "CtrlMpcLinearized::pose_callback PoseTaskGoal:" << std::endl;
     //     std::cout << msg.pose.position.x << std::endl;
     //     std::cout << msg.pose.position.y << std::endl;
     //     std::cout << msg.pose.position.z << std::endl;
@@ -503,12 +472,12 @@ namespace panda_torque_mpc
     //     ddx_r_rtbox_.set(a_wt);
     // }
 
-    void CtrlMpcCroco::stopping(const ros::Time &t0)
+    void CtrlMpcLinearized::stopping(const ros::Time &t0)
     {
-        ROS_INFO_STREAM("CtrlMpcCroco::stopping");
+        ROS_INFO_STREAM("CtrlMpcLinearized::stopping");
     }
 
 } // namespace panda_torque_mpc
 
-PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::CtrlMpcCroco,
+PLUGINLIB_EXPORT_CLASS(panda_torque_mpc::CtrlMpcLinearized,
                        controller_interface::ControllerBase)

@@ -62,6 +62,7 @@ catkin_package(
     realtime_tools
     roscpp
     urdf
+    linear_feedback_controller_msgs
   DEPENDS Franka
 )
 

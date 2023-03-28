@@ -9,6 +9,14 @@
 
 namespace panda_torque_mpc {
 
+    // Overloads << operator for std::vector
+    template<typename T>
+    std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
+        using namespace std;
+        copy(v.begin(), v.end(), ostream_iterator<T>(os, "\n"));
+        return os;
+    }
+
     // Eigen Typedef
     using Vector6d = Eigen::Matrix<double, 6, 1>;
     using Vector7d = Eigen::Matrix<double, 7, 1>;
@@ -85,7 +93,7 @@ namespace panda_torque_mpc {
 
 
     /**
-     * Does not work with 
+     * Does not work with certains types:
      * T in {size_t}
      * 
     */
@@ -107,12 +115,5 @@ namespace panda_torque_mpc {
     }
 
 
-
-    template<typename T>
-    std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
-        using namespace std;
-        copy(v.begin(), v.end(), ostream_iterator<T>(os, "\n"));
-        return os;
-    }
 
 } // namespace panda_torque_mpc

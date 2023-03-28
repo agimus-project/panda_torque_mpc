@@ -416,23 +416,6 @@ namespace panda_torque_mpc
         return tau_d;
     }
 
-    void CtrlMpcCroco::compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pin::SE3 &pose_0, double t,
-                                                       pin::SE3 &x_r, pin::Motion &dx_r, pin::Motion &ddx_r)
-    {
-        // Ai and Ci obtained for each joint using constraints:
-        // T(t=0.0) = pose_0
-        // T(t=period/2) = pose_0 * Exp(delta_nu)
-
-        Vector6d w = (2 * M_PI / period_nu.array()).matrix();
-        Vector6d a = -delta_nu;
-        Vector6d c = delta_nu;
-
-        Vector6d nu = (a.array() * cos(w.array() * t)).matrix() + c;
-        dx_r = pin::Motion((-w.array() * a.array() * sin(w.array() * t)).matrix());
-        ddx_r = pin::Motion((-w.array().square() * a.array() * cos(w.array() * t)).matrix()); // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
-
-        x_r = pose_0 * pin::exp6(nu);
-    }
 
     void CtrlMpcCroco::pose_callback(const PoseTaskGoal& msg)
     {   

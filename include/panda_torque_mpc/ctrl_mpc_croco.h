@@ -116,20 +116,6 @@ namespace panda_torque_mpc
         Vector7d compute_desired_torque(
             const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r, const CrocoddylConfig&);
 
-        /**
-         * \brief Generate a (cos)sinusoidal target trajectory of end effector pose.
-         *
-         * @param[in] delta_nu trajectory parameter: vector (size 6, [lin,rot]) of the delta motion amplitude (on the SE3 local tangent space)
-         * @param[in] period_nu trajectory parameter: vector (size 6, [lin,rot]) of period for delta motion axes (on the SE3 local tangent space)
-         * @param[in] pose_0 initial pose
-         * @param[in] t current time with q(0) = q0
-         * @param[out] x_r target joint configuration
-         * @param[out] dx_r target joint velocity
-         * @param[out] ddx_r target joint acceleration
-         */
-        void compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pin::SE3 &pose_0, double t,
-                                             pin::SE3 &x_r, pin::Motion &dx_r, pin::Motion &ddx_r);
-
         void pose_callback(const PoseTaskGoal& msg);
 
     };

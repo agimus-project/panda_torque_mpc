@@ -5,6 +5,12 @@
 #include <Eigen/Core>
 #include <ros/node_handle.h>
 
+#include <pinocchio/fwd.hpp>
+#include <pinocchio/parsers/urdf.hpp>
+#include <pinocchio/algorithm/kinematics.hpp>
+#include <pinocchio/algorithm/rnea.hpp>
+#include <pinocchio/algorithm/frames.hpp>
+
 
 
 namespace panda_torque_mpc {
@@ -112,6 +118,36 @@ namespace panda_torque_mpc {
         {
             return true;
         }
+    }
+
+
+    /**
+     * \brief Generate a (cos)sinusoidal target trajectory of end effector pose.
+     *
+     * @param[in] delta_nu trajectory parameter: vector (size 6, [lin,rot]) of the delta motion amplitude (on the SE3 local tangent space)
+     * @param[in] period_nu trajectory parameter: vector (size 6, [lin,rot]) of period for delta motion axes (on the SE3 local tangent space)
+     * @param[in] pose_0 initial pose
+     * @param[in] t current time with q(0) = q0
+     * @param[out] x_r target joint configuration
+     * @param[out] dx_r target joint velocity
+     * @param[out] ddx_r target joint acceleration
+     */
+    inline void compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pinocchio::SE3 &pose_0, double t,
+                                         pinocchio::SE3 &x_r, pinocchio::Motion &dx_r, pinocchio::Motion &ddx_r)
+    {
+        // Ai and Ci obtained for each joint using constraints:
+        // T(t=0.0) = pose_0
+        // T(t=period/2) = pose_0 * Exp(delta_nu)
+
+        Vector6d w = (2 * M_PI / period_nu.array()).matrix();
+        Vector6d a = -delta_nu;
+        Vector6d c = delta_nu;
+
+        Vector6d nu = (a.array() * cos(w.array() * t)).matrix() + c;
+        dx_r = pinocchio::Motion((-w.array() * a.array() * sin(w.array() * t)).matrix());
+        ddx_r = pinocchio::Motion((-w.array().square() * a.array() * cos(w.array() * t)).matrix()); // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
+
+        x_r = pose_0 * pinocchio::exp6(nu);
     }
 
 

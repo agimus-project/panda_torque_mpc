@@ -247,7 +247,7 @@ namespace panda_torque_mpc
         // Compute desired torque according to current stored reference
         x_r_rtbox_.get(x_r); dx_r_rtbox_.get(dx_r); ddx_r_rtbox_.get(ddx_r);
         Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r, config_croco_);
-        tictac_comp.print_tac("compute_desired_torque() took (ms): ");
+        // tictac_comp.print_tac("compute_desired_torque() took (ms): ");
 
         // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
         // 1000 * (1 / sampling_time).

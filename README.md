@@ -12,8 +12,6 @@
 `conda config --env --add channels robostack-staging`  
 * Install ROS and other dependencies:  
 `mamba install ros-noetic-desktop-full catkin_tools ros-noetic-combined-robot-hw pinocchio tsid`
-* TOFIX: current problem with tsid install requires downgrading pinocchio:  
-`mamba install pinocchio=2.6.12`
 
 
 ## libfranka
@@ -36,7 +34,7 @@ In your catkin workspace src directory
 ## Simulation
 In two different shells (change use_gripper according to which urdf model you use for control):  
 
-* `roslaunch franka_gazebo panda.launch arm_id:=panda headless:=false use_gripper:=false`
+* `roslaunch franka_gazebo panda.launch arm_id:=panda headless:=false use_gripper:=true`
 * `roslaunch panda_torque_mpc sim_controllers.launch controller:=<controller-name>`
 
 ## Real
@@ -58,11 +56,15 @@ The parameters of each controller are defined in `config/controller_configs.yaml
 ## Realsense T265 demo (launch in this order)
 `roslaunch realsense2_camera demo_t265.launch`  
 `ROS_NAMESPACE=/ctrl_task_space_ID rosrun panda_torque_mpc pose_publisher.py`  
-`roslaunch franka_gazebo panda.launch arm_id:=panda headless:=false use_gripper:=false`  
+`roslaunch franka_gazebo panda.launch arm_id:=panda headless:=false use_gripper:=true`  
 `roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_task_space_ID`  
+
+
 # TODOLIST
 * Double check if `initialized` topic is streamed when using the real controller (not likely) 
 * Switch between the urdf files depending on `load_gripper` argument
 * Figure out why measured torque signs are inverted between simulation and real robot.
 Do the sign flipping in code automatically
 * Switch to `#include <example-robot-data/path.hpp>` + EXAMPLE_ROBOT_DATA_MODEL_DIR
+* Refactor log publishers -> LoggingExperiment class with RTpublishers?
+* Other logs: update() time, libfranka packet loss stats

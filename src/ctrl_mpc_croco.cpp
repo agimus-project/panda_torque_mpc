@@ -15,7 +15,7 @@ namespace panda_torque_mpc
 {
 
     bool CtrlMpcCroco::init(hardware_interface::RobotHW *robot_hw,
-                                     ros::NodeHandle &nh)
+                            ros::NodeHandle &nh)
     {
         ///////////////////
         // Load parameters
@@ -200,8 +200,6 @@ namespace panda_torque_mpc
 
         // Set initial goal -> do not move from original pose
         x_r_rtbox_.set(T_b_e0_);
-        dx_r_rtbox_.set(pin::Motion::Zero());
-        ddx_r_rtbox_.set(pin::Motion::Zero());
 
         // Set initial posture reference
         Eigen::Matrix<double, 14, 1> x_init;
@@ -218,13 +216,13 @@ namespace panda_torque_mpc
 
         // Instanciate reference pose variables
         pin::SE3 x_r; 
-        pin::Motion dx_r, ddx_r;
+        pin::Motion dx_r, ddx_r;  // useless
 
         // compute end effector reference if no topic reference exists
         if (!use_external_pose_publisher_)
         {
             compute_sinusoid_pose_reference(delta_nu_, period_nu_, T_b_e0_, Dt, x_r, dx_r, ddx_r);
-            x_r_rtbox_.set(x_r); dx_r_rtbox_.set(dx_r); ddx_r_rtbox_.set(ddx_r);
+            x_r_rtbox_.set(x_r);
         }    
 
 
@@ -245,7 +243,7 @@ namespace panda_torque_mpc
 
         TicTac tictac_comp;
         // Compute desired torque according to current stored reference
-        x_r_rtbox_.get(x_r); dx_r_rtbox_.get(dx_r); ddx_r_rtbox_.get(ddx_r);
+        x_r_rtbox_.get(x_r);
         Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r, config_croco_);
         // tictac_comp.print_tac("compute_desired_torque() took (ms): ");
 
@@ -282,8 +280,8 @@ namespace panda_torque_mpc
             Eigen::Quaterniond quat_m(T_o_e_m.rotation());
             Eigen::Quaterniond quat_err = quat_r.inverse() * quat_m;
             // EE twist
-            Eigen::Vector3d v_o_e_err = nu_o_e_m.linear() - dx_r.linear();
-            Eigen::Vector3d omg_o_e_err = nu_o_e_m.angular() - dx_r.angular();
+            Eigen::Vector3d v_o_e_err = Eigen::Vector3d::Zero();
+            Eigen::Vector3d omg_o_e_err = Eigen::Vector3d::Zero();
 
 
             // EE Twists linear part
@@ -349,8 +347,6 @@ namespace panda_torque_mpc
         }
 
         // Store previous desired/reference values
-        last_x_r_ = x_r;
-        last_dx_r_ = dx_r;
         last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 
         tictac.print_tac("update() took (ms): ");
@@ -485,27 +481,8 @@ namespace panda_torque_mpc
         // compose initial pose with relative/local transform
         pin::SE3 T_be = T_b_e0_*T_e0_e;
 
-        pin::Motion nu_wt;
-        // Set reference twist
-        nu_wt.linear().x() = msg.twist.linear.x;
-        nu_wt.linear().y() = msg.twist.linear.y;
-        nu_wt.linear().z() = msg.twist.linear.z;
-        nu_wt.angular().x() = msg.twist.angular.x;
-        nu_wt.angular().y() = msg.twist.angular.y;
-        nu_wt.angular().z() = msg.twist.angular.z;
-        // Set reference spatial acceleration
-        pin::Motion a_wt;
-        a_wt.linear().x() = msg.acceleration.linear.x;
-        a_wt.linear().y() = msg.acceleration.linear.y;
-        a_wt.linear().z() = msg.acceleration.linear.z;
-        a_wt.angular().x() = msg.acceleration.angular.x;
-        a_wt.angular().y() = msg.acceleration.angular.y;
-        a_wt.angular().z() = msg.acceleration.angular.z;
-
         // RT safe setting
         x_r_rtbox_.set(T_be);
-        dx_r_rtbox_.set(nu_wt);
-        ddx_r_rtbox_.set(a_wt);
     }
     
     void CtrlMpcCroco::stopping(const ros::Time &t0)

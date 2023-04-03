@@ -10,8 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   franka_hw
   franka_gripper
-  geometry_msgs
-  visualization_msgs
   hardware_interface
   joint_limits_interface
   tf
@@ -22,7 +20,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   urdf
-)
+  geometry_msgs
+  visualization_msgs
+  linear_feedback_controller_msgs
+  )
 
 find_package(Eigen3 REQUIRED)
 find_package(Franka 0.9.0 QUIET)
@@ -51,8 +52,6 @@ catkin_package(
     eigen_conversions
     franka_hw
     franka_gripper
-    geometry_msgs
-    visualization_msgs
     hardware_interface
     joint_limits_interface
     tf
@@ -62,6 +61,8 @@ catkin_package(
     realtime_tools
     roscpp
     urdf
+    geometry_msgs
+    visualization_msgs
     linear_feedback_controller_msgs
   DEPENDS Franka
 )
@@ -73,7 +74,10 @@ add_library(panda_torque_mpc
   src/ctrl_playback_pd_plus.cpp
   src/ctrl_joint_space_ID.cpp
   src/ctrl_task_space_ID.cpp
+  src/crocoddyl_reaching.cpp
   src/ctrl_mpc_croco.cpp
+  # src/ctrl_mpc_linearized.cpp
+  # src/croccodyl_motion_server_node.cpp
 )
 
 target_link_libraries(panda_torque_mpc PUBLIC

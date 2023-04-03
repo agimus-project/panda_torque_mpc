@@ -1,43 +1,33 @@
 #include <iostream>
+#include <algorithm>
 #include <Eigen/Dense>
 
 #include <pinocchio/fwd.hpp>
-#include <boost/algorithm/string.hpp>
-#include <algorithm>
 #include <pinocchio/parsers/urdf.hpp>
-#include <pinocchio/parsers/srdf.hpp>
 #include <pinocchio/algorithm/joint-configuration.hpp>
 #include <pinocchio/algorithm/model.hpp>
 #include <pinocchio/multibody/model.hpp>
 #include <pinocchio/multibody/frame.hpp>
 
-#include <crocoddyl/core/optctrl/shooting.hpp>
-#include <crocoddyl/core/solver-base.hpp>
+#include <crocoddyl/core/fwd.hpp>
 #include <crocoddyl/core/utils/exception.hpp>
 #include <crocoddyl/core/utils/callbacks.hpp>
-#include <crocoddyl/core/activations/quadratic.hpp>
-// #include <crocoddyl/core/activations/quadratic-barrier.hpp>
-#include <crocoddyl/core/activations/weighted-quadratic.hpp>
-// #include <crocoddyl/core/activations/weighted-quadratic-barrier.hpp>
-// #include <crocoddyl/core/activations/quadratic-flat-log.hpp>
-
-#include <crocoddyl/core/fwd.hpp>
-#include <crocoddyl/core/solvers/ddp.hpp>
 #include <crocoddyl/core/action-base.hpp>
-#include <crocoddyl/core/integrator/euler.hpp>
-#include <crocoddyl/core/solvers/fddp.hpp>
 #include <crocoddyl/core/residuals/control.hpp>
+#include <crocoddyl/core/activations/quadratic.hpp>
+#include <crocoddyl/core/activations/weighted-quadratic.hpp>
+#include <crocoddyl/core/integrator/euler.hpp>
+#include <crocoddyl/core/optctrl/shooting.hpp>
+#include <crocoddyl/core/solvers/fddp.hpp>
 
-#include <crocoddyl/multibody/costs/control-gravity.hpp>
 #include <crocoddyl/multibody/states/multibody.hpp>
 #include <crocoddyl/multibody/actions/free-fwddyn.hpp>
 #include <crocoddyl/multibody/actuations/full.hpp>
 #include <crocoddyl/multibody/frames.hpp>
 #include <crocoddyl/multibody/residuals/state.hpp>
 #include <crocoddyl/multibody/residuals/frame-translation.hpp>
-// #include <crocoddyl/multibody/residuals/frame-rotation.hpp>
-#include <crocoddyl/multibody/residuals/frame-velocity.hpp>
-// #include <crocoddyl/multibody/residuals/contact-force.hpp>
+#include <crocoddyl/multibody/costs/control-gravity.hpp>
+
 
 namespace pin = pinocchio;
 

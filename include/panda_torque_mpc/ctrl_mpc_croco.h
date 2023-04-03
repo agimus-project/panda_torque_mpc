@@ -67,7 +67,6 @@ namespace panda_torque_mpc
 
         // Current update state
         pin::SE3 last_x_r_;
-        pin::Motion last_dx_r_;
         Vector7d last_q_r_;
         Vector7d last_dq_r_;
         Vector7d last_tau_d_{};
@@ -90,8 +89,6 @@ namespace panda_torque_mpc
         pin::SE3 T_w_t0_; // initial value of broadcasted absolute pose
         bool pose_frames_not_aligned_;
         realtime_tools::RealtimeBox<pin::SE3> x_r_rtbox_;
-        realtime_tools::RealtimeBox<pin::Motion> dx_r_rtbox_;
-        realtime_tools::RealtimeBox<pin::Motion> ddx_r_rtbox_;
 
         // Pinocchio objects
         pin::Model model_pin_;

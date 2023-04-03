@@ -11,38 +11,30 @@
 
 #include <linear_feedback_controller_msgs/eigen_conversions.hpp>
 
-
-
-
 namespace panda_torque_mpc
 {
 
     bool CtrlMpcLinearized::init(hardware_interface::RobotHW *robot_hw,
-                                     ros::NodeHandle &nh)
+                                 ros::NodeHandle &nh)
     {
         ///////////////////
         // Load parameters
         ///////////////////
         std::string arm_id;
-        if(!get_param_error_tpl<std::string>(nh, arm_id, "arm_id")) return false;
+        if (!get_param_error_tpl<std::string>(nh, arm_id, "arm_id"))
+            return false;
+
+        if (!get_param_error_tpl<double>(nh, Kp_jsid_, "Kp_jsid"))
+                    return false;
+        if (!get_param_error_tpl<double>(nh, Kd_jsid_, "Kd_jsid"))
+                    return false;
 
         // Panda
         std::vector<std::string> joint_names;
-        if(!get_param_error_tpl<std::vector<std::string>>(nh, joint_names, "joint_names", 
-                                                          [](std::vector<std::string> v) {return v.size() == 7;})) return false;
-
-        // Trajectory
-        std::vector<double> delta_nu;
-        if(!get_param_error_tpl<std::vector<double>>(nh, delta_nu, "delta_nu", 
-                                                     [](std::vector<double> v) {return v.size() == 6;})) return false;
-        delta_nu_ = Eigen::Map<Vector6d>(delta_nu.data());
-        std::vector<double> period_nu;
-        if(!get_param_error_tpl<std::vector<double>>(nh, period_nu, "period_nu", 
-                                                     [](std::vector<double> v) {return v.size() == 6;})) return false;
-        period_nu_ = Eigen::Map<Vector6d>(period_nu.data());
-        
-        // // From a topic? 
-        // if(!get_param_error_tpl<bool>(nh, use_external_pose_publisher_, "use_external_pose_publisher")) return false;
+        if (!get_param_error_tpl<std::vector<std::string>>(nh, joint_names, "joint_names",
+                                                           [](std::vector<std::string> v)
+                                                           { return v.size() == 7; }))
+            return false;
 
         double publish_log_rate(30.0);
         if (!nh.getParam("publish_log_rate", publish_log_rate))
@@ -51,19 +43,13 @@ namespace panda_torque_mpc
         }
         rate_trigger_logs_ = franka_hw::TriggerRate(publish_log_rate);
 
-        double publish_ref_rate(10.0);
-        if (!nh.getParam("publish_ref_rate", publish_ref_rate))
-        {
-            ROS_INFO_STREAM("CtrlMpcLinearized: publish_ref_rate not found. Defaulting to " << publish_ref_rate);
-        }
-        rate_trigger_ref_ = franka_hw::TriggerRate(publish_ref_rate);
-
-
-        if(!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter")) return false;
+        if (!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter"))
+            return false;
 
         // Load panda model with pinocchio
         std::string urdf_path;
-        if(!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path")) return false;
+        if (!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path"))
+            return false;
 
         /////////////////////////////////////////////////
         //                 Pinocchio                   //
@@ -144,15 +130,17 @@ namespace panda_torque_mpc
         task_twist_publisher_.init(nh, "task_twist_comparison", 1);
         torques_publisher_.init(nh, "joint_torques_comparison", 1);
 
-        // End effector reference publisher
-        // TODO: Topic in param server
-        ref_publisher_.init(nh, "ee_pose_ref", 1);
+        std::string motion_server_sub_topic = "motion_server_sub";
+        ros::Subscriber motion_server_control_topic_sub = nh.subscribe(motion_server_sub_topic, 1, &CtrlMpcLinearized::callback_motion_server, this);
 
-        // Subscriber to 
 
         // init some variables
         dq_filtered_ = Vector7d::Zero();
-        // pose_frames_not_aligned_ = true;
+        
+        // Controller state machine
+        bool control_ref_from_ddp_node_received_ = false;
+        // ros::Time t0_mpc_first_msg_ = ros;
+        // double  dt_transition_jsid_to_mpc_ = 1000; 
 
         return true;
     }
@@ -168,10 +156,6 @@ namespace panda_torque_mpc
 
         ROS_INFO_STREAM("CtrlMpcLinearized::starting T_b_e0_: \n" << T_b_e0_);
 
-        // Set initial goal -> do not move from original pose
-        x_r_rtbox_.set(T_b_e0_);
-        dx_r_rtbox_.set(pin::Motion::Zero());
-        ddx_r_rtbox_.set(pin::Motion::Zero());
     }
 
     void CtrlMpcLinearized::update(const ros::Time &t, const ros::Duration &period)
@@ -180,11 +164,6 @@ namespace panda_torque_mpc
 
         // Time since start of the controller
         double Dt = (t - t_init_).toSec();
-
-        // Retrieve references from
-        pin::SE3 x_r;
-        pin::Motion dx_r, ddx_r;
-        compute_sinusoid_pose_reference(delta_nu_, period_nu_, T_b_e0_, Dt, x_r, dx_r, ddx_r);
 
         // Retrieve current measured robot state
         franka::RobotState robot_state = franka_state_handle_->getRobotState(); // return a const& of RobotState object -> not going to be modified
@@ -201,11 +180,67 @@ namespace panda_torque_mpc
         // filter the joint velocity measurements
         dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
 
-        // Compute desired torque
+
+        /////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////
+        //////////////////// Compute desired torque /////////////////
+        /////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////
         TicTac tictac_comp;
-        // Retrieve the reference
-        Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r);
-        tictac_comp.print_tac("compute_desired_torque() took (ms): ");
+
+        /**
+         * State machine start of controller
+         *
+         * if (!control_ref_from_ddp_node_received)
+         *     torques = PD(q0)
+         * else if ( t_since_first_ddp_ctrl_reveived < t_transition)
+         *     torque_PD = PD(q0)
+         *     torque_mpc = linear_fbk(u_ddp, x_ddp K, x_m)
+         *     alpha = t_since_first_ddp_ctrl_reveived/t_transition
+         *     torques = (1 - alpha) * torque_PD + alpha * torque_mpc
+         * else
+         *     torque_mpc = linear_fbk(u_ddp, x_ddp K, x_m)
+         *
+         */
+
+
+        Vector7d tau_d;
+        if (control_ref_from_ddp_node_received_)
+        {
+            Vector7d dq_ref = Vector7d::Zero();
+            tau_d = compute_torque_jsid(q_m, dq_m, q_init_, dq_ref);
+        }
+        else if ((t - t0_mpc_first_msg_).toSec() < dt_transition_jsid_to_mpc_)
+        {
+            Vector7d dq_ref = Vector7d::Zero();
+            Vector7d tau_jsid = compute_torque_jsid(q_m, dq_m, q_init_, dq_ref);
+            Vector7d tau_linear_mpc = compute_torque_mpc_linear_feedback(q_m, dq_m, u0_mpc_, x0_mpc_, K_ricatti_);
+            double alpha_tau = (t - t0_mpc_first_msg_).toSec() / dt_transition_jsid_to_mpc_;
+            // alpha = 0 -> pure jsid, alpha = 1 pure mpc
+            tau_d = alpha_tau * tau_linear_mpc + (1 - alpha_tau) * tau_jsid;
+        }
+        else
+        {
+            tau_d = compute_torque_mpc_linear_feedback(q_m, dq_m, u0_mpc_, x0_mpc_, K_ricatti_);
+        }
+
+        // Remove gravity to send the torques to the robot
+        tau_d -= pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);
+        
+        tictac_comp.print_tac("compute_desired_torque took (ms): ");
+
+
+        /////////////////////////////////////////////////////////////
+        // Publish robot state 
+        publish_robot_state(q_m, dq_m);
+        /////////////////////////////////////////////////////////////
+
+
+
+        /////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////
 
         // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
         // 1000 * (1 / sampling_time).
@@ -218,259 +253,147 @@ namespace panda_torque_mpc
             joint_handles_[i].setCommand(tau_d_saturated[i]);
         }
 
-        ///////////////////
-        // Publish logs
-        // Takes about 5 us -> negligeable
-        if (rate_trigger_() && torques_publisher_.trylock())
-        {
-            // TicTac tt_publish;
-            // Refactor to: publish_logs(publishers, last_vals, measured_vals) ?
+        // ///////////////////
+        // // Publish logs
+        // // Takes about 5 us -> negligeable
+        // if (rate_trigger_() && torques_publisher_.trylock())
+        // {
+        //     // TicTac tt_publish;
+        //     // Refactor to: publish_logs(publishers, last_vals, measured_vals) ?
 
-            /**
-             * Measured torque in simulation returns -tau while running with real robot returns tau --___--
-             */
-            tau_m = -tau_m; // SIMULATION
-            // tau_m = tau_m;  // REAL
+        //     /**
+        //      * Measured torque in simulation returns -tau while running with real robot returns tau --___--
+        //      */
+        //     tau_m = -tau_m; // SIMULATION
+        //     // tau_m = tau_m;  // REAL
 
-            // torque
-            Vector7d tau_error = last_tau_d_ - tau_m;
-            // EE pose
-            Eigen::Vector3d p_o_e_err = T_o_e_m.translation() - last_x_r_.translation();
-            Eigen::Quaterniond quat_r(last_x_r_.rotation());
-            Eigen::Quaterniond quat_m(T_o_e_m.rotation());
-            Eigen::Quaterniond quat_err = quat_r.inverse() * quat_m;
-            // EE twist
-            Eigen::Vector3d v_o_e_err = nu_o_e_m.linear() - dx_r.linear();
-            Eigen::Vector3d omg_o_e_err = nu_o_e_m.angular() - dx_r.angular();
+        //     // torque
+        //     Vector7d tau_error = last_tau_d_ - tau_m;
+        //     // EE pose
+        //     Eigen::Vector3d p_o_e_err = T_o_e_m.translation() - last_x_r_.translation();
+        //     Eigen::Quaterniond quat_r(last_x_r_.rotation());
+        //     Eigen::Quaterniond quat_m(T_o_e_m.rotation());
+        //     Eigen::Quaterniond quat_err = quat_r.inverse() * quat_m;
+        //     // EE twist
+        //     Eigen::Vector3d v_o_e_err = nu_o_e_m.linear() - dx_r.linear();
+        //     Eigen::Vector3d omg_o_e_err = nu_o_e_m.angular() - dx_r.angular();
 
+        //     // EE Twists linear part
+        //     task_twist_publisher_.msg_.commanded.linear.x = dx_r.linear()[0];
+        //     task_twist_publisher_.msg_.commanded.linear.y = dx_r.linear()[1];
+        //     task_twist_publisher_.msg_.commanded.linear.z = dx_r.linear()[2];
+        //     task_twist_publisher_.msg_.measured.linear.x = nu_o_e_m.linear()[0];
+        //     task_twist_publisher_.msg_.measured.linear.y = nu_o_e_m.linear()[1];
+        //     task_twist_publisher_.msg_.measured.linear.z = nu_o_e_m.linear()[2];
+        //     task_twist_publisher_.msg_.error.linear.x = v_o_e_err[0];
+        //     task_twist_publisher_.msg_.error.linear.y = v_o_e_err[1];
+        //     task_twist_publisher_.msg_.error.linear.z = v_o_e_err[2];
 
-            // EE Twists linear part
-            task_twist_publisher_.msg_.commanded.linear.x = dx_r.linear()[0];
-            task_twist_publisher_.msg_.commanded.linear.y = dx_r.linear()[1];
-            task_twist_publisher_.msg_.commanded.linear.z = dx_r.linear()[2];
-            task_twist_publisher_.msg_.measured.linear.x = nu_o_e_m.linear()[0];
-            task_twist_publisher_.msg_.measured.linear.y = nu_o_e_m.linear()[1];
-            task_twist_publisher_.msg_.measured.linear.z = nu_o_e_m.linear()[2];
-            task_twist_publisher_.msg_.error.linear.x = v_o_e_err[0];
-            task_twist_publisher_.msg_.error.linear.y = v_o_e_err[1];
-            task_twist_publisher_.msg_.error.linear.z = v_o_e_err[2];
+        //     // EE Twists angular part
+        //     task_twist_publisher_.msg_.commanded.angular.x = dx_r.angular()[0];
+        //     task_twist_publisher_.msg_.commanded.angular.y = dx_r.angular()[1];
+        //     task_twist_publisher_.msg_.commanded.angular.z = dx_r.angular()[2];
+        //     task_twist_publisher_.msg_.measured.angular.x = nu_o_e_m.angular()[0];
+        //     task_twist_publisher_.msg_.measured.angular.y = nu_o_e_m.angular()[1];
+        //     task_twist_publisher_.msg_.measured.angular.z = nu_o_e_m.angular()[2];
+        //     task_twist_publisher_.msg_.error.angular.x = omg_o_e_err[0];
+        //     task_twist_publisher_.msg_.error.angular.y = omg_o_e_err[1];
+        //     task_twist_publisher_.msg_.error.angular.z = omg_o_e_err[2];
 
-            // EE Twists angular part
-            task_twist_publisher_.msg_.commanded.angular.x = dx_r.angular()[0];
-            task_twist_publisher_.msg_.commanded.angular.y = dx_r.angular()[1];
-            task_twist_publisher_.msg_.commanded.angular.z = dx_r.angular()[2];
-            task_twist_publisher_.msg_.measured.angular.x = nu_o_e_m.angular()[0];
-            task_twist_publisher_.msg_.measured.angular.y = nu_o_e_m.angular()[1];
-            task_twist_publisher_.msg_.measured.angular.z = nu_o_e_m.angular()[2];
-            task_twist_publisher_.msg_.error.angular.x = omg_o_e_err[0];
-            task_twist_publisher_.msg_.error.angular.y = omg_o_e_err[1];
-            task_twist_publisher_.msg_.error.angular.z = omg_o_e_err[2];
+        //     // End effector position
+        //     task_pose_publisher_.msg_.commanded.position.x = x_r.translation()[0];
+        //     task_pose_publisher_.msg_.commanded.position.y = x_r.translation()[1];
+        //     task_pose_publisher_.msg_.commanded.position.z = x_r.translation()[2];
+        //     task_pose_publisher_.msg_.measured.position.x = T_o_e_m.translation()[0];
+        //     task_pose_publisher_.msg_.measured.position.y = T_o_e_m.translation()[1];
+        //     task_pose_publisher_.msg_.measured.position.z = T_o_e_m.translation()[2];
+        //     task_pose_publisher_.msg_.error.position.x = p_o_e_err[0];
+        //     task_pose_publisher_.msg_.error.position.y = p_o_e_err[1];
+        //     task_pose_publisher_.msg_.error.position.z = p_o_e_err[2];
 
-            // End effector position
-            task_pose_publisher_.msg_.commanded.position.x = x_r.translation()[0];
-            task_pose_publisher_.msg_.commanded.position.y = x_r.translation()[1];
-            task_pose_publisher_.msg_.commanded.position.z = x_r.translation()[2];
-            task_pose_publisher_.msg_.measured.position.x = T_o_e_m.translation()[0];
-            task_pose_publisher_.msg_.measured.position.y = T_o_e_m.translation()[1];
-            task_pose_publisher_.msg_.measured.position.z = T_o_e_m.translation()[2];
-            task_pose_publisher_.msg_.error.position.x = p_o_e_err[0];
-            task_pose_publisher_.msg_.error.position.y = p_o_e_err[1];
-            task_pose_publisher_.msg_.error.position.z = p_o_e_err[2];
+        //     // Quaternion
+        //     task_pose_publisher_.msg_.commanded.orientation.x = quat_r.x();
+        //     task_pose_publisher_.msg_.commanded.orientation.y = quat_r.y();
+        //     task_pose_publisher_.msg_.commanded.orientation.z = quat_r.z();
+        //     task_pose_publisher_.msg_.commanded.orientation.w = quat_r.w();
+        //     task_pose_publisher_.msg_.measured.orientation.x = quat_m.x();
+        //     task_pose_publisher_.msg_.measured.orientation.y = quat_m.y();
+        //     task_pose_publisher_.msg_.measured.orientation.z = quat_m.z();
+        //     task_pose_publisher_.msg_.measured.orientation.w = quat_m.w();
+        //     task_pose_publisher_.msg_.error.orientation.x = quat_err.x();
+        //     task_pose_publisher_.msg_.error.orientation.y = quat_err.y();
+        //     task_pose_publisher_.msg_.error.orientation.z = quat_err.z();
+        //     task_pose_publisher_.msg_.error.orientation.w = quat_err.w();
 
-            // Quaternion
-            task_pose_publisher_.msg_.commanded.orientation.x = quat_r.x();
-            task_pose_publisher_.msg_.commanded.orientation.y = quat_r.y();
-            task_pose_publisher_.msg_.commanded.orientation.z = quat_r.z();
-            task_pose_publisher_.msg_.commanded.orientation.w = quat_r.w();
-            task_pose_publisher_.msg_.measured.orientation.x = quat_m.x();
-            task_pose_publisher_.msg_.measured.orientation.y = quat_m.y();
-            task_pose_publisher_.msg_.measured.orientation.z = quat_m.z();
-            task_pose_publisher_.msg_.measured.orientation.w = quat_m.w();
-            task_pose_publisher_.msg_.error.orientation.x = quat_err.x();
-            task_pose_publisher_.msg_.error.orientation.y = quat_err.y();
-            task_pose_publisher_.msg_.error.orientation.z = quat_err.z();
-            task_pose_publisher_.msg_.error.orientation.w = quat_err.w();
+        //     // Size 7 vectors
+        //     for (size_t i = 0; i < 7; ++i)
+        //     {
+        //         torques_publisher_.msg_.commanded[i] = last_tau_d_[i];
+        //         torques_publisher_.msg_.measured[i] = tau_m[i];
+        //         torques_publisher_.msg_.error[i] = tau_error[i];
+        //     }
 
-            // Size 7 vectors
-            for (size_t i = 0; i < 7; ++i)
-            {
-                torques_publisher_.msg_.commanded[i] = last_tau_d_[i];
-                torques_publisher_.msg_.measured[i] = tau_m[i];
-                torques_publisher_.msg_.error[i] = tau_error[i];
-            }
+        //     task_pose_publisher_.unlockAndPublish();
+        //     task_twist_publisher_.unlockAndPublish();
+        //     torques_publisher_.unlockAndPublish();
 
-            task_pose_publisher_.unlockAndPublish();
-            task_twist_publisher_.unlockAndPublish();
-            torques_publisher_.unlockAndPublish();
-
-            // std::cout << std::setprecision(9) << "publish took (ms): " << tt_publish.tac() << std::endl;
-        }
+        //     // std::cout << std::setprecision(9) << "publish took (ms): " << tt_publish.tac() << std::endl;
+        // }
 
         // Store previous desired/reference values
-        x_r_rtbox_.get(last_x_r_);
-        dx_r_rtbox_.get(last_dx_r_);
         last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 
         tictac.print_tac("update() took (ms): ");
     }
 
-    Vector7d CtrlMpcLinearized::compute_desired_torque(
-        const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r)
+    Vector7d CtrlMpcLinearized::compute_torque_jsid(const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &q_ref, const Vector7d &dq_ref)
     {
-        std::cout << "x_r\n" << x_r << std::endl; 
-        // pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_d);
-        // pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m); // data.g == generalized gravity
-        Vector7d tau_grav = pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);
+        Vector7d ddq_d = - Kp_jsid_ * (q_m - q_ref) - Kd_jsid_ * (dq_m - dq_ref);
+        pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_d);
+        return data_pin_.tau;
+    }
 
-        // Initialise the MPC solver from current state ("closed loop" MPC)
-        Eigen::Matrix<double, 14, 1> x0;
-        x0 << q_m, dq_m;
+    Vector7d CtrlMpcLinearized::compute_torque_mpc_linear_feedback(const Vector7d &q_m, 
+                                                                   const Vector7d &dq_m, 
+                                                                   const Eigen::Matrix<double, 7, 1> &u0_mpc, 
+                                                                   const Eigen::Matrix<double, 14, 1> &x0_mpc, 
+                                                                   const Eigen::Matrix<double, 7, 14> &K_ricatti)
+    {
+        Eigen::Matrix<double, 14, 1> x_m; 
+        x_m << q_m, dq_m;
 
-        std::vector<Eigen::Matrix<double, -1, 1>> xs_init;
-        std::vector<Eigen::Matrix<double, -1, 1>> us_init;
-        
+        // Vector7d tau_d = u0_mpc_;
 
-        // !!!!!!!!!!!!!!!
-        // Very strange if/else logic...
-        // First iteration should not be checked like that
-        // !!!!!!!!!!!!!!!
-        if (croco_reaching_.goal_translation_set_)
-        {
-            // if first occurence, use a sensible prior (no movement and gravity compensation)
-            xs_init.reserve(config_croco_.T);
-            us_init.reserve(config_croco_.T);
-            for (int i = 0; i < config_croco_.T; i++)
-            {
-                xs_init.push_back(x0);
-                us_init.push_back(tau_grav);
-            }
-        }
-        else
-        {
-            // Retrieve previous trajectory and shift by one timestep
-            xs_init = croco_reaching_.ddp_->get_xs();
-            us_init = croco_reaching_.ddp_->get_us();
-
-            // If the update period and OCP shooting dt are too different
-            // maybe it does not make sense to shift...
-            // xs_init.insert(std::begin(xs_init), xs_init.at(0));
-            // xs_init.erase( std::end(xs_init)-1);
-            // us_init.insert(std::begin(us_init), us_init.at(0));
-            // us_init.erase( std::end(us_init)-1);
-        }
-
-        croco_reaching_.set_goal_translation(x_r.translation());
-
-
-        // Terminal node
-        // TODO: !!!! xs_init is not already the right size?? 
-        xs_init.push_back(x0);
-
-        int nb_iterations_ = 1;
-        std::cout << "ddp problem initialized " << std::endl;
-        croco_reaching_.ddp_->solve(xs_init, us_init, nb_iterations_, false);
-        std::cout << "ddp problem solved, nb iterations: " << croco_reaching_.ddp_->get_iter() << std::endl;
-
-        Vector7d tau_d = croco_reaching_.ddp_->get_us()[0] - tau_grav;
+        Vector7d tau_d = u0_mpc + K_ricatti * (x0_mpc - x_m);
 
         return tau_d;
     }
 
-    void CtrlMpcLinearized::compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pin::SE3 &pose_0, double t,
-                                                                pin::SE3 &x_r, pin::Motion &dx_r, pin::Motion &ddx_r)
+
+    void CtrlMpcLinearized::callback_motion_server(const linear_feedback_controller_msgs::Control& ctrl_msg)
     {
-        // Ai and Ci obtained for each joint using constraints:
-        // T(t=0.0) = pose_0
-        // T(t=period/2) = pose_0 * Exp(delta_nu)
-
-        Vector6d w = (2 * M_PI / period_nu.array()).matrix();
-        Vector6d a = -delta_nu;
-        Vector6d c = delta_nu;
-
-        Vector6d nu = (a.array() * cos(w.array() * t)).matrix() + c;
-        dx_r = pin::Motion((-w.array() * a.array() * sin(w.array() * t)).matrix());
-        ddx_r = pin::Motion((-w.array().square() * a.array() * cos(w.array() * t)).matrix()); // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
-
-        // ROS_INFO_STREAM("CtrlMpcLinearized::compute_sinusoid_pose_reference pose_0: \n" << pose_0);
-        // ROS_INFO_STREAM("CtrlMpcLinearized::compute_sinusoid_pose_reference nu: \n" << nu.transpose());
-        // ROS_INFO_STREAM("CtrlMpcLinearized::compute_sinusoid_pose_reference pin::exp6(nu): \n" << pin::exp6(nu));
-
-        x_r = pose_0 * pin::exp6(nu);
-        // ROS_INFO_STREAM("CtrlMpcLinearized::compute_sinusoid_pose_reference x_r: \n" << x_r);
+        linear_feedback_controller_msgs::Eigen::Control ctrl_eig;
+        linear_feedback_controller_msgs::controlMsgToEigen(ctrl_msg, ctrl_eig);
+        u0_mpc_ = ctrl_eig.feedforward;
+        x0_mpc_ << ctrl_eig.initial_state.joint_state.position, ctrl_eig.initial_state.joint_state.velocity;
+        K_ricatti_ = ctrl_eig.feedback_gain;
     }
 
-    // void CtrlMpcLinearized::pose_callback(const PoseTaskGoal& msg)
-    // {   
 
-    //     /**
-    //      * T_a_b: SE3 transformation from frame b to a, a_vec = T_a_b * b_vec
-    //      * 
-    //      * Frames:
-    //      * - w: "world" reference frame of the pose message
-    //      * - t: "target" frame of the pose message
-    //      * - b: "base" frame of the robot (root of the kinematic tree)
-    //      * - e: "end" effector of the robot
-    //     */
+    void CtrlMpcLinearized::publish_robot_state(const Eigen::VectorXd &q_m, const Eigen::VectorXd &dq_m)
+    {
+        linear_feedback_controller_msgs::Sensor robot_sensor_msg;
+        linear_feedback_controller_msgs::Eigen::Sensor robot_sensor_eig;
+        robot_sensor_eig.joint_state.position = q_m;
+        robot_sensor_eig.joint_state.velocity = dq_m;
+        linear_feedback_controller_msgs::sensorEigenToMsg(robot_sensor_eig, robot_sensor_msg);
 
-    //     std::cout << "CtrlMpcLinearized::pose_callback PoseTaskGoal:" << std::endl;
-    //     std::cout << msg.pose.position.x << std::endl;
-    //     std::cout << msg.pose.position.y << std::endl;
-    //     std::cout << msg.pose.position.z << std::endl;
-    //     std::cout << msg.pose.orientation.x << std::endl;
-    //     std::cout << msg.pose.orientation.y << std::endl;
-    //     std::cout << msg.pose.orientation.z << std::endl;
-    //     std::cout << msg.pose.orientation.w << std::endl;
-
-    //     Eigen::Vector3d t_bt; t_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
-    //     Eigen::Quaterniond quat_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
-    //     pin::SE3 T_w_t(quat_bt, t_bt);
-
-    //     if (pose_frames_not_aligned_)
-    //     {
-    //         T_w_t0_ = T_w_t;
-    //         pose_frames_not_aligned_ = false;
-    //     }
-
-    //     // We want to apply to the robot end-effector the same transformation
-    //     // as the target pose in the initial pose of the target/robot
-    //     // pin::SE3 T_e0_e = T_w_t0_*T_w_t;
-    //     pin::SE3 T_e0_e = pin::SE3::Identity();
-    //     auto R_e0_b = T_b_e0_.rotation().transpose();
-    //     // Align w and b frames -> assume w = b
-    //     T_e0_e.translation() = R_e0_b * (T_w_t.translation() - T_w_t0_.translation());
-
-
-    //     // std::cout << T_w_t.translation().transpose() << std::endl;
-    //     // std::cout << T_w_t0_.translation().transpose() << std::endl;
-    //     // std::cout << T_e0_e.translation().transpose() << std::endl;
-
-
-    //     // Set reference po se
-    //     // compose initial pose with relative/local transform
-    //     pin::SE3 T_be = T_b_e0_*T_e0_e;
-    //     std::cout << "callback T_be trans" << T_be.translation().transpose() << std::endl;
-
-    //     pin::Motion nu_wt;
-    //     // Set reference twist
-    //     nu_wt.linear().x() = msg.twist.linear.x;
-    //     nu_wt.linear().y() = msg.twist.linear.y;
-    //     nu_wt.linear().z() = msg.twist.linear.z;
-    //     nu_wt.angular().x() = msg.twist.angular.x;
-    //     nu_wt.angular().y() = msg.twist.angular.y;
-    //     nu_wt.angular().z() = msg.twist.angular.z;
-    //     // Set reference spatial acceleration
-    //     pin::Motion a_wt;
-    //     a_wt.linear().x() = msg.acceleration.linear.x;
-    //     a_wt.linear().y() = msg.acceleration.linear.y;
-    //     a_wt.linear().z() = msg.acceleration.linear.z;
-    //     a_wt.angular().x() = msg.acceleration.angular.x;
-    //     a_wt.angular().y() = msg.acceleration.angular.y;
-    //     a_wt.angular().z() = msg.acceleration.angular.z;
-    //     // RT safe setting
-    //     x_r_rtbox_.set(T_be);
-    //     dx_r_rtbox_.set(nu_wt);
-    //     ddx_r_rtbox_.set(a_wt);
-    // }
+        if (robot_state_publisher_.trylock())
+        {
+            robot_state_publisher_.msg_ = robot_sensor_msg;
+            robot_state_publisher_.unlockAndPublish();
+        }
+    }
 
     void CtrlMpcLinearized::stopping(const ros::Time &t0)
     {

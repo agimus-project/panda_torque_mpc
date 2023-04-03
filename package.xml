@@ -20,7 +20,6 @@
   <depend>eigen_conversions</depend>
   <depend>franka_hw</depend>
   <depend>franka_gripper</depend>
-  <depend>geometry_msgs</depend>
   <depend>hardware_interface</depend>
   <depend>joint_limits_interface</depend>
   <depend>tf</depend>
@@ -30,6 +29,7 @@
   <depend>realtime_tools</depend>
   <depend>roscpp</depend>
   <depend>urdf</depend>
+  <depend>geometry_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>linear_feedback_controller_msgs</depend>
 

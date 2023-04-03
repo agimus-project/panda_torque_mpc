@@ -76,8 +76,8 @@ add_library(panda_torque_mpc
   src/ctrl_task_space_ID.cpp
   src/crocoddyl_reaching.cpp
   src/ctrl_mpc_croco.cpp
-  # src/ctrl_mpc_linearized.cpp
-  # src/croccodyl_motion_server_node.cpp
+  src/ctrl_mpc_linearized.cpp
+  src/croccodyl_motion_server_node.cpp
 )
 
 target_link_libraries(panda_torque_mpc PUBLIC

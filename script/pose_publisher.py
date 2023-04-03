@@ -8,9 +8,9 @@ import tf2_ros
 
 from panda_torque_mpc.msg import PoseTaskGoal
 
-LISTEN_TO_TF = True
+LISTEN_TO_TF = False
 
-FREQ = 30
+FREQ = 50
 DT = 1/FREQ
 DELAY = 0.01
 VERBOSE = True
@@ -46,10 +46,13 @@ def compute_sinusoid_pose_delta_reference(delta_nu, period_nu, t):
     return x_r_local, dx_r, ddx_r
 
 
-
+# DELTA_NU = np.array([
+#     0.09, 0.09, 0.09, 
+#     0.0, 0.0, 0.0
+# ])
 
 DELTA_NU = np.array([
-    0.09, 0.09, 0.09, 
+    0.0, 0.0, 0.0, 
     0.0, 0.0, 0.0
 ])
 
@@ -60,7 +63,7 @@ PERIOD_NU = np.array([
 
 
 def talker():
-    pub = rospy.Publisher('target_pose', PoseTaskGoal, queue_size=10)
+    pub = rospy.Publisher('ee_pose_ref', PoseTaskGoal, queue_size=10)
     
     rospy.init_node('pose_publisher', anonymous=False)
     rate = rospy.Rate(FREQ)

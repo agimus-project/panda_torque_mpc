@@ -5,11 +5,9 @@
 #include <Eigen/Core>
 #include <ros/node_handle.h>
 
-#include <pinocchio/fwd.hpp>
-#include <pinocchio/parsers/urdf.hpp>
-#include <pinocchio/algorithm/kinematics.hpp>
-#include <pinocchio/algorithm/rnea.hpp>
-#include <pinocchio/algorithm/frames.hpp>
+#include <pinocchio/spatial/se3.hpp>
+#include <pinocchio/spatial/motion.hpp>
+#include <pinocchio/spatial/explog.hpp>
 
 
 
@@ -133,7 +131,7 @@ namespace panda_torque_mpc {
      * @param[out] ddx_r target joint acceleration
      */
     inline void compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pinocchio::SE3 &pose_0, double t,
-                                         pinocchio::SE3 &x_r, pinocchio::Motion &dx_r, pinocchio::Motion &ddx_r)
+                                                pinocchio::SE3 &x_r, pinocchio::Motion &dx_r, pinocchio::Motion &ddx_r)
     {
         // Ai and Ci obtained for each joint using constraints:
         // T(t=0.0) = pose_0

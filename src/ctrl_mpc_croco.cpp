@@ -9,8 +9,6 @@
 
 #include <franka/robot_state.h>
 
-
-
 namespace panda_torque_mpc
 {
 
@@ -21,46 +19,66 @@ namespace panda_torque_mpc
         // Load parameters
         ///////////////////
         std::string arm_id;
-        if(!get_param_error_tpl<std::string>(nh, arm_id, "arm_id")) return false;
+        if (!get_param_error_tpl<std::string>(nh, arm_id, "arm_id"))
+            return false;
 
         // Croco params
         int nb_shooting_nodes, nb_iterations_max;
         double dt_ocp, w_frame_running, w_frame_terminal, w_x_reg_running, w_x_reg_terminal, scale_q_vs_v_reg, w_u_reg_running;
         std::vector<double> armature, diag_u_reg_running;
 
-        if(!get_param_error_tpl<int>(nh, nb_shooting_nodes, "nb_shooting_nodes")) return false;
-        if(!get_param_error_tpl<double>(nh, dt_ocp, "dt_ocp")) return false;
-        if(!get_param_error_tpl<int>(nh, nb_iterations_max, "nb_iterations_max")) return false;
-        if(!get_param_error_tpl<double>(nh, w_frame_running, "w_frame_running")) return false;
-        if(!get_param_error_tpl<double>(nh, w_frame_terminal, "w_frame_terminal")) return false;
-        if(!get_param_error_tpl<double>(nh, w_x_reg_running, "w_x_reg_running")) return false;
-        if(!get_param_error_tpl<double>(nh, w_x_reg_terminal, "w_x_reg_terminal")) return false;
-        if(!get_param_error_tpl<double>(nh, scale_q_vs_v_reg, "scale_q_vs_v_reg")) return false;
-        if(!get_param_error_tpl<double>(nh, w_u_reg_running, "w_u_reg_running")) return false;
+        if (!get_param_error_tpl<int>(nh, nb_shooting_nodes, "nb_shooting_nodes"))
+            return false;
+        if (!get_param_error_tpl<double>(nh, dt_ocp, "dt_ocp"))
+            return false;
+        if (!get_param_error_tpl<int>(nh, nb_iterations_max, "nb_iterations_max"))
+            return false;
+        if (!get_param_error_tpl<double>(nh, w_frame_running, "w_frame_running"))
+            return false;
+        if (!get_param_error_tpl<double>(nh, w_frame_terminal, "w_frame_terminal"))
+            return false;
+        if (!get_param_error_tpl<double>(nh, w_x_reg_running, "w_x_reg_running"))
+            return false;
+        if (!get_param_error_tpl<double>(nh, w_x_reg_terminal, "w_x_reg_terminal"))
+            return false;
+        if (!get_param_error_tpl<double>(nh, scale_q_vs_v_reg, "scale_q_vs_v_reg"))
+            return false;
+        if (!get_param_error_tpl<double>(nh, w_u_reg_running, "w_u_reg_running"))
+            return false;
 
-        if(!get_param_error_tpl<std::vector<double>>(nh, armature, "armature", 
-                                                          [](std::vector<double> v) {return v.size() == 7;})) return false;
-        if(!get_param_error_tpl<std::vector<double>>(nh, diag_u_reg_running, "diag_u_reg_running", 
-                                                          [](std::vector<double> v) {return v.size() == 7;})) return false;
-
+        if (!get_param_error_tpl<std::vector<double>>(nh, armature, "armature",
+                                                      [](std::vector<double> v)
+                                                      { return v.size() == 7; }))
+            return false;
+        if (!get_param_error_tpl<std::vector<double>>(nh, diag_u_reg_running, "diag_u_reg_running",
+                                                      [](std::vector<double> v)
+                                                      { return v.size() == 7; }))
+            return false;
 
         // Panda
         std::vector<std::string> joint_names;
-        if(!get_param_error_tpl<std::vector<std::string>>(nh, joint_names, "joint_names", 
-                                                          [](std::vector<std::string> v) {return v.size() == 7;})) return false;
+        if (!get_param_error_tpl<std::vector<std::string>>(nh, joint_names, "joint_names",
+                                                           [](std::vector<std::string> v)
+                                                           { return v.size() == 7; }))
+            return false;
 
         // Trajectory
         std::vector<double> delta_nu;
-        if(!get_param_error_tpl<std::vector<double>>(nh, delta_nu, "delta_nu", 
-                                                     [](std::vector<double> v) {return v.size() == 6;})) return false;
+        if (!get_param_error_tpl<std::vector<double>>(nh, delta_nu, "delta_nu",
+                                                      [](std::vector<double> v)
+                                                      { return v.size() == 6; }))
+            return false;
         delta_nu_ = Eigen::Map<Vector6d>(delta_nu.data());
         std::vector<double> period_nu;
-        if(!get_param_error_tpl<std::vector<double>>(nh, period_nu, "period_nu", 
-                                                     [](std::vector<double> v) {return v.size() == 6;})) return false;
+        if (!get_param_error_tpl<std::vector<double>>(nh, period_nu, "period_nu",
+                                                      [](std::vector<double> v)
+                                                      { return v.size() == 6; }))
+            return false;
         period_nu_ = Eigen::Map<Vector6d>(period_nu.data());
-        
-        // From a topic? 
-        if(!get_param_error_tpl<bool>(nh, use_external_pose_publisher_, "use_external_pose_publisher")) return false;
+
+        // From a topic?
+        if (!get_param_error_tpl<bool>(nh, use_external_pose_publisher_, "use_external_pose_publisher"))
+            return false;
 
         double publish_rate(30.0);
         if (!nh.getParam("publish_rate", publish_rate))
@@ -69,11 +87,13 @@ namespace panda_torque_mpc
         }
         rate_trigger_ = franka_hw::TriggerRate(publish_rate);
 
-        if(!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter")) return false;
+        if (!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter"))
+            return false;
 
         // Load panda model with pinocchio
         std::string urdf_path;
-        if(!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path")) return false;
+        if (!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path"))
+            return false;
 
         /////////////////////////////////////////////////
         //                 Pinocchio                   //
@@ -105,8 +125,8 @@ namespace panda_torque_mpc
         config_croco_.w_x_reg_terminal = w_x_reg_terminal;
         config_croco_.scale_q_vs_v_reg = scale_q_vs_v_reg;
         config_croco_.w_u_reg_running = w_u_reg_running;
-        config_croco_.armature = Eigen::Map<Eigen::Matrix<double,7,1>>(armature.data());
-        config_croco_.diag_u_reg_running = Eigen::Map<Eigen::Matrix<double,7,1>>(diag_u_reg_running.data());
+        config_croco_.armature = Eigen::Map<Eigen::Matrix<double, 7, 1>>(armature.data());
+        config_croco_.diag_u_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_u_reg_running.data());
 
         croco_reaching_ = CrocoddylReaching(model_pin_, config_croco_);
         /////////////////////////////////////////////////
@@ -174,10 +194,10 @@ namespace panda_torque_mpc
         torques_publisher_.init(nh, "joint_torques_comparison", 1);
 
         // Pose subscriber
-        std::string target_pose_topic = "target_pose";
+        std::string ee_pose_ref_topic = "ee_pose_ref";
         if (use_external_pose_publisher_)
         {
-            pose_subscriber_ = nh.subscribe(target_pose_topic, 1, &CtrlMpcCroco::pose_callback, this);
+            ee_pose_ref_subscriber_ = nh.subscribe(ee_pose_ref_topic, 1, &CtrlMpcCroco::pose_callback, this);
         }
 
         // init some variables
@@ -196,7 +216,8 @@ namespace panda_torque_mpc
         pin::updateFramePlacements(model_pin_, data_pin_);
         T_b_e0_ = data_pin_.oMf[ee_frame_id_];
 
-        ROS_INFO_STREAM("CtrlMpcCroco::starting T_b_e0_: \n" << T_b_e0_);
+        ROS_INFO_STREAM("CtrlMpcCroco::starting T_b_e0_: \n"
+                        << T_b_e0_);
 
         // Set initial goal -> do not move from original pose
         x_r_rtbox_.set(T_b_e0_);
@@ -215,16 +236,15 @@ namespace panda_torque_mpc
         double Dt = (t - t_init_).toSec();
 
         // Instanciate reference pose variables
-        pin::SE3 x_r; 
-        pin::Motion dx_r, ddx_r;  // useless
+        pin::SE3 x_r;
+        pin::Motion dx_r, ddx_r; // useless
 
         // compute end effector reference if no topic reference exists
         if (!use_external_pose_publisher_)
         {
             compute_sinusoid_pose_reference(delta_nu_, period_nu_, T_b_e0_, Dt, x_r, dx_r, ddx_r);
             x_r_rtbox_.set(x_r);
-        }    
-
+        }
 
         // Retrieve current measured robot state
         franka::RobotState robot_state = franka_state_handle_->getRobotState(); // return a const& of RobotState object -> not going to be modified
@@ -282,7 +302,6 @@ namespace panda_torque_mpc
             // EE twist
             Eigen::Vector3d v_o_e_err = Eigen::Vector3d::Zero();
             Eigen::Vector3d omg_o_e_err = Eigen::Vector3d::Zero();
-
 
             // EE Twists linear part
             task_twist_publisher_.msg_.commanded.linear.x = dx_r.linear()[0];
@@ -353,7 +372,7 @@ namespace panda_torque_mpc
     }
 
     Vector7d CtrlMpcCroco::compute_desired_torque(
-        const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r, const CrocoddylConfig& conf)
+        const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r, const CrocoddylConfig &conf)
     {
 
         // pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_d);
@@ -367,7 +386,6 @@ namespace panda_torque_mpc
 
         std::vector<Eigen::Matrix<double, -1, 1>> xs_init;
         std::vector<Eigen::Matrix<double, -1, 1>> us_init;
-        
 
         // !!!!!!!!!!!!!!!
         // goal_translation_set_ is used to detect if a problem has been already solved
@@ -412,19 +430,18 @@ namespace panda_torque_mpc
         return tau_d;
     }
 
-
-    void CtrlMpcCroco::pose_callback(const PoseTaskGoal& msg)
-    {   
+    void CtrlMpcCroco::pose_callback(const PoseTaskGoal &msg)
+    {
 
         /**
          * T_a_b: SE3 transformation from frame b to a, a_vec = T_a_b * b_vec
-         * 
+         *
          * Frames:
          * - w: "world" reference frame of the pose message
          * - t: "target" frame of the pose message
          * - b: "base" frame of the robot (root of the kinematic tree)
          * - e: "end" effector of the robot
-        */
+         */
 
         std::cout << "CtrlMpcCroco::pose_callback PoseTaskGoal:" << std::endl;
         std::cout << msg.pose.position.x << std::endl;
@@ -435,7 +452,8 @@ namespace panda_torque_mpc
         std::cout << msg.pose.orientation.z << std::endl;
         std::cout << msg.pose.orientation.w << std::endl;
 
-        Eigen::Vector3d t_bt; t_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
+        Eigen::Vector3d t_bt;
+        t_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
         Eigen::Quaterniond quat_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
         pin::SE3 T_w_t(quat_bt, t_bt);
 
@@ -447,22 +465,22 @@ namespace panda_torque_mpc
 
         /**
          * Problem formulation
-         * 
+         *
          * We want to apply to the robot end-effector the same motion as the camera/target
          * with respect to the initial time 0.
-         * 
-         * Given T_b_e0, T_w_t0_ (recorded at initial time), T_w_t, T_b_e (latest values), 
-         * define T_e0_e so that the composition  
-         * 
+         *
+         * Given T_b_e0, T_w_t0_ (recorded at initial time), T_w_t, T_b_e (latest values),
+         * define T_e0_e so that the composition
+         *
          * T_be = T_b_e0 * T_e0_e
-         * 
+         *
          * produces interesting motion.
-         * 
+         *
          * 3 ideas:
-        */
+         */
 
         // // Idea 1: T_e0_e := T_t0_t
-        // //   -> BAD: coupled tranlsation and rotation, produces unintuitive motion  
+        // //   -> BAD: coupled tranlsation and rotation, produces unintuitive motion
         // pin::SE3 T_e0_e = T_w_t0_*T_w_t;
 
         // Idea 2: b_p_e0_e := w_p_t0_t  and    R_e0_e := I_3
@@ -479,12 +497,12 @@ namespace panda_torque_mpc
 
         // Set reference pose
         // compose initial pose with relative/local transform
-        pin::SE3 T_be = T_b_e0_*T_e0_e;
+        pin::SE3 T_be = T_b_e0_ * T_e0_e;
 
         // RT safe setting
         x_r_rtbox_.set(T_be);
     }
-    
+
     void CtrlMpcCroco::stopping(const ros::Time &t0)
     {
         ROS_INFO_STREAM("CtrlMpcCroco::stopping");

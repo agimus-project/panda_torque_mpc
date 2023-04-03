@@ -11,9 +11,10 @@ CONTROLLER_NAME = 'ctrl_mpc_croco'
 
 DIRECTORY = '../bags/'
 EXPE_NAMES = [
+    # 'expe',
     # 'expe_ref',
-    'expe',
-    #   'stiffer',
+    'expe_wft100',
+    # 'expe_wft500',
 ]
 
 

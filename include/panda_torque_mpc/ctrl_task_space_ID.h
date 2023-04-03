@@ -98,7 +98,7 @@ namespace panda_torque_mpc
         realtime_tools::RealtimePublisher<JointValuesComparison> torques_publisher_;
 
         // Subscribers
-        ros::Subscriber pose_subscriber_;
+        ros::Subscriber ee_pose_ref_subscriber_;
         bool use_external_pose_publisher_;
         pin::SE3 T_w_t0_;  // initial value of broadcasted absolute pose 
         bool pose_frames_not_aligned_;

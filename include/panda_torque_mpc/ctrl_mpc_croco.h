@@ -33,16 +33,14 @@
 
 #include "crocoddyl_reaching.h"
 
-
-
 namespace panda_torque_mpc
 {
 
     namespace pin = pinocchio;
 
     class CtrlMpcCroco : public controller_interface::MultiInterfaceController<franka_hw::FrankaModelInterface,
-                                                                          franka_hw::FrankaStateInterface,
-                                                                          hardware_interface::EffortJointInterface>
+                                                                               franka_hw::FrankaStateInterface,
+                                                                               hardware_interface::EffortJointInterface>
     {
 
     public:
@@ -52,7 +50,6 @@ namespace panda_torque_mpc
         void stopping(const ros::Time &) override;
 
     private:
-
         // Handles
         std::unique_ptr<franka_hw::FrankaModelHandle> franka_model_handle_;
         std::unique_ptr<franka_hw::FrankaStateHandle> franka_state_handle_;
@@ -84,7 +81,7 @@ namespace panda_torque_mpc
         realtime_tools::RealtimePublisher<JointValuesComparison> torques_publisher_;
 
         // Subscribers
-        ros::Subscriber pose_subscriber_;
+        ros::Subscriber ee_pose_ref_subscriber_;
         bool use_external_pose_publisher_;
         pin::SE3 T_w_t0_; // initial value of broadcasted absolute pose
         bool pose_frames_not_aligned_;
@@ -111,10 +108,9 @@ namespace panda_torque_mpc
          * @param[in] x_r target end effector pose
          */
         Vector7d compute_desired_torque(
-            const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r, const CrocoddylConfig&);
+            const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r, const CrocoddylConfig &);
 
-        void pose_callback(const PoseTaskGoal& msg);
-
+        void pose_callback(const PoseTaskGoal &msg);
     };
 
 } // namespace panda_torque_mpc

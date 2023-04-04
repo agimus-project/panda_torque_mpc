@@ -10,7 +10,7 @@ from panda_torque_mpc.msg import PoseTaskGoal
 
 LISTEN_TO_TF = False
 
-FREQ = 50
+FREQ = 100
 DT = 1/FREQ
 DELAY = 0.01
 VERBOSE = True
@@ -46,17 +46,24 @@ def compute_sinusoid_pose_delta_reference(delta_nu, period_nu, t):
     return x_r_local, dx_r, ddx_r
 
 
+
+
 # DELTA_NU = np.array([
-#     0.09, 0.09, 0.09, 
+#     0.0, 0.0, 0.0, 
+#     0.0, 0.0, 0.0
+# ])
+
+# DELTA_NU = np.array([
+#     0.04, 0.04, 0.04, 
 #     0.0, 0.0, 0.0
 # ])
 
 DELTA_NU = np.array([
-    0.0, 0.0, 0.0, 
+    0.09, 0.09, 0.09, 
     0.0, 0.0, 0.0
 ])
 
-PERIOD_NU = np.array([
+PERIOD_NU = 3*np.array([
     4.0, 4.0, 4.0, 
     5.0, 5.0, 5.0
 ])
@@ -69,7 +76,6 @@ def talker():
     rate = rospy.Rate(FREQ)
 
     tfBuffer = tf2_ros.Buffer()
-    listener = tf2_ros.TransformListener(tfBuffer)
 
     t0 = rospy.Time.now()
     while not rospy.is_shutdown() and not t0:

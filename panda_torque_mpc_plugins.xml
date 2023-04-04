@@ -41,4 +41,11 @@
       A controller that tracks and end effector trajectory using closed loop MPC implemented with Crocoddyl. 
     </description>
   </class>
+  <class name="panda_torque_mpc/CtrlMpcLinearized" 
+         type="panda_torque_mpc::CtrlMpcLinearized" 
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller that produces torques based on a linearization around the latest DDP solution produced by a motion server. 
+    </description>
+  </class>
 </library>

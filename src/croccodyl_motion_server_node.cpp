@@ -19,6 +19,7 @@
 
 namespace panda_torque_mpc
 {
+    namespace lfc_msgs = linear_feedback_controller_msgs;
 
     class CrocoMotionServer
     {
@@ -103,9 +104,9 @@ namespace panda_torque_mpc
             /////////////////////////////////////////////////
 
             // Publisher/Subscriber
-            control_pub_ = nh.advertise<linear_feedback_controller_msgs::Control>(motion_server_control_topic_pub, 1);
-            ros::Subscriber sensor_sub = nh.subscribe(robot_sensors_topic_sub, 1, &CrocoMotionServer::callback_sensor, this);
-            ros::Subscriber pose_ref_sub = nh.subscribe(ee_pose_ref_topic_sub, 1, &CrocoMotionServer::callback_pose_ref, this);
+            control_pub_ = nh.advertise<lfc_msgs::Control>(motion_server_control_topic_pub, 1);
+            sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 1, &CrocoMotionServer::callback_sensor, this);
+            pose_ref_sub_ = nh.subscribe(ee_pose_ref_topic_sub, 1, &CrocoMotionServer::callback_pose_ref, this);
 
             // Init some variables
             first_sensor_msg_received_ = false;
@@ -147,11 +148,11 @@ namespace panda_torque_mpc
             x_r_rtbox_.set(T_be);
         }
 
-        void callback_sensor(const linear_feedback_controller_msgs::Sensor &sensor_msg)
+        void callback_sensor(const lfc_msgs::Sensor &sensor_msg)
         {
             // Recover latest robot state from the sensor msg
-            linear_feedback_controller_msgs::Eigen::Sensor sensor_eig;
-            linear_feedback_controller_msgs::sensorMsgToEigen(sensor_msg, sensor_eig);
+            lfc_msgs::Eigen::Sensor sensor_eig;
+            lfc_msgs::sensorMsgToEigen(sensor_msg, sensor_eig);
             // TODO: Protect by a mutex!
             current_x_ << sensor_eig.joint_state.position, sensor_eig.joint_state.velocity;
 
@@ -223,25 +224,28 @@ namespace panda_torque_mpc
 
             croco_reaching_.ddp_->solve(xs_init, us_init, config_croco_.nb_iterations_max, false);
             // TODO: are get_k()[0] and get_us()[0] the same?
-            Vector7d tau_ff = croco_reaching_.ddp_->get_k()[0];
-            // Vector7d tau_ff = croco_reaching_.ddp_->get_us()[0];
+            // Vector7d tau_ff = croco_reaching_.ddp_->get_k()[0];
+            Vector7d tau_ff = croco_reaching_.ddp_->get_us()[0];
             //////////////////////////////////////
 
             // Fill and send control message
-            linear_feedback_controller_msgs::Eigen::Control ctrl_eig;
+            lfc_msgs::Eigen::Control ctrl_eig;
             ctrl_eig.initial_state.joint_state.position = q;
             ctrl_eig.initial_state.joint_state.velocity = v;
             ctrl_eig.feedforward = tau_ff;
             ctrl_eig.feedback_gain = croco_reaching_.ddp_->get_K()[0];
-            linear_feedback_controller_msgs::Control ctrl_msg;
-            linear_feedback_controller_msgs::controlEigenToMsg(ctrl_eig, ctrl_msg);
+            std::cout << "\n\ncurrent_x_:       " << current_x_.transpose() << std::endl;
+            std::cout << "ctrl_eig.feedforward: " << ctrl_eig.feedforward.transpose() << std::endl;
+            std::cout << "ctrl_eig.feedback_gain:\n" << ctrl_eig.feedback_gain;
+            lfc_msgs::Control ctrl_msg;
+            lfc_msgs::controlEigenToMsg(ctrl_eig, ctrl_msg);
             control_pub_.publish(ctrl_msg);
         }
 
         // sensor callback
         bool first_sensor_msg_received_;
         Eigen::Matrix<double, 14, 1> current_x_;
-        ros::Time t_init_;
+        // ros::Time t_init_;
         Vector7d q0_;
         pin::SE3 T_b_e0_;
 
@@ -265,6 +269,12 @@ namespace panda_torque_mpc
 
         // Publisher of commands
         ros::Publisher control_pub_;
+
+        // Subscriber to robot sensor from linearized ctrl
+        ros::Subscriber sensor_sub_;
+
+        // Subscriber to pose reference topic
+        ros::Subscriber pose_ref_sub_;
     };
 
 } // namespace panda_torque_mpc
@@ -272,14 +282,14 @@ namespace panda_torque_mpc
 int main(int argc, char **argv)
 {
 
-    ros::init(argc, argv, "croccodyl_node");
-    ros::NodeHandle n;
+    ros::init(argc, argv, "croccodyl_motion_server_node");
+    ros::NodeHandle nh;
     std::string robot_sensors_topic_sub = "robot_sensors";
     std::string motion_server_control_topic_pub = "motion_server_control";
     std::string ee_pose_ref_topic_sub = "ee_pose_ref";
-    auto motion_server = panda_torque_mpc::CrocoMotionServer(n, robot_sensors_topic_sub, motion_server_control_topic_pub, ee_pose_ref_topic_sub);
+    auto motion_server = panda_torque_mpc::CrocoMotionServer(nh, robot_sensors_topic_sub, motion_server_control_topic_pub, ee_pose_ref_topic_sub);
 
-    int freq_node = motion_server.config_croco_.dt_ocp;
+    int freq_node = (int) 1.0/motion_server.config_croco_.dt_ocp;
     ros::Rate loop_rate(freq_node);
 
     while (ros::ok())

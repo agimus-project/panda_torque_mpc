@@ -11,8 +11,11 @@
 
 #include <linear_feedback_controller_msgs/eigen_conversions.hpp>
 
+
+
 namespace panda_torque_mpc
 {
+    namespace lfc_msgs = linear_feedback_controller_msgs;
 
     bool CtrlMpcLinearized::init(hardware_interface::RobotHW *robot_hw,
                                  ros::NodeHandle &nh)
@@ -25,9 +28,11 @@ namespace panda_torque_mpc
             return false;
 
         if (!get_param_error_tpl<double>(nh, Kp_jsid_, "Kp_jsid"))
-                    return false;
+            return false;
         if (!get_param_error_tpl<double>(nh, Kd_jsid_, "Kd_jsid"))
-                    return false;
+            return false;
+        if (!get_param_error_tpl<double>(nh, dt_transition_jsid_to_mpc_, "dt_transition_jsid_to_mpc"))
+            return false;
 
         // Panda
         std::vector<std::string> joint_names;
@@ -129,18 +134,18 @@ namespace panda_torque_mpc
         task_pose_publisher_.init(nh, "task_pose_comparison", 1);
         task_twist_publisher_.init(nh, "task_twist_comparison", 1);
         torques_publisher_.init(nh, "joint_torques_comparison", 1);
+        
+        // Robot sensor publisher 
+        robot_state_publisher_.init(nh, "robot_sensors", 1);
 
-        std::string motion_server_sub_topic = "motion_server_sub";
-        ros::Subscriber motion_server_control_topic_sub = nh.subscribe(motion_server_sub_topic, 1, &CtrlMpcLinearized::callback_motion_server, this);
-
+        std::string motion_server_sub_topic = "motion_server_control";
+        motion_server_control_topic_sub_ = nh.subscribe(motion_server_sub_topic, 1, &CtrlMpcLinearized::callback_motion_server, this);
 
         // init some variables
         dq_filtered_ = Vector7d::Zero();
-        
+
         // Controller state machine
         bool control_ref_from_ddp_node_received_ = false;
-        // ros::Time t0_mpc_first_msg_ = ros;
-        // double  dt_transition_jsid_to_mpc_ = 1000; 
 
         return true;
     }
@@ -155,7 +160,6 @@ namespace panda_torque_mpc
         T_b_e0_ = data_pin_.oMf[ee_frame_id_];
 
         ROS_INFO_STREAM("CtrlMpcLinearized::starting T_b_e0_: \n" << T_b_e0_);
-
     }
 
     void CtrlMpcLinearized::update(const ros::Time &t, const ros::Duration &period)
@@ -180,7 +184,6 @@ namespace panda_torque_mpc
         // filter the joint velocity measurements
         dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
 
-
         /////////////////////////////////////////////////////////////
         /////////////////////////////////////////////////////////////
         //////////////////// Compute desired torque /////////////////
@@ -203,15 +206,16 @@ namespace panda_torque_mpc
          *
          */
 
-
         Vector7d tau_d;
-        if (control_ref_from_ddp_node_received_)
+        if (!control_ref_from_ddp_node_received_)
         {
+            std::cout << "control_ref_from_ddp_node_received_ == false" << std::endl;
             Vector7d dq_ref = Vector7d::Zero();
             tau_d = compute_torque_jsid(q_m, dq_m, q_init_, dq_ref);
         }
         else if ((t - t0_mpc_first_msg_).toSec() < dt_transition_jsid_to_mpc_)
         {
+            std::cout << "TRANSITION: " << (t - t0_mpc_first_msg_).toSec() << " < " << dt_transition_jsid_to_mpc_ << std::endl;
             Vector7d dq_ref = Vector7d::Zero();
             Vector7d tau_jsid = compute_torque_jsid(q_m, dq_m, q_init_, dq_ref);
             Vector7d tau_linear_mpc = compute_torque_mpc_linear_feedback(q_m, dq_m, u0_mpc_, x0_mpc_, K_ricatti_);
@@ -221,21 +225,20 @@ namespace panda_torque_mpc
         }
         else
         {
+            std::cout << "STEADY STATE" << std::endl;
             tau_d = compute_torque_mpc_linear_feedback(q_m, dq_m, u0_mpc_, x0_mpc_, K_ricatti_);
         }
 
         // Remove gravity to send the torques to the robot
         tau_d -= pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);
-        
+
+        std::cout << "Sent tau_d: " << tau_d.transpose() << std::endl;
         tictac_comp.print_tac("compute_desired_torque took (ms): ");
 
-
         /////////////////////////////////////////////////////////////
-        // Publish robot state 
+        // Publish robot state
         publish_robot_state(q_m, dq_m);
         /////////////////////////////////////////////////////////////
-
-
 
         /////////////////////////////////////////////////////////////
         /////////////////////////////////////////////////////////////
@@ -348,45 +351,67 @@ namespace panda_torque_mpc
 
     Vector7d CtrlMpcLinearized::compute_torque_jsid(const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &q_ref, const Vector7d &dq_ref)
     {
-        Vector7d ddq_d = - Kp_jsid_ * (q_m - q_ref) - Kd_jsid_ * (dq_m - dq_ref);
+        Vector7d ddq_d = -Kp_jsid_ * (q_m - q_ref) - Kd_jsid_ * (dq_m - dq_ref);
         pin::rnea(model_pin_, data_pin_, q_m, dq_m, ddq_d);
         return data_pin_.tau;
     }
 
-    Vector7d CtrlMpcLinearized::compute_torque_mpc_linear_feedback(const Vector7d &q_m, 
-                                                                   const Vector7d &dq_m, 
-                                                                   const Eigen::Matrix<double, 7, 1> &u0_mpc, 
-                                                                   const Eigen::Matrix<double, 14, 1> &x0_mpc, 
+    Vector7d CtrlMpcLinearized::compute_torque_mpc_linear_feedback(const Vector7d &q_m,
+                                                                   const Vector7d &dq_m,
+                                                                   const Eigen::Matrix<double, 7, 1> &u0_mpc,
+                                                                   const Eigen::Matrix<double, 14, 1> &x0_mpc,
                                                                    const Eigen::Matrix<double, 7, 14> &K_ricatti)
     {
-        Eigen::Matrix<double, 14, 1> x_m; 
+        Eigen::Matrix<double, 14, 1> x_m;
         x_m << q_m, dq_m;
 
-        // Vector7d tau_d = u0_mpc_;
+        // Vector7d tau_d = u0_mpc;
 
         Vector7d tau_d = u0_mpc + K_ricatti * (x0_mpc - x_m);
 
         return tau_d;
     }
 
+    void CtrlMpcLinearized::callback_motion_server(const lfc_msgs::Control &ctrl_msg)
+    {   
+        //////////////////////////
+        // Segfault: ctrl_eig matrices have no default dimension -> lfc_msgs::matrixMsgToEigen
+        // creates an assertion error on the dimesions
+        // lfc_msgs::Eigen::Control ctrl_eig;
+        // lfc_msgs::controlMsgToEigen(ctrl_msg, ctrl_eig);
+        // u0_mpc_ = ctrl_eig.feedforward;
+        // x0_mpc_ << ctrl_eig.initial_state.joint_state.position, ctrl_eig.initial_state.joint_state.velocity;
+        //////////////////////////
 
-    void CtrlMpcLinearized::callback_motion_server(const linear_feedback_controller_msgs::Control& ctrl_msg)
-    {
-        linear_feedback_controller_msgs::Eigen::Control ctrl_eig;
-        linear_feedback_controller_msgs::controlMsgToEigen(ctrl_msg, ctrl_eig);
-        u0_mpc_ = ctrl_eig.feedforward;
-        x0_mpc_ << ctrl_eig.initial_state.joint_state.position, ctrl_eig.initial_state.joint_state.velocity;
-        K_ricatti_ = ctrl_eig.feedback_gain;
+        //////////////////////////
+        // Manually
+        lfc_msgs::matrixMsgToEigen(ctrl_msg.feedforward, u0_mpc_);
+        lfc_msgs::matrixMsgToEigen(ctrl_msg.feedback_gain, K_ricatti_);
+
+        lfc_msgs::Eigen::JointState js_eig;
+        lfc_msgs::jointStateMsgToEigen(ctrl_msg.initial_state.joint_state, js_eig);
+        x0_mpc_ << js_eig.position, js_eig.velocity;
+        //////////////////////////
+
+        std::cout << "\n/// callback_motion_server: " << std::endl;
+        std::cout << "x0_mpc_: " << x0_mpc_.transpose() << std::endl;
+        std::cout << "u0_mpc_: " << u0_mpc_.transpose() << std::endl;
+        std::cout << "K_ricatti_: \n" << K_ricatti_ << std::endl;
+
+        if (!control_ref_from_ddp_node_received_)
+        {
+            t0_mpc_first_msg_ = ros::Time::now();
+        }
+        control_ref_from_ddp_node_received_ = true;
     }
-
 
     void CtrlMpcLinearized::publish_robot_state(const Eigen::VectorXd &q_m, const Eigen::VectorXd &dq_m)
     {
-        linear_feedback_controller_msgs::Sensor robot_sensor_msg;
-        linear_feedback_controller_msgs::Eigen::Sensor robot_sensor_eig;
+        lfc_msgs::Sensor robot_sensor_msg;
+        lfc_msgs::Eigen::Sensor robot_sensor_eig;
         robot_sensor_eig.joint_state.position = q_m;
         robot_sensor_eig.joint_state.velocity = dq_m;
-        linear_feedback_controller_msgs::sensorEigenToMsg(robot_sensor_eig, robot_sensor_msg);
+        lfc_msgs::sensorEigenToMsg(robot_sensor_eig, robot_sensor_msg);
 
         if (robot_state_publisher_.trylock())
         {

@@ -88,9 +88,8 @@ namespace panda_torque_mpc
         // Publishers for motion server
         realtime_tools::RealtimePublisher<linear_feedback_controller_msgs::Sensor> robot_state_publisher_;
         
-        // Subscribers 
-        ros::Subscriber motion_server_subscriber_;
-        std::string motion_server_control_topic_sub_;
+        // Subscribers to motion server
+        ros::Subscriber motion_server_control_topic_sub_;
 
         // Controller State Machine
         bool control_ref_from_ddp_node_received_;

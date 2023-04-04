@@ -64,10 +64,12 @@ catkin_package(
     geometry_msgs
     visualization_msgs
     linear_feedback_controller_msgs
-  DEPENDS Franka
+  DEPENDS Franka pinocchio tsid crocoddyl
 )
 
-
+##############
+# Main library
+##############
 add_library(panda_torque_mpc
   src/ctrl_model_pinocchio_vs_franka.cpp
   src/ctrl_log_update_dt.cpp
@@ -77,24 +79,48 @@ add_library(panda_torque_mpc
   src/crocoddyl_reaching.cpp
   src/ctrl_mpc_croco.cpp
   src/ctrl_mpc_linearized.cpp
-  src/croccodyl_motion_server_node.cpp
 )
 
 target_link_libraries(panda_torque_mpc PUBLIC
-  ${Franka_LIBRARIES}
   ${catkin_LIBRARIES}
+  ${Franka_LIBRARIES}
 )
 
 target_include_directories(panda_torque_mpc SYSTEM PUBLIC
-  ${Franka_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
+  ${Franka_INCLUDE_DIRS}
 )
 
 target_include_directories(panda_torque_mpc PUBLIC
   include
 )
 
-target_link_libraries(panda_torque_mpc PUBLIC pinocchio::pinocchio pinocchio::pinocchio_headers)
-target_link_libraries(panda_torque_mpc PUBLIC tsid::tsid)
-target_link_libraries(panda_torque_mpc PUBLIC crocoddyl::crocoddyl)
+target_link_libraries(panda_torque_mpc PUBLIC 
+  Eigen3::Eigen
+  pinocchio::pinocchio 
+  pinocchio::pinocchio_headers
+  tsid::tsid
+  crocoddyl::crocoddyl
+)
+
+#####################
+# linearized MPC node
+#####################
+add_executable(croccodyl_motion_server_node src/croccodyl_motion_server_node.cpp)
+target_link_libraries(croccodyl_motion_server_node PUBLIC
+  Eigen3::Eigen
+  pinocchio::pinocchio 
+  pinocchio::pinocchio_headers
+  crocoddyl::crocoddyl
+  ${catkin_LIBRARIES}
+  panda_torque_mpc
+)
+
+target_include_directories(croccodyl_motion_server_node SYSTEM PUBLIC
+  ${catkin_INCLUDE_DIRS}
+)
+
+target_include_directories(croccodyl_motion_server_node PUBLIC
+  include
+)
+

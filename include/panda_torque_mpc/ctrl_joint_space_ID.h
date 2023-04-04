@@ -86,7 +86,7 @@ namespace panda_torque_mpc
         ros::Time t_init_;
         Vector7d q_init_;
 
-        // Publishers
+        // Publishers logs
         franka_hw::TriggerRate rate_trigger_{1.0};
         realtime_tools::RealtimePublisher<JointValuesComparison> configurations_publisher_;
         realtime_tools::RealtimePublisher<JointValuesComparison> velocities_publisher_;

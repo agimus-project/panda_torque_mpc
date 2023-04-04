@@ -46,7 +46,7 @@ namespace panda_torque_mpc
         {
             ROS_INFO_STREAM("CtrlMpcLinearized: publish_log_rate not found. Defaulting to " << publish_log_rate);
         }
-        rate_trigger_logs_ = franka_hw::TriggerRate(publish_log_rate);
+        rate_trigger_ = franka_hw::TriggerRate(publish_log_rate);
 
         if (!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter"))
             return false;
@@ -131,15 +131,15 @@ namespace panda_torque_mpc
         }
 
         // Logs publishers
-        task_pose_publisher_.init(nh, "task_pose_comparison", 1);
-        task_twist_publisher_.init(nh, "task_twist_comparison", 1);
-        torques_publisher_.init(nh, "joint_torques_comparison", 1);
+        configurations_publisher_.init(nh, "joint_configurations_comparison", 10);
+        velocities_publisher_.init(nh, "joint_velocities_comparison", 10);
+        torques_publisher_.init(nh, "joint_torques_comparison", 10);
         
         // Robot sensor publisher 
-        robot_state_publisher_.init(nh, "robot_sensors", 1);
+        robot_state_publisher_.init(nh, "robot_sensors", 10);
 
         std::string motion_server_sub_topic = "motion_server_control";
-        motion_server_control_topic_sub_ = nh.subscribe(motion_server_sub_topic, 1, &CtrlMpcLinearized::callback_motion_server, this);
+        motion_server_control_topic_sub_ = nh.subscribe(motion_server_sub_topic, 10, &CtrlMpcLinearized::callback_motion_server, this);
 
         // init some variables
         dq_filtered_ = Vector7d::Zero();
@@ -207,6 +207,13 @@ namespace panda_torque_mpc
          */
 
         Vector7d tau_d;
+        // Retrieve mpc callback variables, whether or not rightfully initialized
+        Eigen::Matrix<double, 14, 1> x0_mpc; 
+        Eigen::Matrix<double, 7, 1> u0_mpc;
+        Eigen::Matrix<double, 7, 14> K_ricatti;
+        x0_mpc_rtbox_.get(x0_mpc);
+        u0_mpc_rtbox_.get(u0_mpc);
+        K_ricatti_rtbox_.get(K_ricatti);
         if (!control_ref_from_ddp_node_received_)
         {
             std::cout << "control_ref_from_ddp_node_received_ == false" << std::endl;
@@ -218,7 +225,9 @@ namespace panda_torque_mpc
             std::cout << "TRANSITION: " << (t - t0_mpc_first_msg_).toSec() << " < " << dt_transition_jsid_to_mpc_ << std::endl;
             Vector7d dq_ref = Vector7d::Zero();
             Vector7d tau_jsid = compute_torque_jsid(q_m, dq_m, q_init_, dq_ref);
-            Vector7d tau_linear_mpc = compute_torque_mpc_linear_feedback(q_m, dq_m, u0_mpc_, x0_mpc_, K_ricatti_);
+
+
+            Vector7d tau_linear_mpc = compute_torque_mpc_linear_feedback(q_m, dq_m, u0_mpc, x0_mpc, K_ricatti);
             double alpha_tau = (t - t0_mpc_first_msg_).toSec() / dt_transition_jsid_to_mpc_;
             // alpha = 0 -> pure jsid, alpha = 1 pure mpc
             tau_d = alpha_tau * tau_linear_mpc + (1 - alpha_tau) * tau_jsid;
@@ -226,7 +235,7 @@ namespace panda_torque_mpc
         else
         {
             std::cout << "STEADY STATE" << std::endl;
-            tau_d = compute_torque_mpc_linear_feedback(q_m, dq_m, u0_mpc_, x0_mpc_, K_ricatti_);
+            tau_d = compute_torque_mpc_linear_feedback(q_m, dq_m, u0_mpc, x0_mpc, K_ricatti);
         }
 
         // Remove gravity to send the torques to the robot
@@ -256,92 +265,53 @@ namespace panda_torque_mpc
             joint_handles_[i].setCommand(tau_d_saturated[i]);
         }
 
-        // ///////////////////
-        // // Publish logs
-        // // Takes about 5 us -> negligeable
-        // if (rate_trigger_() && torques_publisher_.trylock())
-        // {
-        //     // TicTac tt_publish;
-        //     // Refactor to: publish_logs(publishers, last_vals, measured_vals) ?
+        ///////////////////
+        // Publish logs
+        // Takes about 5 us -> negligeable
+        ///////////////////
+        // Publish logs
+        if (rate_trigger_() && torques_publisher_.trylock())
+        {
 
-        //     /**
-        //      * Measured torque in simulation returns -tau while running with real robot returns tau --___--
-        //      */
-        //     tau_m = -tau_m; // SIMULATION
-        //     // tau_m = tau_m;  // REAL
+            // Refactor to: publish_logs(publishers, last_vals, measured_vals) ?
 
-        //     // torque
-        //     Vector7d tau_error = last_tau_d_ - tau_m;
-        //     // EE pose
-        //     Eigen::Vector3d p_o_e_err = T_o_e_m.translation() - last_x_r_.translation();
-        //     Eigen::Quaterniond quat_r(last_x_r_.rotation());
-        //     Eigen::Quaterniond quat_m(T_o_e_m.rotation());
-        //     Eigen::Quaterniond quat_err = quat_r.inverse() * quat_m;
-        //     // EE twist
-        //     Eigen::Vector3d v_o_e_err = nu_o_e_m.linear() - dx_r.linear();
-        //     Eigen::Vector3d omg_o_e_err = nu_o_e_m.angular() - dx_r.angular();
+            /**
+             * Measured torque in simulation returns -tau while running with real robot returns tau --___--
+             * Does NOT influence the control law though
+             */
+            tau_m = -tau_m; // SIMULATION
+            // tau_m = tau_m;  // REAL
 
-        //     // EE Twists linear part
-        //     task_twist_publisher_.msg_.commanded.linear.x = dx_r.linear()[0];
-        //     task_twist_publisher_.msg_.commanded.linear.y = dx_r.linear()[1];
-        //     task_twist_publisher_.msg_.commanded.linear.z = dx_r.linear()[2];
-        //     task_twist_publisher_.msg_.measured.linear.x = nu_o_e_m.linear()[0];
-        //     task_twist_publisher_.msg_.measured.linear.y = nu_o_e_m.linear()[1];
-        //     task_twist_publisher_.msg_.measured.linear.z = nu_o_e_m.linear()[2];
-        //     task_twist_publisher_.msg_.error.linear.x = v_o_e_err[0];
-        //     task_twist_publisher_.msg_.error.linear.y = v_o_e_err[1];
-        //     task_twist_publisher_.msg_.error.linear.z = v_o_e_err[2];
+            Vector7d q_r = x0_mpc.block<7,1>(0,0);
+            Vector7d dq_r = x0_mpc.block<7,1>(7,0);
+            Vector7d q_error = q_r - q_m;
+            Vector7d dq_error = dq_r - dq_m;
+            Vector7d tau_error = last_tau_d_ - tau_m;
 
-        //     // EE Twists angular part
-        //     task_twist_publisher_.msg_.commanded.angular.x = dx_r.angular()[0];
-        //     task_twist_publisher_.msg_.commanded.angular.y = dx_r.angular()[1];
-        //     task_twist_publisher_.msg_.commanded.angular.z = dx_r.angular()[2];
-        //     task_twist_publisher_.msg_.measured.angular.x = nu_o_e_m.angular()[0];
-        //     task_twist_publisher_.msg_.measured.angular.y = nu_o_e_m.angular()[1];
-        //     task_twist_publisher_.msg_.measured.angular.z = nu_o_e_m.angular()[2];
-        //     task_twist_publisher_.msg_.error.angular.x = omg_o_e_err[0];
-        //     task_twist_publisher_.msg_.error.angular.y = omg_o_e_err[1];
-        //     task_twist_publisher_.msg_.error.angular.z = omg_o_e_err[2];
+            for (size_t i = 0; i < 7; ++i)
+            {
+                // Joint config
+                configurations_publisher_.msg_.commanded[i] = q_r(i);
+                configurations_publisher_.msg_.measured[i] = q_m[i];
+                configurations_publisher_.msg_.error[i] = q_error[i];
 
-        //     // End effector position
-        //     task_pose_publisher_.msg_.commanded.position.x = x_r.translation()[0];
-        //     task_pose_publisher_.msg_.commanded.position.y = x_r.translation()[1];
-        //     task_pose_publisher_.msg_.commanded.position.z = x_r.translation()[2];
-        //     task_pose_publisher_.msg_.measured.position.x = T_o_e_m.translation()[0];
-        //     task_pose_publisher_.msg_.measured.position.y = T_o_e_m.translation()[1];
-        //     task_pose_publisher_.msg_.measured.position.z = T_o_e_m.translation()[2];
-        //     task_pose_publisher_.msg_.error.position.x = p_o_e_err[0];
-        //     task_pose_publisher_.msg_.error.position.y = p_o_e_err[1];
-        //     task_pose_publisher_.msg_.error.position.z = p_o_e_err[2];
+                // Joint velocities
+                velocities_publisher_.msg_.commanded[i] = dq_r(i);
+                velocities_publisher_.msg_.measured[i] = dq_m[i];
+                velocities_publisher_.msg_.error[i] = dq_error[i];
 
-        //     // Quaternion
-        //     task_pose_publisher_.msg_.commanded.orientation.x = quat_r.x();
-        //     task_pose_publisher_.msg_.commanded.orientation.y = quat_r.y();
-        //     task_pose_publisher_.msg_.commanded.orientation.z = quat_r.z();
-        //     task_pose_publisher_.msg_.commanded.orientation.w = quat_r.w();
-        //     task_pose_publisher_.msg_.measured.orientation.x = quat_m.x();
-        //     task_pose_publisher_.msg_.measured.orientation.y = quat_m.y();
-        //     task_pose_publisher_.msg_.measured.orientation.z = quat_m.z();
-        //     task_pose_publisher_.msg_.measured.orientation.w = quat_m.w();
-        //     task_pose_publisher_.msg_.error.orientation.x = quat_err.x();
-        //     task_pose_publisher_.msg_.error.orientation.y = quat_err.y();
-        //     task_pose_publisher_.msg_.error.orientation.z = quat_err.z();
-        //     task_pose_publisher_.msg_.error.orientation.w = quat_err.w();
+                // Joint torque
+                torques_publisher_.msg_.commanded[i] = u0_mpc[i];
+                // torques_publisher_.msg_.commanded[i] = last_tau_d_[i];
+                torques_publisher_.msg_.measured[i] = tau_m[i];
+                torques_publisher_.msg_.error[i] = tau_error[i];
+            }
 
-        //     // Size 7 vectors
-        //     for (size_t i = 0; i < 7; ++i)
-        //     {
-        //         torques_publisher_.msg_.commanded[i] = last_tau_d_[i];
-        //         torques_publisher_.msg_.measured[i] = tau_m[i];
-        //         torques_publisher_.msg_.error[i] = tau_error[i];
-        //     }
+            configurations_publisher_.unlockAndPublish();
+            velocities_publisher_.unlockAndPublish();
+            torques_publisher_.unlockAndPublish();
+        }
 
-        //     task_pose_publisher_.unlockAndPublish();
-        //     task_twist_publisher_.unlockAndPublish();
-        //     torques_publisher_.unlockAndPublish();
-
-        //     // std::cout << std::setprecision(9) << "publish took (ms): " << tt_publish.tac() << std::endl;
-        // }
 
         // Store previous desired/reference values
         last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
@@ -362,11 +332,9 @@ namespace panda_torque_mpc
                                                                    const Eigen::Matrix<double, 14, 1> &x0_mpc,
                                                                    const Eigen::Matrix<double, 7, 14> &K_ricatti)
     {
-        Eigen::Matrix<double, 14, 1> x_m;
-        x_m << q_m, dq_m;
+        Eigen::Matrix<double, 14, 1> x_m; x_m << q_m, dq_m;
 
         // Vector7d tau_d = u0_mpc;
-
         Vector7d tau_d = u0_mpc + K_ricatti * (x0_mpc - x_m);
 
         return tau_d;
@@ -385,18 +353,24 @@ namespace panda_torque_mpc
 
         //////////////////////////
         // Manually
-        lfc_msgs::matrixMsgToEigen(ctrl_msg.feedforward, u0_mpc_);
-        lfc_msgs::matrixMsgToEigen(ctrl_msg.feedback_gain, K_ricatti_);
-
+        Eigen::Matrix<double, 14, 1> x0_mpc; 
+        Eigen::Matrix<double, 7, 1> u0_mpc;
+        Eigen::Matrix<double, 7, 14> K_ricatti;
+        lfc_msgs::matrixMsgToEigen(ctrl_msg.feedforward, u0_mpc);
+        lfc_msgs::matrixMsgToEigen(ctrl_msg.feedback_gain, K_ricatti);
         lfc_msgs::Eigen::JointState js_eig;
         lfc_msgs::jointStateMsgToEigen(ctrl_msg.initial_state.joint_state, js_eig);
-        x0_mpc_ << js_eig.position, js_eig.velocity;
+        x0_mpc << js_eig.position, js_eig.velocity;
+
+        x0_mpc_rtbox_.set(x0_mpc);
+        u0_mpc_rtbox_.set(u0_mpc);
+        K_ricatti_rtbox_.set(K_ricatti);
         //////////////////////////
 
         std::cout << "\n/// callback_motion_server: " << std::endl;
-        std::cout << "x0_mpc_: " << x0_mpc_.transpose() << std::endl;
-        std::cout << "u0_mpc_: " << u0_mpc_.transpose() << std::endl;
-        std::cout << "K_ricatti_: \n" << K_ricatti_ << std::endl;
+        std::cout << "x0_mpc: " << x0_mpc.transpose() << std::endl;
+        std::cout << "u0_mpc: " << u0_mpc.transpose() << std::endl;
+        std::cout << "K_ricatti_: \n" << K_ricatti << std::endl;
 
         if (!control_ref_from_ddp_node_received_)
         {

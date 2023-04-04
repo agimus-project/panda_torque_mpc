@@ -1,1 +1,0 @@
-Store experience related bags, do not track them with git though

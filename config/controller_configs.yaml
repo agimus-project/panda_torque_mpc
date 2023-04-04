@@ -217,14 +217,14 @@ ctrl_mpc_linearized:
 
     ###############
     # JSID init controller params 
-    Kp_jsid: 100 
-    Kd_jsid: 100 
-    dt_transition_jsid_to_mpc: 0.3
+    Kp_jsid: 50 
+    Kd_jsid: 5 
+    dt_transition_jsid_to_mpc: 0.5
 
     ####################
     # OCP motion server configs
-    nb_shooting_nodes: 20
-    dt_ocp: 0.005
+    nb_shooting_nodes: 30
+    dt_ocp: 0.01
     nb_iterations_max: 1
     armature: [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
     # armature: [0.0,0.0,0.0,0.0,0.0,0.0,0.0]

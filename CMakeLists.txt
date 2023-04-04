@@ -103,16 +103,12 @@ target_link_libraries(panda_torque_mpc PUBLIC
   crocoddyl::crocoddyl
 )
 
-#####################
-# linearized MPC node
-#####################
+##############################
+# Motion server crocoddyl node
+##############################
 add_executable(croccodyl_motion_server_node src/croccodyl_motion_server_node.cpp)
+
 target_link_libraries(croccodyl_motion_server_node PUBLIC
-  Eigen3::Eigen
-  pinocchio::pinocchio 
-  pinocchio::pinocchio_headers
-  crocoddyl::crocoddyl
-  ${catkin_LIBRARIES}
   panda_torque_mpc
 )
 

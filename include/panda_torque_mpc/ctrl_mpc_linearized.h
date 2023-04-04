@@ -77,12 +77,10 @@ namespace panda_torque_mpc
         Vector7d q_init_;
         pin::SE3 T_b_e0_;
 
-        // Topics
-
-        // Publishers Logs
-        franka_hw::TriggerRate rate_trigger_logs_{1.0};
-        realtime_tools::RealtimePublisher<TaskPoseComparison> task_pose_publisher_;
-        realtime_tools::RealtimePublisher<TaskTwistComparison> task_twist_publisher_;
+        // Publishers logs
+        franka_hw::TriggerRate rate_trigger_{1.0};
+        realtime_tools::RealtimePublisher<JointValuesComparison> configurations_publisher_;
+        realtime_tools::RealtimePublisher<JointValuesComparison> velocities_publisher_;
         realtime_tools::RealtimePublisher<JointValuesComparison> torques_publisher_;
 
         // Publishers for motion server
@@ -95,9 +93,13 @@ namespace panda_torque_mpc
         bool control_ref_from_ddp_node_received_;
         ros::Time t0_mpc_first_msg_;
         double dt_transition_jsid_to_mpc_;
-        Eigen::Matrix<double, 14, 1> x0_mpc_;    // updated by motion server callback
-        Eigen::Matrix<double, 7, 1> u0_mpc_;     // updated by motion server callback
-        Eigen::Matrix<double, 7, 14> K_ricatti_; // updated by motion server callback
+        realtime_tools::RealtimeBox<Eigen::Matrix<double, 14, 1>> x0_mpc_rtbox_;
+        realtime_tools::RealtimeBox<Eigen::Matrix<double, 7, 1>> u0_mpc_rtbox_;
+        realtime_tools::RealtimeBox<Eigen::Matrix<double, 7, 14>> K_ricatti_rtbox_;
+
+        // Eigen::Matrix<double, 14, 1> x0_mpc_;    // updated by motion server callback
+        // Eigen::Matrix<double, 7, 1> u0_mpc_;     // updated by motion server callback
+        // Eigen::Matrix<double, 7, 14> K_ricatti_; // updated by motion server callback
 
 
         // Pinocchio objects

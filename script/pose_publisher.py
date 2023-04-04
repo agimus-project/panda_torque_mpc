@@ -63,7 +63,7 @@ DELTA_NU = np.array([
     0.0, 0.0, 0.0
 ])
 
-PERIOD_NU = 3*np.array([
+PERIOD_NU = np.array([
     4.0, 4.0, 4.0, 
     5.0, 5.0, 5.0
 ])

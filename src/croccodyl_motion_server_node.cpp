@@ -17,6 +17,8 @@
 #include "panda_torque_mpc/common.h"
 #include "panda_torque_mpc/crocoddyl_reaching.h"
 
+#include "panda_torque_mpc/PoseTaskGoal.h"
+
 namespace panda_torque_mpc
 {
     namespace lfc_msgs = linear_feedback_controller_msgs;
@@ -105,8 +107,8 @@ namespace panda_torque_mpc
 
             // Publisher/Subscriber
             control_pub_ = nh.advertise<lfc_msgs::Control>(motion_server_control_topic_pub, 1);
-            sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 1, &CrocoMotionServer::callback_sensor, this);
-            pose_ref_sub_ = nh.subscribe(ee_pose_ref_topic_sub, 1, &CrocoMotionServer::callback_pose_ref, this);
+            sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_sensor, this);
+            pose_ref_sub_ = nh.subscribe(ee_pose_ref_topic_sub, 10, &CrocoMotionServer::callback_pose_ref, this);
 
             // Init some variables
             first_sensor_msg_received_ = false;
@@ -114,19 +116,22 @@ namespace panda_torque_mpc
             first_solve_ = true;
         }
 
-        void callback_pose_ref(const geometry_msgs::Pose &pose_msg)
+        void callback_pose_ref(const PoseTaskGoal &msg)
         {
             /**
              * If the first sensor state of the robot has not yet been received, no need to process the pose ref
              */
+
+            std::cout << "callback_pose_ref" << std::endl;
             if (!first_sensor_msg_received_)
             {
+                std::cout << "    --> !first_sensor_msg_received_" << std::endl;
                 return;
             }
 
             Eigen::Vector3d p_bt;
-            p_bt << pose_msg.position.x, pose_msg.position.y, pose_msg.position.z;
-            Eigen::Quaterniond quap_bt(pose_msg.orientation.w, pose_msg.orientation.x, pose_msg.orientation.y, pose_msg.orientation.z);
+            p_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
+            Eigen::Quaterniond quap_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
             pin::SE3 T_w_t(quap_bt, p_bt);
 
             if (!first_pose_ref_msg_received_)
@@ -144,8 +149,16 @@ namespace panda_torque_mpc
             // compose initial pose with relative/local transform
             pin::SE3 T_be = T_b_e0_ * T_e0_e;
 
+
+            std::cout << "\n\ncallback_pose_ref\n" << std::endl;
+            std::cout << "T_w_t0_\n" << T_w_t0_ << std::endl;
+            std::cout << "T_w_t\n" << T_w_t << std::endl;
+            std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
+            std::cout << "T_e0_e\n" << T_e0_e << std::endl;
+            std::cout << "T_be\n" << T_be << std::endl;
+
             // RT safe setting
-            x_r_rtbox_.set(T_be);
+            T_be_rtbox_.set(T_be);
         }
 
         void callback_sensor(const lfc_msgs::Sensor &sensor_msg)
@@ -154,34 +167,46 @@ namespace panda_torque_mpc
             lfc_msgs::Eigen::Sensor sensor_eig;
             lfc_msgs::sensorMsgToEigen(sensor_msg, sensor_eig);
             // TODO: Protect by a mutex!
-            current_x_ << sensor_eig.joint_state.position, sensor_eig.joint_state.velocity;
+            Eigen::Matrix<double, 14, 1> current_x;
+            current_x << sensor_eig.joint_state.position, sensor_eig.joint_state.velocity;
+            current_x_rtbox_.set(current_x);
 
             // Separate callback for reference?
             if (!first_sensor_msg_received_)
             {
-                q0_ = sensor_eig.joint_state.position;
-                pin::forwardKinematics(model_pin_, data_pin_, q0_);
+                pin::forwardKinematics(model_pin_, data_pin_, sensor_eig.joint_state.position);
                 pin::updateFramePlacements(model_pin_, data_pin_);
                 T_b_e0_ = data_pin_.oMf[ee_frame_id_];
 
+                q_init_rtbox_.set(sensor_eig.joint_state.position);
                 first_sensor_msg_received_ = true;
             }
         }
 
         void solve_and_send()
         {
-            // Do nothing if no pose reference or sensor state has been received
-            if (!(first_sensor_msg_received_ && first_sensor_msg_received_))
+            // Do nothing if no pose reference and sensor state has been received
+            if (!(first_sensor_msg_received_ && first_pose_ref_msg_received_))
             {
                 return;
             }
 
             // Retrieve reference in thread-safe way
             pin::SE3 T_be;
-            x_r_rtbox_.set(T_be);
+            T_be_rtbox_.get(T_be);
 
-            Vector7d q = current_x_.head(model_pin_.nq);
-            Vector7d v = current_x_.tail(model_pin_.nv);
+            // Retrieve initial configuration in thread-safe way
+            Vector7d q_init;
+            q_init_rtbox_.get(q_init);
+            Eigen::Matrix<double,14,1> x_init; 
+            x_init << q_init, Vector7d::Zero();  // Fix zero velocity as reference
+
+            // Retrieve current state in a thread-safe way
+            Eigen::Matrix<double, 14, 1> current_x;
+            current_x_rtbox_.get(current_x);
+
+            Vector7d q = current_x.head(model_pin_.nq);
+            Vector7d v = current_x.tail(model_pin_.nv);
 
             std::vector<Eigen::Matrix<double, -1, 1>> xs_init;
             std::vector<Eigen::Matrix<double, -1, 1>> us_init;
@@ -196,10 +221,10 @@ namespace panda_torque_mpc
                 us_init.reserve(config_croco_.T);
                 for (int i = 0; i < config_croco_.T; i++)
                 {
-                    xs_init.push_back(current_x_);
+                    xs_init.push_back(current_x);
                     us_init.push_back(tau_grav);
                 }
-                xs_init.push_back(current_x_);
+                xs_init.push_back(current_x);
 
                 first_solve_ = false;
             }
@@ -212,15 +237,17 @@ namespace panda_torque_mpc
                 // Shift trajectory by 1 node <==> config_croco_.dt_ocp
                 // !!!!!!! //
                 // HYP: config_croco_.dt_ocp == freq_node
-                xs_init.insert(std::begin(xs_init), xs_init.at(0));
+                // xs_init.insert(std::begin(xs_init), current_x);
+                xs_init.insert(std::begin(xs_init), xs_init[0]);
                 xs_init.erase(std::end(xs_init) - 1);
-                us_init.insert(std::begin(us_init), us_init.at(0));
+                us_init.insert(std::begin(us_init), us_init[0]);
                 us_init.erase(std::end(us_init) - 1);
             }
 
             // Set initial state and end-effector ref
-            croco_reaching_.ddp_->get_problem()->set_x0(current_x_);
+            croco_reaching_.ddp_->get_problem()->set_x0(current_x);
             croco_reaching_.set_ee_ref(T_be.translation());
+            croco_reaching_.set_posture_ref(x_init);
 
             croco_reaching_.ddp_->solve(xs_init, us_init, config_croco_.nb_iterations_max, false);
             // TODO: are get_k()[0] and get_us()[0] the same?
@@ -234,7 +261,7 @@ namespace panda_torque_mpc
             ctrl_eig.initial_state.joint_state.velocity = v;
             ctrl_eig.feedforward = tau_ff;
             ctrl_eig.feedback_gain = croco_reaching_.ddp_->get_K()[0];
-            std::cout << "\n\ncurrent_x_:       " << current_x_.transpose() << std::endl;
+            std::cout << "\n\ncurrent_x_:       " << current_x.transpose() << std::endl;
             std::cout << "ctrl_eig.feedforward: " << ctrl_eig.feedforward.transpose() << std::endl;
             std::cout << "ctrl_eig.feedback_gain:\n" << ctrl_eig.feedback_gain;
             lfc_msgs::Control ctrl_msg;
@@ -244,15 +271,14 @@ namespace panda_torque_mpc
 
         // sensor callback
         bool first_sensor_msg_received_;
-        Eigen::Matrix<double, 14, 1> current_x_;
-        // ros::Time t_init_;
-        Vector7d q0_;
+        realtime_tools::RealtimeBox<Vector7d> q_init_rtbox_;
+        realtime_tools::RealtimeBox<Eigen::Matrix<double, 14, 1>> current_x_rtbox_;
         pin::SE3 T_b_e0_;
 
         // pose ref callback
         bool first_pose_ref_msg_received_;
         pin::SE3 T_w_t0_;
-        realtime_tools::RealtimeBox<pin::SE3> x_r_rtbox_;
+        realtime_tools::RealtimeBox<pin::SE3> T_be_rtbox_;
 
         // Solve state machine
         bool first_solve_;

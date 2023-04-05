@@ -122,10 +122,8 @@ namespace panda_torque_mpc
              * If the first sensor state of the robot has not yet been received, no need to process the pose ref
              */
 
-            std::cout << "callback_pose_ref" << std::endl;
             if (!first_sensor_msg_received_)
             {
-                std::cout << "    --> !first_sensor_msg_received_" << std::endl;
                 return;
             }
 
@@ -148,14 +146,6 @@ namespace panda_torque_mpc
             // Set reference pose
             // compose initial pose with relative/local transform
             pin::SE3 T_be = T_b_e0_ * T_e0_e;
-
-
-            std::cout << "\n\ncallback_pose_ref\n" << std::endl;
-            std::cout << "T_w_t0_\n" << T_w_t0_ << std::endl;
-            std::cout << "T_w_t\n" << T_w_t << std::endl;
-            std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
-            std::cout << "T_e0_e\n" << T_e0_e << std::endl;
-            std::cout << "T_be\n" << T_be << std::endl;
 
             // RT safe setting
             T_be_rtbox_.set(T_be);
@@ -261,9 +251,6 @@ namespace panda_torque_mpc
             ctrl_eig.initial_state.joint_state.velocity = v;
             ctrl_eig.feedforward = tau_ff;
             ctrl_eig.feedback_gain = croco_reaching_.ddp_->get_K()[0];
-            std::cout << "\n\ncurrent_x_:       " << current_x.transpose() << std::endl;
-            std::cout << "ctrl_eig.feedforward: " << ctrl_eig.feedforward.transpose() << std::endl;
-            std::cout << "ctrl_eig.feedback_gain:\n" << ctrl_eig.feedback_gain;
             lfc_msgs::Control ctrl_msg;
             lfc_msgs::controlEigenToMsg(ctrl_eig, ctrl_msg);
             control_pub_.publish(ctrl_msg);

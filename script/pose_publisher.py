@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+"""
+Sources of info for tf2
+https://w3.cs.jmu.edu/spragunr/CS354_S19/lectures/tf/tf2_demo.py
+https://cw.fel.cvut.cz/wiki/_media/courses/aro/tutorials/tf_slides.pdf
+"""
+
+
 import numpy as np
 import pinocchio as pin
 import rospy
@@ -8,14 +15,17 @@ import tf2_ros
 
 from panda_torque_mpc.msg import PoseTaskGoal
 
-LISTEN_TO_TF = False
+LISTEN_TO_TF = True
+TOPIC_POSE_PUBLISHED = 'ee_pose_ref'
 
 FREQ = 100
 DT = 1/FREQ
-DELAY = 0.01
+DELAY_AVOID_EXTRAP = 0.05
 VERBOSE = True
-reference_frame = "camera_odom_frame"; 
-pose_frame = "camera_link"; 
+# we want T_wc
+camera_pose_frame = "camera_pose_frame";  # moving "camera=c" frame
+world_frame = "camera_odom_frame";  # static inertial "world=w" frame
+
 
 
 def compute_sinusoid_pose_delta_reference(delta_nu, period_nu, t):
@@ -70,34 +80,40 @@ PERIOD_NU = np.array([
 
 
 def talker():
-    pub = rospy.Publisher('ee_pose_ref', PoseTaskGoal, queue_size=10)
+    pub = rospy.Publisher(TOPIC_POSE_PUBLISHED, PoseTaskGoal, queue_size=10)
     
     rospy.init_node('pose_publisher', anonymous=False)
     rate = rospy.Rate(FREQ)
 
+    # receives tf2 messages from the /tf topic and buffers them for 10 second (by default)
     tfBuffer = tf2_ros.Buffer()
 
+    tf2_ros.TransformListener(tfBuffer)
+
+    dt_to_fill_the_buffer = 1.0
+    print(f'Filling tf transform buffer for {dt_to_fill_the_buffer} seconds')
+    rospy.sleep(dt_to_fill_the_buffer)
+
     t0 = rospy.Time.now()
-    while not rospy.is_shutdown() and not t0:
-        t0 = rospy.Time.now()
-        rate.sleep()
-    
     while not rospy.is_shutdown():
         t = rospy.Time.now()
 
-        print('t')
-        print(t)
+        print('t', t)
 
         if LISTEN_TO_TF:
             try:
-                # add delay to make sure we are not extrapolating the tf lookup
-                trans = tfBuffer.lookup_transform(reference_frame, pose_frame, t - rospy.Duration(DELAY))
+                # Add delay to make sure we are not extrapolating the tf lookup
+                # Documentation is not clear about which transformation is retrieved by lookup_transform (target/source or source/target)
+                # After testing with T265 node, it seems it is T_wc, s.t. 
+                # w_vec = T_wc * c_vec
+                T_wc = tfBuffer.lookup_transform(world_frame, camera_pose_frame, t - rospy.Duration(DELAY_AVOID_EXTRAP))
                 x_r_local = pin.XYZQUATToSE3(
                     [
-                        trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z,
-                        trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z, trans.transform.rotation.w
+                        T_wc.transform.translation.x, T_wc.transform.translation.y, T_wc.transform.translation.z,
+                        T_wc.transform.rotation.x, T_wc.transform.rotation.y, T_wc.transform.rotation.z, T_wc.transform.rotation.w
                     ]
                 )
+
                 dx_r = np.zeros(6)
                 ddx_r = np.zeros(6)
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:

@@ -61,10 +61,10 @@ The parameters of each controller are defined in `config/controller_configs.yaml
 
 ## Realsense T265 demo with asynchronous MPC
 `roslaunch realsense2_camera demo_t265.launch`
-`roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized record_joints:=true`
-`roslaunch franka_gazebo panda.launch arm_id:=panda headless:=false use_gripper:=true`
-`ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node`
 `ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py`
+`roslaunch franka_gazebo panda.launch arm_id:=panda headless:=false use_gripper:=true`
+`roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized record_joints:=true`
+`ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node`
 
 # TODOLIST
 * Double check if `initialized` topic is streamed when using the real controller (not likely) 

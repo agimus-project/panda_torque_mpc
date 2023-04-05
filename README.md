@@ -13,6 +13,8 @@
 * Install ROS and other dependencies:  
 `mamba install ros-noetic-desktop-full catkin_tools ros-noetic-combined-robot-hw pinocchio tsid`
 
+# Other catkin packages to clone
+`git clone git@github.com:loco-3d/linear-feedback-controller-msgs.git`
 
 ## libfranka
 Check [compatibility](https://frankaemika.github.io/docs/compatibility.html "FCI-libfranka compatibily matrix") of your Franka Control Interface version to determine which libfranka version to install.

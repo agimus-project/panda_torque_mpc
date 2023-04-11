@@ -1,6 +1,3 @@
-// Copyright (c) 2017 Franka Emika GmbH
-// Use of this source code is governed by the Apache-2.0 license, see LICENSE
-// Adapted from panda_torque_mpc joint_impedance_example_controller
 
 #pragma once
 
@@ -9,17 +6,6 @@
 #include <vector>
 #include <math.h>
 #include <fstream>
-
-
-#include <pinocchio/fwd.hpp>
-#include <pinocchio/parsers/urdf.hpp>
-#include <pinocchio/algorithm/joint-configuration.hpp>
-#include <pinocchio/algorithm/kinematics.hpp>
-#include <pinocchio/algorithm/center-of-mass.hpp>
-#include <pinocchio/algorithm/centroidal.hpp>
-#include <pinocchio/algorithm/rnea.hpp>
-#include <pinocchio/algorithm/crba.hpp>
-#include <pinocchio/algorithm/frames.hpp>
 
 #include <controller_interface/multi_interface_controller.h>
 #include <hardware_interface/joint_command_interface.h>
@@ -67,16 +53,11 @@ namespace panda_torque_mpc
         double alpha_dq_filter_;
         bool saturate_dtau_;
         
-
         // Publishers
         franka_hw::TriggerRate rate_trigger_{1.0};
         realtime_tools::RealtimePublisher<JointValuesComparison> configurations_publisher_;
         realtime_tools::RealtimePublisher<JointValuesComparison> velocities_publisher_;
         realtime_tools::RealtimePublisher<JointValuesComparison> torques_publisher_;
-
-        // Pinocchio objects
-        pin::Model model_pin_;
-        pin::Data data_pin_;
 
         // input file streams and file path to read joint trajectory files
         std::ifstream fs_q_;

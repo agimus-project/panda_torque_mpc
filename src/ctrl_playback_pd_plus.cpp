@@ -101,23 +101,6 @@ namespace panda_torque_mpc
             ROS_ERROR_STREAM("CtrlPlaybackPDplus: Could not read parameter saturate_dtau");
         }
 
-        // Load panda model with pinocchio
-        std::string urdf_path;
-        if (!node_handle.getParam("urdf_path", urdf_path))
-        {
-            ROS_ERROR("CtrlPlaybackPDplus: Could not read parameter urdf_path");
-            return false;
-        }
-        pin::urdf::buildModel(urdf_path, model_pin_);
-        std::cout << "model name: " << model_pin_.name << std::endl;
-        data_pin_ = pin::Data(model_pin_);
-
-        if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
-        {
-            ROS_ERROR_STREAM("Problem when loading the robot urdf");
-            return false;
-        }
-
         ///////////////////
         // Claim interfaces
         ///////////////////
@@ -233,7 +216,6 @@ namespace panda_torque_mpc
 
     void CtrlPlaybackPDplus::update(const ros::Time &t, const ros::Duration &period)
     {
-        // ROS_INFO_STREAM("CtrlPlaybackPDplus::update t: " << t);
 
         // Retrieve current measured robot state
         franka::RobotState robot_state = franka_state_handle_->getRobotState(); // return a const& of RobotState object -> not going to be modified
@@ -255,7 +237,6 @@ namespace panda_torque_mpc
             i_line_++;
         }
 
-
         // Compute PD+ torque
         Vector7d tau_d = scale_ff_*tau_ff_ - Kp_*(q_m - q_r_) - Kd_*(dq_m - dq_r_);
 
@@ -266,14 +247,6 @@ namespace panda_torque_mpc
         // Compare torques sent at previous iteration with current desired torques, saturate if needed
         Vector7d tau_d_sat = saturate_dtau_ ? saturateTorqueRate(tau_d, tau_J_d, kDeltaTauMax_) : tau_d;
 
-        // !!!!!!!!!!!!!!!!!!!!!!!!!
-        // !!!!!!!!!!!!!!!!!!!!!!!!!
-        // !!!!!!!!!!!!!!!!!!!!!!!!!
-        // !!!!!!!!!!!!!!!!!!!!!!!!!
-        // !!!!!!!!!!!!!!!!!!!!!!!!!
-        // tau_d_sat = Vector7d::Zero();
-        // !!!!!!!!!!!!!!!!!!!!!!!!!
-        // !!!!!!!!!!!!!!!!!!!!!!!!!
 
         // Send Torque Command
         for (size_t i = 0; i < 7; ++i)

@@ -1,5 +1,4 @@
 
-// Adapted from panda_torque_mpc model_example_controller
 #pragma once
 
 #include <memory>

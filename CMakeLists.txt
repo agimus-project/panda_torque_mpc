@@ -5,24 +5,24 @@ project(panda_torque_mpc)
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
+  urdf
+  pluginlib
   controller_interface
+  hardware_interface
+  joint_limits_interface
+  realtime_tools
   dynamic_reconfigure
   eigen_conversions
   franka_hw
   franka_gripper
-  hardware_interface
-  joint_limits_interface
-  tf
-  tf_conversions
-  message_generation
-  pluginlib
-  realtime_tools
-  roscpp
-  rospy
-  urdf
   geometry_msgs
   visualization_msgs
   linear_feedback_controller_msgs
+  message_generation
+  tf
+  tf_conversions
   )
 
 find_package(Eigen3 REQUIRED)
@@ -34,7 +34,8 @@ find_package(pinocchio REQUIRED)
 find_package(tsid REQUIRED)
 find_package(crocoddyl REQUIRED)
 
-add_message_files(FILES
+add_message_files(
+  FILES
   JointValuesComparison.msg
   TaskPoseComparison.msg
   TaskTwistComparison.msg
@@ -103,6 +104,9 @@ target_link_libraries(panda_torque_mpc PUBLIC
   crocoddyl::crocoddyl
 )
 
+# Make sure that the messages are built before this target
+add_dependencies(panda_torque_mpc panda_torque_mpc_generate_messages_cpp)
+
 ##############################
 # Motion server crocoddyl node
 ##############################
@@ -120,3 +124,5 @@ target_include_directories(croccodyl_motion_server_node PUBLIC
   include
 )
 
+# Make sure that the messages are built before this target
+add_dependencies(croccodyl_motion_server_node panda_torque_mpc_generate_messages_cpp)

@@ -1,38 +1,44 @@
 # panda_torque_mpc
 ------------------  
 
-# Building the project (tested with Ubuntu 20.04.05 - ROS noetic)
+# Building
 ## conda/mamba env setup
 `mamba` is faster but you can use conda interchangeably.
 
 * Create environment:  
 `conda create -n panda_control python=3.9`
 `conda activate panda_control`
-* Add package channels:  
-`conda config --env --add channels conda-forge`    
-`conda config --env --add channels robostack-staging`  
 
 * Install ROS and other dependencies:  
-`mamba install compilers cmake pkg-config make ninja ros-noetic-desktop-full catkin_tools ros-noetic-combined-robot-hw pinocchio tsid`
+`mamba install compilers cmake pkg-config make ninja -c conda-forge`
 
-## Other catkin packages to clone
-`git clone git@github.com:loco-3d/linear-feedback-controller-msgs.git`
+* ROS stuff
+`mamba install ros-noetic-desktop ros-noetic-combined-robot-hw catkin_tools -c conda-forge -c robostack-staging`
 
-## libfranka
+* Robot control stuff
+`mamba install pinocchio tsid crocoddyl -c conda-forge`
+
+## Franka panda
+TLDR;  
+`mamba install ros-noetic-libfranka ros-noetic-franka-ros -c robostack-staging -c conda-forge`
+
+### libfranka
 Check [compatibility](https://frankaemika.github.io/docs/compatibility.html "FCI-libfranka compatibily matrix") of your Franka Control Interface version to determine which libfranka version to install.
 
 At CIIRC, FCI version == 4.2.2  --> libfranka version >= 0.9.1 < 0.10.0. `robostack` conda channel provides 9.2 version which requires python 3.9 to be installed (hence `python=3.9` when creating the conda env).   
-`mamba install ros-noetic-libfranka`
+`mamba install ros-noetic-libfranka -c robostack-staging -c conda-forge`
 
 ## Franka ROS
 ### From conda
-Simpler but cannot make small modifications to the example controllers  
-`mamba install ros-noetic-franka-ros`
+`mamba install ros-noetic-franka-ros -c robostack-staging -c conda-forge`
 
 ### From source
 In your catkin workspace src directory  
 `git clone git@github.com:frankaemika/franka_ros.git`  
 `catkin build franka_ros -DCMAKE_BUILD_TYPE=RELEASE`  
+
+## Other catkin packages to clone
+`git clone git@github.com:loco-3d/linear-feedback-controller-msgs.git`
 
 # Launch
 ## Simulation

@@ -81,6 +81,9 @@ namespace panda_torque_mpc {
             tstart = clock::now();
         }
 
+        /**
+        Return duration since object creation (or last .tic() call) in milliseconds
+        */
         double tac()
         {
             tend = clock::now();

@@ -16,7 +16,7 @@
 `mamba install ros-noetic-desktop ros-noetic-combined-robot-hw catkin_tools -c conda-forge -c robostack-staging`
 
 * Robot control stuff
-`mamba install pinocchio tsid crocoddyl -c conda-forge`
+`mamba install pinocchio tsid example-robot-data crocoddyl -c conda-forge`
 
 ## Franka panda
 TLDR;  
@@ -37,9 +37,16 @@ In your catkin workspace src directory
 `git clone git@github.com:frankaemika/franka_ros.git`  
 `catkin build franka_ros -DCMAKE_BUILD_TYPE=RELEASE`  
 
-## Other catkin packages to clone
+## Other packages to clone
 `git clone git@github.com:loco-3d/linear-feedback-controller-msgs.git`
 
+If you want higher performance with crocoddyl, install it from the source:
+```bash
+CROCO_INSTALL=<your/own/path>
+... TODO croco install ...  
+CMAKE_BUILD_PARALLEL_LEVEL=4 catkin build panda_torque_mpc -Dcrocoddyl_DIR=$CROCO_INSTALL/lib/cmake/crocoddyl/ -DCMAKE_BUILD_TYPE=RELEASE
+```
+## 
 # Launch
 ## Simulation
 In two different shells (change use_gripper according to which urdf model you use for control):  

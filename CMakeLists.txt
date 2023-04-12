@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.10)
 project(panda_torque_mpc)
 
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
@@ -46,62 +44,76 @@ generate_messages(DEPENDENCIES geometry_msgs)
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES panda_torque_mpc
+  LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS
+    roscpp
+    # rospy
+    urdf
+    pluginlib
     controller_interface
+    hardware_interface
+    joint_limits_interface
+    realtime_tools
     dynamic_reconfigure
     eigen_conversions
     franka_hw
     franka_gripper
-    hardware_interface
-    joint_limits_interface
-    tf
-    tf_conversions
-    message_runtime
-    pluginlib
-    realtime_tools
-    roscpp
-    urdf
     geometry_msgs
     visualization_msgs
     linear_feedback_controller_msgs
+    # message_generation
+    tf
+    tf_conversions
   DEPENDS Franka pinocchio tsid crocoddyl
 )
 
-##############
-# Main library
-##############
+###############
+# Utils library
+###############
+
+add_library(panda_torque_mpc_utils
+  src/crocoddyl_reaching.cpp
+)
+
+target_include_directories(panda_torque_mpc_utils PUBLIC
+  include
+)
+
+target_link_libraries(panda_torque_mpc_utils PUBLIC
+  Eigen3::Eigen
+  pinocchio::pinocchio 
+  pinocchio::pinocchio_headers
+  crocoddyl::crocoddyl
+)
+
+#######################
+# ROS control instances
+#######################
+
 add_library(panda_torque_mpc
   src/ctrl_model_pinocchio_vs_franka.cpp
   src/ctrl_log_update_dt.cpp
   src/ctrl_playback_pd_plus.cpp
   src/ctrl_joint_space_ID.cpp
   src/ctrl_task_space_ID.cpp
-  src/crocoddyl_reaching.cpp
   src/ctrl_mpc_croco.cpp
   src/ctrl_mpc_linearized.cpp
-)
-
-target_link_libraries(panda_torque_mpc PUBLIC
-  ${catkin_LIBRARIES}
-  ${Franka_LIBRARIES}
 )
 
 target_include_directories(panda_torque_mpc SYSTEM PUBLIC
   ${catkin_INCLUDE_DIRS}
   ${Franka_INCLUDE_DIRS}
-)
-
-target_include_directories(panda_torque_mpc PUBLIC
   include
 )
 
 target_link_libraries(panda_torque_mpc PUBLIC 
+  ${catkin_LIBRARIES}
+  ${Franka_LIBRARIES}
+  panda_torque_mpc_utils
   Eigen3::Eigen
   pinocchio::pinocchio 
   pinocchio::pinocchio_headers
   tsid::tsid
-  crocoddyl::crocoddyl
 )
 
 # Make sure that the messages are built before this target
@@ -113,14 +125,14 @@ add_dependencies(panda_torque_mpc panda_torque_mpc_generate_messages_cpp)
 add_executable(croccodyl_motion_server_node src/croccodyl_motion_server_node.cpp)
 
 target_link_libraries(croccodyl_motion_server_node PUBLIC
-  panda_torque_mpc
+  ${catkin_LIBRARIES}
+  panda_torque_mpc_utils
+  pinocchio::pinocchio 
+  pinocchio::pinocchio_headers
 )
 
 target_include_directories(croccodyl_motion_server_node SYSTEM PUBLIC
   ${catkin_INCLUDE_DIRS}
-)
-
-target_include_directories(croccodyl_motion_server_node PUBLIC
   include
 )
 

@@ -6,14 +6,16 @@
 `mamba` is faster but you can use conda interchangeably.
 
 * Create environment:  
-`conda create -n panda_control python=3.9`  
+`conda create -n panda_control python=3.9`
+`conda activate panda_control`
 * Add package channels:  
 `conda config --env --add channels conda-forge`    
 `conda config --env --add channels robostack-staging`  
-* Install ROS and other dependencies:  
-`mamba install ros-noetic-desktop-full catkin_tools ros-noetic-combined-robot-hw pinocchio tsid`
 
-# Other catkin packages to clone
+* Install ROS and other dependencies:  
+`mamba install compilers cmake pkg-config make ninja ros-noetic-desktop-full catkin_tools ros-noetic-combined-robot-hw pinocchio tsid`
+
+## Other catkin packages to clone
 `git clone git@github.com:loco-3d/linear-feedback-controller-msgs.git`
 
 ## libfranka
@@ -28,7 +30,7 @@ Simpler but cannot make small modifications to the example controllers
 `mamba install ros-noetic-franka-ros`
 
 ### From source
-In your catkin workspace src directory    
+In your catkin workspace src directory  
 `git clone git@github.com:frankaemika/franka_ros.git`  
 `catkin build franka_ros -DCMAKE_BUILD_TYPE=RELEASE`  
 

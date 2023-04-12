@@ -15,7 +15,7 @@ import tf2_ros
 
 from panda_torque_mpc.msg import PoseTaskGoal
 
-LISTEN_TO_TF = True
+LISTEN_TO_TF = False
 TOPIC_POSE_PUBLISHED = 'ee_pose_ref'
 
 FREQ = 100

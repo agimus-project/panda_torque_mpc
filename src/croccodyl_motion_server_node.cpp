@@ -241,7 +241,7 @@ namespace panda_torque_mpc
 
             TicTac tt_solve;
             croco_reaching_.ddp_->solve(xs_init, us_init, config_croco_.nb_iterations_max, false);
-            tt_solve.print_tac("Solve took (ms)");
+            tt_solve.print_tac("");
             // TODO: are get_k()[0] and get_us()[0] the same?
             // Vector7d tau_ff = croco_reaching_.ddp_->get_k()[0];
             Vector7d tau_ff = croco_reaching_.ddp_->get_us()[0];

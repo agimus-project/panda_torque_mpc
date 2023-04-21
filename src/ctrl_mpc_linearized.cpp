@@ -246,7 +246,7 @@ namespace panda_torque_mpc
 
         /////////////////////////////////////////////////////////////
         // Publish robot state
-        publish_robot_state(q_m, dq_m);
+        publish_robot_state(q_m, dq_m, t);
         /////////////////////////////////////////////////////////////
 
         /////////////////////////////////////////////////////////////
@@ -379,9 +379,10 @@ namespace panda_torque_mpc
         control_ref_from_ddp_node_received_ = true;
     }
 
-    void CtrlMpcLinearized::publish_robot_state(const Eigen::VectorXd &q_m, const Eigen::VectorXd &dq_m)
+    void CtrlMpcLinearized::publish_robot_state(const Eigen::VectorXd &q_m, const Eigen::VectorXd &dq_m, ros::Time t)
     {
         lfc_msgs::Sensor robot_sensor_msg;
+        robot_sensor_msg.header.stamp = t;
         lfc_msgs::Eigen::Sensor robot_sensor_eig;
         robot_sensor_eig.joint_state.position = q_m;
         robot_sensor_eig.joint_state.velocity = dq_m;

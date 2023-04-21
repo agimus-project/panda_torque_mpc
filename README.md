@@ -3,12 +3,18 @@
 Various torque controllers, building toward torque MPC of Panda manipulator. 
 
 # Building
-## conda/mamba env setup
 `mamba` is faster but you can use conda interchangeably.
+## conda/mamba env fast setup
+`conda create -n panda_control python=3.9`
+`conda activate panda_control`
+`mamba env update --file environment.yaml`
 
+## conda/mamba env manual setup
 * Create environment:  
 `conda create -n panda_control python=3.9`
 `conda activate panda_control`
+`conda config --add channels conda-forge`
+`conda config --add channels robostack-staging`
 
 * Install build tools:  
 `mamba install compilers cmake pkg-config make ninja -c conda-forge`
@@ -91,7 +97,7 @@ The parameters of each controller are defined in `config/controller_configs.yaml
 * `ctrl_mpc_croco`: synchronously solving of OCP using crocoddyl and sending the first torque command -> limited to very short horizons to avoid breaking real time constraint 
 * `ctrl_mpc_linearized`: asynchronous execution a linearized control reference from OCP solver running in another node (croccodyl_motion_server_node) using Ricatti gains -> very few computation, no update() skipped
 
-## Realsense T265 demo (launch in this order in different shells)
+## Realsense T265 demo with TSID (launch in this order in different shells)
 ```bash
 roslaunch realsense2_camera demo_t265.launch  
 ROS_NAMESPACE=/ctrl_task_space_ID rosrun panda_torque_mpc pose_publisher.py  
@@ -103,9 +109,9 @@ roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_task_space_ID
 ```bash
 roslaunch realsense2_camera demo_t265.launch
 roslaunch franka_gazebo panda.launch arm_id:=panda headless:=false use_gripper:=true
-roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized record_joints:=tru
+roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized record_joints:=true
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
+# ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
 ```
 
 ## Realsense T265 demo with asynchronous MPC (real)
@@ -113,7 +119,7 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
 roslaunch realsense2_camera demo_t265.launch
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=192.168.102.11 load_gripper:=true robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
+# ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
 ```
 
 # TODOLIST

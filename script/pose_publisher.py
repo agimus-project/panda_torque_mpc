@@ -15,7 +15,8 @@ import tf2_ros
 
 from panda_torque_mpc.msg import PoseTaskGoal
 
-LISTEN_TO_TF = False
+LISTEN_TO_TF = True
+VISUAL_SERVOING = False
 TOPIC_POSE_PUBLISHED = 'ee_pose_ref'
 
 FREQ = 100
@@ -26,7 +27,9 @@ VERBOSE = True
 camera_pose_frame = "camera_pose_frame";  # moving "camera=c" frame
 world_frame = "camera_odom_frame";  # static inertial "world=w" frame
 
-
+# We want T_c_o
+camera_eye_frame = "camera_eye_frame"
+object_frame = "object_frame"
 
 def compute_sinusoid_pose_delta_reference(delta_nu, period_nu, t):
 
@@ -106,7 +109,10 @@ def talker():
                 # Documentation is not clear about which transformation is retrieved by lookup_transform (target/source or source/target)
                 # After testing with T265 node, it seems it is T_wc, s.t. 
                 # w_vec = T_wc * c_vec
-                T_wc = tfBuffer.lookup_transform(world_frame, camera_pose_frame, t - rospy.Duration(DELAY_AVOID_EXTRAP))
+                if VISUAL_SERVOING:
+                    T_wc = tfBuffer.lookup_transform(camera_eye_frame, object_frame, t - rospy.Duration(DELAY_AVOID_EXTRAP))
+                else:
+                    T_wc = tfBuffer.lookup_transform(world_frame, camera_pose_frame, t - rospy.Duration(DELAY_AVOID_EXTRAP))
                 x_r_local = pin.XYZQUATToSE3(
                     [
                         T_wc.transform.translation.x, T_wc.transform.translation.y, T_wc.transform.translation.z,

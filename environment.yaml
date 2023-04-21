@@ -1,0 +1,20 @@
+channels:
+  - robostack-staging
+  - conda-forge
+dependencies:
+  - python=3.9
+  - compilers 
+  - cmake 
+  - pkg-config 
+  - make 
+  - ninja
+  - ros-noetic-desktop 
+  - ros-noetic-combined-robot-hw 
+  - catkin_tools 
+  - ros-noetic-libfranka 
+  - ros-noetic-franka-ros
+  - ros-noetic-realsense2-camera
+  - pinocchio 
+  - tsid 
+  - example-robot-data 
+  - crocoddyl

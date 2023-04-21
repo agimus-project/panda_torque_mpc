@@ -131,7 +131,7 @@ namespace panda_torque_mpc
 
         void callback_motion_server(const linear_feedback_controller_msgs::Control&);
 
-        void publish_robot_state(const Eigen::VectorXd &q_m, const Eigen::VectorXd &dq_m);
+        void publish_robot_state(const Eigen::VectorXd &q_m, const Eigen::VectorXd &dq_m, ros::Time t);
     };
 
 } // namespace panda_torque_mpc

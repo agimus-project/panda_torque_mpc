@@ -241,7 +241,7 @@ namespace panda_torque_mpc
         // Remove gravity to send the torques to the robot
         tau_d -= pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);
 
-        std::cout << "Sent tau_d: " << tau_d.transpose() << std::endl;
+        // std::cout << "Sent tau_d: " << tau_d.transpose() << std::endl;
         tictac_comp.print_tac("compute_desired_torque took (ms): ");
 
         /////////////////////////////////////////////////////////////

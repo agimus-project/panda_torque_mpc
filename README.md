@@ -108,18 +108,26 @@ roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_task_space_ID
 ## Realsense T265 demo with asynchronous MPC (simu)
 ```bash
 roslaunch realsense2_camera demo_t265.launch
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
 roslaunch franka_gazebo panda.launch arm_id:=panda headless:=false use_gripper:=true
 roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized record_joints:=true
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
-# ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
 ```
 
 ## Realsense T265 demo with asynchronous MPC (real)
 ```bash
 roslaunch realsense2_camera demo_t265.launch
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=192.168.102.11 load_gripper:=true robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
-# ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
+```
+
+## Realsense VISUAL SERVOING demo with asynchronous MPC (real)
+```bash
+roslaunch realsense2_camera rs_camera.launch
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --visual_servoing
+roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=192.168.102.11 load_gripper:=true robot:=panda
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
 ```
 
 # TODOLIST

@@ -11,17 +11,33 @@ import numpy as np
 import pinocchio as pin
 import rospy
 import tf2_ros
-
+import argparse
 
 from panda_torque_mpc.msg import PoseTaskGoal
 
+
+parser = argparse.ArgumentParser(
+                    prog='pose_publisher',
+                    description='Republishes transformation from tf as pose goal',
+                    epilog='...')
+parser.add_argument('-s', '--visual_servoing', action='store_true')  # on/off flag
+args = parser.parse_args()
+
+
 LISTEN_TO_TF = True
-VISUAL_SERVOING = False
-TOPIC_POSE_PUBLISHED = 'ee_pose_ref'
+VISUAL_SERVOING = args.visual_servoing
+if VISUAL_SERVOING:
+    TOPIC_POSE_PUBLISHED = 'ee_pose_ref_visual_servoing'
+    DELAY_AVOID_EXTRAP = 0.2
+else:
+    TOPIC_POSE_PUBLISHED = 'ee_pose_ref'
+    DELAY_AVOID_EXTRAP = 0.05
+
+print(args.visual_servoing)
+print(TOPIC_POSE_PUBLISHED)
 
 FREQ = 100
 DT = 1/FREQ
-DELAY_AVOID_EXTRAP = 0.05
 VERBOSE = True
 # we want T_wc
 camera_pose_frame = "camera_pose_frame";  # moving "camera=c" frame
@@ -30,6 +46,19 @@ world_frame = "camera_odom_frame";  # static inertial "world=w" frame
 # We want T_c_o
 camera_eye_frame = "camera_eye_frame"
 object_frame = "object_frame"
+
+
+
+# Documentation is not clear about which transformation is retrieved by lookup_transform (target/source or source/target)
+# After testing with T265 node, it seems it is T_wc, s.t. 
+# w_vec = T_wc * c_vec
+if VISUAL_SERVOING:
+    
+    base_frame, target_frame = camera_eye_frame, object_frame
+else:  # T265
+    base_frame, target_frame = world_frame, camera_pose_frame
+
+
 
 def compute_sinusoid_pose_delta_reference(delta_nu, period_nu, t):
 
@@ -106,19 +135,17 @@ def talker():
         if LISTEN_TO_TF:
             try:
                 # Add delay to make sure we are not extrapolating the tf lookup
-                # Documentation is not clear about which transformation is retrieved by lookup_transform (target/source or source/target)
-                # After testing with T265 node, it seems it is T_wc, s.t. 
-                # w_vec = T_wc * c_vec
-                if VISUAL_SERVOING:
-                    T_wc = tfBuffer.lookup_transform(camera_eye_frame, object_frame, t - rospy.Duration(DELAY_AVOID_EXTRAP))
-                else:
-                    T_wc = tfBuffer.lookup_transform(world_frame, camera_pose_frame, t - rospy.Duration(DELAY_AVOID_EXTRAP))
+                # T_base_target
+                T_bt = tfBuffer.lookup_transform(base_frame, target_frame, t - rospy.Duration(DELAY_AVOID_EXTRAP))
+
                 x_r_local = pin.XYZQUATToSE3(
                     [
-                        T_wc.transform.translation.x, T_wc.transform.translation.y, T_wc.transform.translation.z,
-                        T_wc.transform.rotation.x, T_wc.transform.rotation.y, T_wc.transform.rotation.z, T_wc.transform.rotation.w
+                        T_bt.transform.translation.x, T_bt.transform.translation.y, T_bt.transform.translation.z,
+                        T_bt.transform.rotation.x, T_bt.transform.rotation.y, T_bt.transform.rotation.z, T_bt.transform.rotation.w
                     ]
                 )
+
+                # print(x_r_local)
 
                 dx_r = np.zeros(6)
                 ddx_r = np.zeros(6)

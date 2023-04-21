@@ -113,7 +113,8 @@ namespace panda_torque_mpc
             control_pub_ = nh.advertise<lfc_msgs::Control>(motion_server_control_topic_pub, 1);
             sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_sensor, this);
             pose_ref_t265_sub_ = nh.subscribe(ee_pose_ref_topic_sub, 10, &CrocoMotionServer::callback_pose_ref_t265, this);
-            pose_ref_tracker_sub_ = nh.subscribe(ee_pose_ref_topic_sub, 10, &CrocoMotionServer::callback_pose_ref_tracker, this);
+            std::string ee_pose_ref_visual_servoing_topic_sub = "ee_pose_ref_visual_servoing"; 
+            pose_ref_tracker_sub_ = nh.subscribe(ee_pose_ref_visual_servoing_topic_sub, 10, &CrocoMotionServer::callback_pose_ref_tracker, this);
 
             // tf2
             // tf_listener_ = tf2_ros::TransformListener(tf_buffer_);
@@ -130,12 +131,15 @@ namespace panda_torque_mpc
             T_e_c_ = pin::SE3(quat_e_c, p_e_c);
             T_c_e_ = T_e_c_.inverse();
             // Pose reference
-            pin::SE3 T_o_c_ref_;
-            // TODO
-            // TODO
-            // TODO
-            // TODO
-            // TODO
+
+            Eigen::Vector3d p_c_o; p_c_o << 0.0, 0.0, 0.5;
+            Eigen::Matrix3d R_c_o; 
+            R_c_o << 0,  1,  0,
+                     0,  0.,-1,
+                    -1,  0,  0;
+
+            pin::SE3 T_c_o_ref(R_c_o, p_c_o);
+            T_o_c_ref_ = T_c_o_ref.inverse();
         }
 
         void callback_pose_ref_t265(const PoseTaskGoal &msg)
@@ -148,6 +152,8 @@ namespace panda_torque_mpc
             {
                 return;
             }
+
+            std::cout << "callback_pose_ref_t265 " << std::endl;
 
             Eigen::Vector3d p_bt;
             p_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
@@ -194,28 +200,31 @@ namespace panda_torque_mpc
             pin::SE3 T_b_e;
             T_b_e_rtbox_.get(T_b_e);
 
-            // T_c_e_, T_e_c_ TODO
-            // T_o_c_ref_ TODO
             pin::SE3 T_b_c_ref = T_b_e * T_e_c_ * T_c_o_meas * T_o_c_ref_;
             pin::SE3 T_b_e_ref = T_b_c_ref * T_c_e_;
 
-            // if (!first_pose_ref_msg_received_)
-            // {
-            //     T_w_t0_ = T_w_t;
-            //     first_pose_ref_msg_received_ = true;
-            // }
+            // !!!!!!!!!!!!!
+            // !!!!!!!!!!!!!
+            // Test without also
+            // T_b_e_ref.rotation() = T_b_e0_.rotation();
+            // !!!!!!!!!!!!!
+            // !!!!!!!!!!!!!
+            // !!!!!!!!!!!!!
 
-            // // Cf ctrl_task_space_ID for instance for why this choice
-            // pin::SE3 T_e0_e = pin::SE3::Identity();
-            // auto R_e0_b = T_b_e0_.rotation().transpose();
-            // T_e0_e.translation() = R_e0_b * (T_w_t.translation() - T_w_t0_.translation());
 
-            // // Set reference pose
-            // // compose initial pose with relative/local transform
-            // pin::SE3 T_b_e_ref = T_b_e0_ * T_e0_e;
+            std::cout << "T_b_e0_" << std::endl;
+            std::cout << T_b_e0_ << std::endl;
+            std::cout << "T_b_e_ref" << std::endl;
+            std::cout << T_b_e_ref << std::endl;
 
             // RT safe setting
             T_b_e_ref_rtbox_.set(T_b_e_ref);
+
+
+            if (!first_pose_ref_msg_received_)
+            {
+                first_pose_ref_msg_received_ = true;
+            }
         }
 
 

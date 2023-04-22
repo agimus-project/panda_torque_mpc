@@ -87,6 +87,9 @@ namespace panda_torque_mpc
         bool pose_frames_not_aligned_;
         realtime_tools::RealtimeBox<pin::SE3> x_r_rtbox_;
 
+        // Solve state machine
+        bool first_solve_;
+
         // Pinocchio objects
         pin::Model model_pin_;
         pin::Data data_pin_;

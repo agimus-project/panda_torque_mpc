@@ -71,6 +71,9 @@ Also make sure crocoddyl is not in your environment otherwise it will be used.
 Then:
 `CMAKE_BUILD_PARALLEL_LEVEL=4 catkin build panda_torque_mpc -Dcrocoddyl_DIR=$CROCO_INSTALL/lib/cmake/crocoddyl/ -DCMAKE_BUILD_TYPE=RELEASE`
 
+## Build catkin package
+`CMAKE_BUILD_PARALLEL_LEVEL=4 catkin build panda_torque_mpc -DCMAKE_BUILD_TYPE=RELEASE`
+
 ## 
 # Launch
 ## Simulation

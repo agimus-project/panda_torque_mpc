@@ -522,18 +522,13 @@ namespace panda_torque_mpc
          * - e: "end" effector of the robot
         */
 
-        std::cout << "CtrlTaskSpaceID::pose_callback PoseTaskGoal:" << std::endl;
-        std::cout << msg.pose.position.x << std::endl;
-        std::cout << msg.pose.position.y << std::endl;
-        std::cout << msg.pose.position.z << std::endl;
-        std::cout << msg.pose.orientation.x << std::endl;
-        std::cout << msg.pose.orientation.y << std::endl;
-        std::cout << msg.pose.orientation.z << std::endl;
-        std::cout << msg.pose.orientation.w << std::endl;
 
         Eigen::Vector3d t_bt; t_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
-        Eigen::Quaterniond quat_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
+        Eigen::Quaterniond quat_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);  // w, x, y, z with this contructor
         pin::SE3 T_w_t(quat_bt, t_bt);
+
+        // std::cout << "CtrlTaskSpaceID::pose_callback T_w_t:" << std::endl;
+        // std::cout << T_w_t << std::endl;
 
         if (pose_frames_not_aligned_)
         {

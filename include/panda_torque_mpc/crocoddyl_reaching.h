@@ -11,6 +11,8 @@
 #include <crocoddyl/core/action-base.hpp>
 #include <crocoddyl/core/solvers/fddp.hpp>
 
+#include "panda_torque_mpc/common.h"
+
 namespace pin = pinocchio;
 
 namespace panda_torque_mpc
@@ -22,6 +24,7 @@ namespace panda_torque_mpc
         size_t nb_iterations_max;
 
         std::string ee_frame_name;
+        bool reference_is_placement = false;
 
         Eigen::Matrix<double, 7, 1> armature;
 
@@ -47,20 +50,30 @@ namespace panda_torque_mpc
 
         CrocoddylReaching(pin::Model _model_pin, CrocoddylConfig _config);
 
-        void set_ee_ref(Eigen::Vector3d trans);
+        void set_ee_ref_translation(Eigen::Vector3d trans);
+        void set_ee_ref_placement(pin::SE3 placement);
 
         void set_posture_ref(Eigen::VectorXd x0);
-
-        boost::shared_ptr<crocoddyl::ActionModelAbstract> terminal_IAM_;
-        std::vector<boost::shared_ptr<crocoddyl::ActionModelAbstract>> running_IAMs_;
 
         boost::shared_ptr<crocoddyl::SolverFDDP> ddp_;
         CrocoddylConfig config_;
 
-        std::string goal_cost_name_;
+        std::string goal_cost_translation_name_;
+        std::string goal_cost_placement_name_;
+        std::string state_reg_cost_name_;
+        std::string ctrl_reg_cost_name_;
+        
         // safe guards
         bool goal_translation_set_;
+        bool goal_placement_set_;
         bool posture_set_;
+
+
+    bool valid_pbe();
+    bool solve(std::vector<Eigen::Matrix<double, -1, 1>> xs_init, std::vector<Eigen::Matrix<double, -1, 1>> us_init);
+    Vector7d get_tau_ff() const;
+    Eigen::MatrixXd get_ricatti_mat() const;
+
     };
 
 } // namespace panda_torque_mpc

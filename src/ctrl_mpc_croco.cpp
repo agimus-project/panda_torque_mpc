@@ -204,6 +204,9 @@ namespace panda_torque_mpc
         dq_filtered_ = Vector7d::Zero();
         pose_frames_not_aligned_ = true;
 
+        // State machine 
+        first_solve_ = true;
+
         return true;
     }
 
@@ -244,6 +247,7 @@ namespace panda_torque_mpc
         {
             compute_sinusoid_pose_reference(delta_nu_, period_nu_, T_b_e0_, Dt, x_r, dx_r, ddx_r);
             x_r_rtbox_.set(x_r);
+            croco_reaching_.set_ee_ref_translation(x_r.translation());
         }
 
         // Retrieve current measured robot state
@@ -387,11 +391,7 @@ namespace panda_torque_mpc
         std::vector<Eigen::Matrix<double, -1, 1>> xs_init;
         std::vector<Eigen::Matrix<double, -1, 1>> us_init;
 
-        // !!!!!!!!!!!!!!!
-        // goal_translation_set_ is used to detect if a problem has been already solved
-        // A bit werid
-        // !!!!!!!!!!!!!!!
-        if (!croco_reaching_.goal_translation_set_)
+        if (first_solve_)
         {
             // if first occurence, use a sensible prior (no movement and gravity compensation)
             xs_init.reserve(config_croco_.T);
@@ -404,6 +404,8 @@ namespace panda_torque_mpc
                 us_init.push_back(tau_grav);
             }
             xs_init.push_back(x_m);
+
+            first_solve_ = false;
         }
         else
         {
@@ -421,11 +423,10 @@ namespace panda_torque_mpc
 
         // Set initial state and end-effector ref
         croco_reaching_.ddp_->get_problem()->set_x0(x_m);
-        croco_reaching_.set_ee_ref(x_r.translation());
 
-        croco_reaching_.ddp_->solve(xs_init, us_init, conf.nb_iterations_max, false);
+        croco_reaching_.solve(xs_init, us_init);
 
-        Vector7d tau_d = croco_reaching_.ddp_->get_us()[0] - tau_grav;
+        Vector7d tau_d = croco_reaching_.get_tau_ff() - tau_grav;
 
         return tau_d;
     }
@@ -443,19 +444,14 @@ namespace panda_torque_mpc
          * - e: "end" effector of the robot
          */
 
-        std::cout << "CtrlMpcCroco::pose_callback PoseTaskGoal:" << std::endl;
-        std::cout << msg.pose.position.x << std::endl;
-        std::cout << msg.pose.position.y << std::endl;
-        std::cout << msg.pose.position.z << std::endl;
-        std::cout << msg.pose.orientation.x << std::endl;
-        std::cout << msg.pose.orientation.y << std::endl;
-        std::cout << msg.pose.orientation.z << std::endl;
-        std::cout << msg.pose.orientation.w << std::endl;
 
         Eigen::Vector3d t_bt;
         t_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
         Eigen::Quaterniond quat_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
         pin::SE3 T_w_t(quat_bt, t_bt);
+        
+        std::cout << "CtrlMpcCroco::pose_callback PoseTaskGoal T_w_t:" << std::endl;
+        std::cout << T_w_t << std::endl;
 
         if (pose_frames_not_aligned_)
         {

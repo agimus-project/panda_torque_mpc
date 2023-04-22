@@ -43,12 +43,15 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<std::string>(nh, arm_id, "arm_id") && params_success;
 
             // Croco params
-            int nb_shooting_nodes;
+            int nb_shooting_nodes, nb_iterations_max;
             double dt_ocp, w_frame_running, w_frame_terminal, w_x_reg_running, w_x_reg_terminal, scale_q_vs_v_reg, w_u_reg_running;
             std::vector<double> armature, diag_u_reg_running;
+            bool reference_is_placement;
 
             params_success = get_param_error_tpl<int>(nh, nb_shooting_nodes, "nb_shooting_nodes") && params_success;
             params_success = get_param_error_tpl<double>(nh, dt_ocp, "dt_ocp") && params_success;
+            params_success = get_param_error_tpl<int>(nh, nb_iterations_max, "nb_iterations_max") && params_success;
+            params_success = get_param_error_tpl<bool>(nh, reference_is_placement, "reference_is_placement") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_frame_running, "w_frame_running") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_frame_terminal, "w_frame_terminal") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_x_reg_running, "w_x_reg_running") && params_success;
@@ -58,12 +61,10 @@ namespace panda_torque_mpc
 
             params_success = get_param_error_tpl<std::vector<double>>(nh, armature, "armature",
                                                                       [](std::vector<double> v)
-                                                                      { return v.size() == 7; }) &&
-                             params_success;
+                                                                      { return v.size() == 7; }) && params_success;
             params_success = get_param_error_tpl<std::vector<double>>(nh, diag_u_reg_running, "diag_u_reg_running",
                                                                       [](std::vector<double> v)
-                                                                      { return v.size() == 7; }) &&
-                             params_success;
+                                                                      { return v.size() == 7; }) && params_success;
 
             // Load panda model with pinocchio
             std::string urdf_path;
@@ -96,7 +97,9 @@ namespace panda_torque_mpc
             /////////////////////////////////////////////////
             config_croco_.T = nb_shooting_nodes;
             config_croco_.dt_ocp = dt_ocp;
+            config_croco_.nb_iterations_max = nb_iterations_max;
             config_croco_.ee_frame_name = ee_frame_pin_;
+            config_croco_.reference_is_placement = reference_is_placement;
             config_croco_.w_frame_running = w_frame_running;
             config_croco_.w_frame_terminal = w_frame_terminal;
             config_croco_.w_x_reg_running = w_x_reg_running;
@@ -167,9 +170,23 @@ namespace panda_torque_mpc
             }
 
             // Cf ctrl_task_space_ID for instance for why this choice
+            // TRANSLATION ref
             pin::SE3 T_e0_e = pin::SE3::Identity();
             auto R_e0_b = T_b_e0_.rotation().transpose();
             T_e0_e.translation() = R_e0_b * (T_w_t.translation() - T_w_t0_.translation());
+
+            // // ROTATION ref  --> NOPE
+            // Eigen::Matrix3d R_w_t0 = T_w_t0_.rotation();
+            // Eigen::Matrix3d R_e0_t0 = R_e0_b* R_w_t0;
+            // Eigen::Matrix3d R_t0_t = R_w_t0.transpose() * T_w_t.rotation();
+            // T_e0_e.rotation() = R_e0_t0 * R_t0_t;
+
+            // std::cout << "\n\nYOOOOOOOO" << std::endl;
+            // std::cout << "R_w_t0\n" << R_w_t0 << std::endl;
+            // std::cout << "R_e0_b\n" << R_e0_b << std::endl;
+            // std::cout << "T_w_t\n" << T_w_t << std::endl;
+            // std::cout << "R_t0_t\n" << R_t0_t << std::endl;
+            // std::cout << "T_e0_e.rotation()\n" << T_e0_e.rotation() << std::endl;
 
             // Set reference pose
             // compose initial pose with relative/local transform
@@ -384,23 +401,33 @@ namespace panda_torque_mpc
 
             // Set initial state and end-effector ref
             croco_reaching_.ddp_->get_problem()->set_x0(current_x);
-            croco_reaching_.set_ee_ref(T_b_e_ref.translation());
+            if (config_croco_.reference_is_placement)
+            {
+                // std::cout << "config_croco_.reference_is_placement\n" << T_b_e_ref << std::endl;
+                // std::cout << "T_b_e_ref\n" << T_b_e_ref << std::endl;
+                // std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
+                croco_reaching_.set_ee_ref_placement(T_b_e_ref);
+            }
+            else
+            {
+                // std::cout << "config_croco_.reference_is_NOOOOOOT_placement" << std::endl;
+                // std::cout << "T_b_e_ref\n" << T_b_e_ref << std::endl;
+                // std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
+                croco_reaching_.set_ee_ref_translation(T_b_e_ref.translation());
+            }
             croco_reaching_.set_posture_ref(x_init);
 
             TicTac tt_solve;
-            croco_reaching_.ddp_->solve(xs_init, us_init, config_croco_.nb_iterations_max, false);
+            croco_reaching_.solve(xs_init, us_init);
             tt_solve.print_tac("");
-            // TODO: are get_k()[0] and get_us()[0] the same?
-            // Vector7d tau_ff = croco_reaching_.ddp_->get_k()[0];
-            Vector7d tau_ff = croco_reaching_.ddp_->get_us()[0];
             //////////////////////////////////////
 
             // Fill and send control message
             lfc_msgs::Eigen::Control ctrl_eig;
             ctrl_eig.initial_state.joint_state.position = q;
             ctrl_eig.initial_state.joint_state.velocity = v;
-            ctrl_eig.feedforward = tau_ff;
-            ctrl_eig.feedback_gain = croco_reaching_.ddp_->get_K()[0];
+            ctrl_eig.feedforward = croco_reaching_.get_tau_ff();
+            ctrl_eig.feedback_gain = croco_reaching_.get_ricatti_mat();
             lfc_msgs::Control ctrl_msg;
             lfc_msgs::controlEigenToMsg(ctrl_eig, ctrl_msg);
             control_pub_.publish(ctrl_msg);

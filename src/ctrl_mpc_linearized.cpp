@@ -367,10 +367,10 @@ namespace panda_torque_mpc
         K_ricatti_rtbox_.set(K_ricatti);
         //////////////////////////
 
-        std::cout << "\n/// callback_motion_server: " << std::endl;
-        std::cout << "x0_mpc: " << x0_mpc.transpose() << std::endl;
-        std::cout << "u0_mpc: " << u0_mpc.transpose() << std::endl;
-        std::cout << "K_ricatti_: \n" << K_ricatti << std::endl;
+        // std::cout << "\n/// callback_motion_server: " << std::endl;
+        // std::cout << "x0_mpc: " << x0_mpc.transpose() << std::endl;
+        // std::cout << "u0_mpc: " << u0_mpc.transpose() << std::endl;
+        // std::cout << "K_ricatti_: \n" << K_ricatti << std::endl;
 
         if (!control_ref_from_ddp_node_received_)
         {

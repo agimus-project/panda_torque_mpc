@@ -46,6 +46,7 @@ namespace panda_torque_mpc
             int nb_shooting_nodes, nb_iterations_max;
             double dt_ocp, w_frame_running, w_frame_terminal, w_x_reg_running, w_x_reg_terminal, scale_q_vs_v_reg, w_u_reg_running;
             std::vector<double> armature, diag_u_reg_running;
+            std::vector<double> pose_e_c, pose_c_o_ref;  // px,py,pz, qx,qy,qz,qw
             bool reference_is_placement;
 
             params_success = get_param_error_tpl<int>(nh, nb_shooting_nodes, "nb_shooting_nodes") && params_success;
@@ -59,12 +60,23 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<double>(nh, scale_q_vs_v_reg, "scale_q_vs_v_reg") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_u_reg_running, "w_u_reg_running") && params_success;
 
+            params_success = get_param_error_tpl<double>(nh, w_u_reg_running, "w_u_reg_running") && params_success;
+
+
             params_success = get_param_error_tpl<std::vector<double>>(nh, armature, "armature",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 7; }) && params_success;
             params_success = get_param_error_tpl<std::vector<double>>(nh, diag_u_reg_running, "diag_u_reg_running",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 7; }) && params_success;
+
+            params_success = get_param_error_tpl<std::vector<double>>(nh, pose_e_c, "pose_e_c",
+                                                                      [](std::vector<double> v)
+                                                                      { return v.size() == 7; }) && params_success;
+            params_success = get_param_error_tpl<std::vector<double>>(nh, pose_c_o_ref, "pose_c_o_ref",
+                                                                      [](std::vector<double> v)
+                                                                      { return v.size() == 7; }) && params_success;
+
 
             // Load panda model with pinocchio
             std::string urdf_path;
@@ -126,23 +138,12 @@ namespace panda_torque_mpc
             first_sensor_msg_received_ = false;
             first_pose_ref_msg_received_ = false;
             first_solve_ = true;
-
-            // Visual servoing only
-            // Camera eye in end calibration T_pandalink8_cameracolor
-            Eigen::Vector3d p_e_c; p_e_c << 0.007, -0.057, 0.07;
-            Eigen::Quaterniond quat_e_c(0.92388, 0.0, 0.0, 0.382); quat_e_c.normalize(); // w x y z with this constructor...
-            T_e_c_ = pin::SE3(quat_e_c, p_e_c);
+            
+            T_e_c_ = XYZQUATToSE3(pose_e_c);
             T_c_e_ = T_e_c_.inverse();
-            // Pose reference
+            T_c_o_ref_ = XYZQUATToSE3(pose_c_o_ref);
+            T_o_c_ref_ = T_c_o_ref_.inverse();
 
-            Eigen::Vector3d p_c_o; p_c_o << 0.0, 0.0, 0.5;
-            Eigen::Matrix3d R_c_o; 
-            R_c_o << 0,  1,  0,
-                     0,  0.,-1,
-                    -1,  0,  0;
-
-            pin::SE3 T_c_o_ref(R_c_o, p_c_o);
-            T_o_c_ref_ = T_c_o_ref.inverse();
         }
 
         void callback_pose_ref_t265(const PoseTaskGoal &msg)
@@ -209,10 +210,18 @@ namespace panda_torque_mpc
                 return;
             }
 
+            std::cout << "callback_pose_ref_tracker " << std::endl;
+
+
             Eigen::Vector3d p_co;
             p_co << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
             Eigen::Quaterniond quap_co(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
             pin::SE3 T_c_o_meas(quap_co, p_co);
+            pin::SE3 T_o_c_meas = T_c_o_meas.inverse();
+
+            std::cout << "\n\n\n\n\ncallback_pose_ref_tracker" << std::endl;
+            std::cout << "T_c_o_meas\n" << T_c_o_meas << std::endl;
+            std::cout << "T_c_o_ref_\n" << T_c_o_ref_ << std::endl;
 
             pin::SE3 T_b_e;
             T_b_e_rtbox_.get(T_b_e);
@@ -231,8 +240,11 @@ namespace panda_torque_mpc
 
             std::cout << "T_b_e0_" << std::endl;
             std::cout << T_b_e0_ << std::endl;
+            std::cout << "T_b_e" << std::endl;
+            std::cout << T_b_e << std::endl;
             std::cout << "T_b_e_ref" << std::endl;
             std::cout << T_b_e_ref << std::endl;
+
 
             // RT safe setting
             T_b_e_ref_rtbox_.set(T_b_e_ref);
@@ -266,7 +278,7 @@ namespace panda_torque_mpc
         //         ////////////////
         //         // VISUAL SERVOING DEMO
         //         ////////////////
-        //         geometry_msgs::TransformStamped msg = tf_buffer_.lookupTransform(camera_eye_frame_, object_frame_, t_sensor_ - delay);
+        //         geometry_msgs::TransformStamped msg = tf_buffer_.lookupTransform(camera_color_optical_frame_, object_frame_, t_sensor_ - delay);
         //         auto tr = msg.transform;
 
         //         // TODOOOOOOOOOOOOOOOOO
@@ -410,9 +422,9 @@ namespace panda_torque_mpc
             }
             else
             {
-                // std::cout << "config_croco_.reference_is_NOOOOOOT_placement" << std::endl;
-                // std::cout << "T_b_e_ref\n" << T_b_e_ref << std::endl;
-                // std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
+                std::cout << "config_croco_.reference_is_NOOOOOOT_placement" << std::endl;
+                std::cout << "T_b_e_ref\n" << T_b_e_ref << std::endl;
+                std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
                 croco_reaching_.set_ee_ref_translation(T_b_e_ref.translation());
             }
             croco_reaching_.set_posture_ref(x_init);
@@ -447,6 +459,7 @@ namespace panda_torque_mpc
         pin::SE3 T_c_e_;
         // Pose reference
         pin::SE3 T_o_c_ref_;
+        pin::SE3 T_c_o_ref_;
 
 
         // pose ref callback
@@ -487,7 +500,7 @@ namespace panda_torque_mpc
         std::string world_frame_ = "camera_odom_frame";  // static inertial "world=w" frame    
         std::string camera_pose_frame_ = "camera_pose_frame";  // moving "camera=c" frame
         // camera2object from icg (eye in hand case)
-        std::string camera_eye_frame_ = "camera_eye_frame";
+        std::string camera_color_optical_frame_ = "camera_color_optical_frame";
         std::string object_frame_ = "object_frame";
 
         // DEMO mode

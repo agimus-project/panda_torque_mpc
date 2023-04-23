@@ -29,7 +29,8 @@ LISTEN_TO_TF = not args.compute_sinusoid
 VISUAL_SERVOING = args.visual_servoing
 if VISUAL_SERVOING:
     TOPIC_POSE_PUBLISHED = 'ee_pose_ref_visual_servoing'
-    DELAY_AVOID_EXTRAP = 0.2
+    # DELAY_AVOID_EXTRAP = 0.06  # ICG
+    DELAY_AVOID_EXTRAP = 0.2  # Apriltag
 else:
     TOPIC_POSE_PUBLISHED = 'ee_pose_ref'
     DELAY_AVOID_EXTRAP = 0.05
@@ -38,15 +39,15 @@ print('LISTEN_TO_TF: ', LISTEN_TO_TF)
 print('VISUAL_SERVOING: ', VISUAL_SERVOING)
 print('Publish pose goal on: ', TOPIC_POSE_PUBLISHED)
 
-FREQ = 100
+FREQ = 60
 DT = 1/FREQ
 VERBOSE = True
 # we want T_wc
-camera_pose_frame = "camera_pose_frame";  # moving "camera=c" frame
-world_frame = "camera_odom_frame";  # static inertial "world=w" frame
+camera_pose_frame = "camera_pose_frame"  # moving "camera=c" frame
+world_frame = "camera_odom_frame"  # static inertial "world=w" frame
 
 # We want T_c_o
-camera_eye_frame = "camera_eye_frame"
+camera_color_optical_frame = "camera_color_optical_frame"
 object_frame = "object_frame"
 
 
@@ -55,8 +56,7 @@ object_frame = "object_frame"
 # After testing with T265 node, it seems it is T_wc, s.t. 
 # w_vec = T_wc * c_vec
 if VISUAL_SERVOING:
-    
-    base_frame, target_frame = camera_eye_frame, object_frame
+    base_frame, target_frame = camera_color_optical_frame, object_frame
 else:  # T265
     base_frame, target_frame = world_frame, camera_pose_frame
 
@@ -134,7 +134,7 @@ def talker():
     while not rospy.is_shutdown():
         t = rospy.Time.now()
 
-        print('t', t)
+        print('t-t0', (t-t0).to_sec())
 
         if LISTEN_TO_TF:
             try:
@@ -149,7 +149,7 @@ def talker():
                     ]
                 )
 
-                # print(T_bt_ref)
+                print(T_bt_ref)
 
                 nu_bt_ref = np.zeros(6)
                 dnu_bt_ref = np.zeros(6)

@@ -30,11 +30,11 @@ roslaunch ros_cosypose singleview_loop.launch --screen
 
 # ICG node 
 cd ~/catkin_cosy_ws
-rosrun icg_ros icg_cosypose_node -config_dir=src/icg_ros/config -camera_frame=camera_eye_frame
+rosrun icg_ros icg_cosypose_node -config_dir=src/icg_ros/config -camera_frame=camera_color_optical_frame
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=192.168.102.11 load_gripper:=true robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
 
 
 # DEBUG
 # print TF frames
-rosrun tf tf_echo camera_eye_frame object_frame
+rosrun tf tf_echo camera_color_optical_frame object_frame

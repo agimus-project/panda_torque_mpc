@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <chrono>
 #include <ratio>
 #include <Eigen/Core>
@@ -149,6 +150,19 @@ namespace panda_torque_mpc {
         ddx_r = pinocchio::Motion((-w.array().square() * a.array() * cos(w.array() * t)).matrix()); // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
 
         x_r = pose_0 * pinocchio::exp6(nu);
+    }
+
+
+
+    inline pinocchio::SE3 XYZQUATToSE3(std::vector<double> pose)
+    {
+        // pose: [px, py, pz,    qx, qy, qz, qw]
+        Eigen::Vector3d t(pose[0], pose[1], pose[2]);
+        Eigen::Quaterniond q(pose[6], pose[3], pose[4], pose[5]); // this constructor order is different : qw, qx, qy, qz 
+
+        q.normalize();
+        
+        return pinocchio::SE3(q.matrix(), t);
     }
 
 

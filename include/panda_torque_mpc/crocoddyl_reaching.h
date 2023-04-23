@@ -50,8 +50,8 @@ namespace panda_torque_mpc
 
         CrocoddylReaching(pin::Model _model_pin, CrocoddylConfig _config);
 
-        void set_ee_ref_translation(Eigen::Vector3d trans);
-        void set_ee_ref_placement(pin::SE3 placement);
+        void set_ee_ref_translation(Eigen::Vector3d trans, bool is_active=true);
+        void set_ee_ref_placement(pin::SE3 placement, bool is_active=true);
 
         void set_posture_ref(Eigen::VectorXd x0);
 

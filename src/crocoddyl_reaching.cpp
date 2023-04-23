@@ -101,6 +101,7 @@ namespace panda_torque_mpc
             running_DAM->set_armature(_config.armature);
 
             // Deactivate goal cost by default until a proper reference is set
+            running_DAM->get_costs()->changeCostStatus(state_reg_cost_name_, false);
             running_DAM->get_costs()->changeCostStatus(goal_cost_translation_name_, false);
             running_DAM->get_costs()->changeCostStatus(goal_cost_placement_name_, false);
 
@@ -122,6 +123,7 @@ namespace panda_torque_mpc
         terminal_DAM->set_armature(_config.armature);
 
         // Deactivate goal cost by default until a proper reference is set
+        terminal_DAM->get_costs()->changeCostStatus(state_reg_cost_name_, false);
         terminal_DAM->get_costs()->changeCostStatus(goal_cost_translation_name_, false);
         terminal_DAM->get_costs()->changeCostStatus(goal_cost_placement_name_, false);
 
@@ -141,7 +143,7 @@ namespace panda_torque_mpc
     bool CrocoddylReaching::valid_pbe()
     {
         if (!posture_set_) return false;
-        if (!(goal_translation_set_ || goal_placement_set_)) return false;
+        // if (!(goal_translation_set_ || goal_placement_set_)) return false;
         return true;
     }
 
@@ -151,8 +153,7 @@ namespace panda_torque_mpc
 
         ddp_->solve(xs_init, us_init, config_.nb_iterations_max, false);
 
-        // ddp_->solve(xs_init, us_init, config_.nb_iterations_max, true);
-
+        // TODO: check solve was a success
         return true;
     }
 
@@ -166,7 +167,7 @@ namespace panda_torque_mpc
         return ddp_->get_K()[0];
     }
 
-    void CrocoddylReaching::set_ee_ref_translation(Eigen::Vector3d trans)
+    void CrocoddylReaching::set_ee_ref_translation(Eigen::Vector3d trans, bool is_active)
     {
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
@@ -175,10 +176,10 @@ namespace panda_torque_mpc
             auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
             auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(running_DAM->get_costs()->get_costs().at(goal_cost_translation_name_)->cost->get_residual());
             frame_res_running->set_reference(trans);
-            if (!goal_translation_set_)
-            {
-                running_DAM->get_costs()->changeCostStatus(goal_cost_translation_name_, true);
-            }
+            // if (!goal_translation_set_)
+            // {
+                running_DAM->get_costs()->changeCostStatus(goal_cost_translation_name_, is_active);
+            // }
         }
 
         // Terminal
@@ -186,16 +187,16 @@ namespace panda_torque_mpc
         auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
         auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(terminal_DAM->get_costs()->get_costs().at(goal_cost_translation_name_)->cost->get_residual());
         frame_res_terminal->set_reference(trans);
-        if (!goal_translation_set_)
-        {
-            terminal_DAM->get_costs()->changeCostStatus(goal_cost_translation_name_, true);
+        // if (!goal_translation_set_)
+        // {
+            terminal_DAM->get_costs()->changeCostStatus(goal_cost_translation_name_, is_active);
 
             // No need to activate again
-            goal_translation_set_ = true;
-        }
+            goal_translation_set_ = is_active;
+        // }
     }
 
-    void CrocoddylReaching::set_ee_ref_placement(pin::SE3 placement)
+    void CrocoddylReaching::set_ee_ref_placement(pin::SE3 placement, bool is_active)
     {
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
@@ -204,10 +205,10 @@ namespace panda_torque_mpc
             auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
             auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(running_DAM->get_costs()->get_costs().at(goal_cost_placement_name_)->cost->get_residual());
             frame_res_running->set_reference(placement);
-            if (!goal_placement_set_)
-            {
-                running_DAM->get_costs()->changeCostStatus(goal_cost_placement_name_, true);
-            }
+            // if (!goal_placement_set_)
+            // {
+                running_DAM->get_costs()->changeCostStatus(goal_cost_placement_name_, is_active);
+            // }
         }
 
         // Terminal
@@ -215,13 +216,13 @@ namespace panda_torque_mpc
         auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
         auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(terminal_DAM->get_costs()->get_costs().at(goal_cost_placement_name_)->cost->get_residual());
         frame_res_terminal->set_reference(placement);
-        if (!goal_placement_set_)
-        {
-            terminal_DAM->get_costs()->changeCostStatus(goal_cost_placement_name_, true);
+        // if (!goal_placement_set_)
+        // {
+            terminal_DAM->get_costs()->changeCostStatus(goal_cost_placement_name_, is_active);
 
             // No need to activate again
-            goal_placement_set_ = true;
-        }
+            goal_placement_set_ = is_active;
+        // }
     }
 
 

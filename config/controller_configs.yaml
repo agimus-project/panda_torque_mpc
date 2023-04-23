@@ -231,11 +231,12 @@ ctrl_mpc_linearized:
     dt_ocp: 0.01
     nb_iterations_max: 1
     reference_is_placement: true   # otherwise, translation
+    keep_original_ee_rotation: true
     armature: [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
     # armature: [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
     
-    w_frame_running:  50
-    w_frame_terminal: 50
+    w_frame_running:  20
+    w_frame_terminal: 20
     # w_frame_running:  100
     # w_frame_terminal: 100
     w_x_reg_running: 0.1
@@ -247,4 +248,4 @@ ctrl_mpc_linearized:
     # px, py, pz,    qx, qy, qz, qw
     pose_e_c: [0.007, -0.057, 0.07,    0, 0, 0.382683,  0.92388]
     # pose_c_o_ref: [0.0, 0.0, 0.5,    -0.5, -0.5, 0.5, -0.5 ]   # Cheezit
-    pose_c_o_ref: [0.0, 0.0, 0.55,     1, 0, 0, 0 ]   # Apriltag
+    pose_c_o_ref: [0.0, 0.0, 0.50,     1, 0, 0, 0 ]   # Apriltag

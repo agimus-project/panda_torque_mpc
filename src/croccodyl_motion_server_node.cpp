@@ -53,6 +53,7 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<double>(nh, dt_ocp, "dt_ocp") && params_success;
             params_success = get_param_error_tpl<int>(nh, nb_iterations_max, "nb_iterations_max") && params_success;
             params_success = get_param_error_tpl<bool>(nh, reference_is_placement, "reference_is_placement") && params_success;
+            params_success = get_param_error_tpl<bool>(nh, keep_original_ee_rotation_, "keep_original_ee_rotation") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_frame_running, "w_frame_running") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_frame_terminal, "w_frame_terminal") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_x_reg_running, "w_x_reg_running") && params_success;
@@ -76,6 +77,8 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<std::vector<double>>(nh, pose_c_o_ref, "pose_c_o_ref",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 7; }) && params_success;
+
+
 
 
             // Load panda model with pinocchio
@@ -138,6 +141,8 @@ namespace panda_torque_mpc
             first_sensor_msg_received_ = false;
             first_pose_ref_msg_received_ = false;
             first_solve_ = true;
+
+            last_pose_ref_ts_ = ros::Time::now();
             
             T_e_c_ = XYZQUATToSE3(pose_e_c);
             T_c_e_ = T_e_c_.inverse();
@@ -151,6 +156,7 @@ namespace panda_torque_mpc
             /**
              * If the first sensor state of the robot has not yet been received, no need to process the pose ref
              */
+            last_pose_ref_ts_ = ros::Time::now();
 
             if (!first_sensor_msg_received_)
             {
@@ -163,12 +169,6 @@ namespace panda_torque_mpc
             p_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
             Eigen::Quaterniond quap_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
             pin::SE3 T_w_t(quap_bt, p_bt);
-
-            if (!first_pose_ref_msg_received_)
-            {
-                T_w_t0_ = T_w_t;
-                first_pose_ref_msg_received_ = true;
-            }
 
             // Cf ctrl_task_space_ID for instance for why this choice
             // TRANSLATION ref
@@ -195,6 +195,14 @@ namespace panda_torque_mpc
 
             // RT safe setting
             T_b_e_ref_rtbox_.set(T_b_e_ref);
+
+
+            if (!first_pose_ref_msg_received_)
+            {
+                T_w_t0_ = T_w_t;
+                first_pose_ref_msg_received_ = true;
+            }
+
         }
 
 
@@ -204,6 +212,7 @@ namespace panda_torque_mpc
             /**
              * If the first sensor state of the robot has not yet been received, no need to process the pose ref
              */
+            last_pose_ref_ts_ = ros::Time::now();
 
             if (!first_sensor_msg_received_)
             {
@@ -232,7 +241,10 @@ namespace panda_torque_mpc
             // !!!!!!!!!!!!!
             // !!!!!!!!!!!!!
             // Test without also
-            // T_b_e_ref.rotation() = T_b_e0_.rotation();
+            if (keep_original_ee_rotation_)
+            {
+                T_b_e_ref.rotation() = T_b_e0_.rotation();
+            }
             // !!!!!!!!!!!!!
             // !!!!!!!!!!!!!
             // !!!!!!!!!!!!!
@@ -413,25 +425,30 @@ namespace panda_torque_mpc
 
             // Set initial state and end-effector ref
             croco_reaching_.ddp_->get_problem()->set_x0(current_x);
+
+            bool reaching_task_is_active = (ros::Time::now() - last_pose_ref_ts_).toSec() < 0.5;
+            std::cout << "\n\n!!!!!!!!reaching_task_is_active!!!!!!!!\n" << reaching_task_is_active << std::endl;
             if (config_croco_.reference_is_placement)
             {
                 // std::cout << "config_croco_.reference_is_placement\n" << T_b_e_ref << std::endl;
                 // std::cout << "T_b_e_ref\n" << T_b_e_ref << std::endl;
                 // std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
-                croco_reaching_.set_ee_ref_placement(T_b_e_ref);
+                croco_reaching_.set_ee_ref_placement(T_b_e_ref, reaching_task_is_active);
             }
             else
             {
                 std::cout << "config_croco_.reference_is_NOOOOOOT_placement" << std::endl;
                 std::cout << "T_b_e_ref\n" << T_b_e_ref << std::endl;
                 std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
-                croco_reaching_.set_ee_ref_translation(T_b_e_ref.translation());
+                croco_reaching_.set_ee_ref_translation(T_b_e_ref.translation(), reaching_task_is_active);
             }
             croco_reaching_.set_posture_ref(x_init);
 
             TicTac tt_solve;
-            croco_reaching_.solve(xs_init, us_init);
+            bool success_solve = croco_reaching_.solve(xs_init, us_init);
             tt_solve.print_tac("");
+            // if problem not ready or no good solution, don't send a solution
+            if (!success_solve) return;
             //////////////////////////////////////
 
             // Fill and send control message
@@ -464,6 +481,7 @@ namespace panda_torque_mpc
 
         // pose ref callback
         bool first_pose_ref_msg_received_;
+        ros::Time last_pose_ref_ts_;
         pin::SE3 T_w_t0_;
         realtime_tools::RealtimeBox<pin::SE3> T_b_e_ref_rtbox_;
 
@@ -504,7 +522,7 @@ namespace panda_torque_mpc
         std::string object_frame_ = "object_frame";
 
         // DEMO mode
-        bool demo_is_visual_servoing_ = false;
+        bool keep_original_ee_rotation_ = false;
 
 };
 

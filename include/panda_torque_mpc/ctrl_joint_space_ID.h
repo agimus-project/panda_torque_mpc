@@ -1,7 +1,3 @@
-// Copyright (c) 2017 Franka Emika GmbH
-// Use of this source code is governed by the Apache-2.0 license, see LICENSE
-// Adapted from panda_torque_mpc joint_impedance_example_controller
-
 #pragma once
 
 #include <memory>
@@ -86,7 +82,7 @@ namespace panda_torque_mpc
         ros::Time t_init_;
         Vector7d q_init_;
 
-        // Publishers
+        // Publishers logs
         franka_hw::TriggerRate rate_trigger_{1.0};
         realtime_tools::RealtimePublisher<JointValuesComparison> configurations_publisher_;
         realtime_tools::RealtimePublisher<JointValuesComparison> velocities_publisher_;

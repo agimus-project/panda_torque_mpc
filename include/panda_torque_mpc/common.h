@@ -1,13 +1,26 @@
 #pragma once
 
+#include <vector>
 #include <chrono>
 #include <ratio>
 #include <Eigen/Core>
 #include <ros/node_handle.h>
 
+#include <pinocchio/spatial/se3.hpp>
+#include <pinocchio/spatial/motion.hpp>
+#include <pinocchio/spatial/explog.hpp>
+
 
 
 namespace panda_torque_mpc {
+
+    // Overloads << operator for std::vector
+    template<typename T>
+    std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
+        using namespace std;
+        copy(v.begin(), v.end(), ostream_iterator<T>(os, "\n"));
+        return os;
+    }
 
     // Eigen Typedef
     using Vector6d = Eigen::Matrix<double, 6, 1>;
@@ -49,6 +62,8 @@ namespace panda_torque_mpc {
         */
 
         using clock = std::chrono::steady_clock;
+        // Duration represented in nanoseconds as 64 bit unsigned int 
+        //   -> would take ~600 years before integer overflow
         using nanoseconds = std::chrono::duration<uint64_t, std::nano>;
 
         // member variables
@@ -67,6 +82,9 @@ namespace panda_torque_mpc {
             tstart = clock::now();
         }
 
+        /**
+        Return duration since object creation (or last .tic() call) in milliseconds
+        */
         double tac()
         {
             tend = clock::now();
@@ -82,7 +100,11 @@ namespace panda_torque_mpc {
     };
 
 
-
+    /**
+     * Does not work with certains types:
+     * T in {size_t}
+     * 
+    */
     template <typename T>
     bool get_param_error_tpl(const ros::NodeHandle &nh, 
                              T &param, 
@@ -101,12 +123,48 @@ namespace panda_torque_mpc {
     }
 
 
+    /**
+     * \brief Generate a (cos)sinusoidal target trajectory of end effector pose.
+     *
+     * @param[in] delta_nu trajectory parameter: vector (size 6, [lin,rot]) of the delta motion amplitude (on the SE3 local tangent space)
+     * @param[in] period_nu trajectory parameter: vector (size 6, [lin,rot]) of period for delta motion axes (on the SE3 local tangent space)
+     * @param[in] pose_0 initial pose
+     * @param[in] t current time with q(0) = q0
+     * @param[out] x_r target joint configuration
+     * @param[out] dx_r target joint velocity
+     * @param[out] ddx_r target joint acceleration
+     */
+    inline void compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pinocchio::SE3 &pose_0, double t,
+                                                pinocchio::SE3 &x_r, pinocchio::Motion &dx_r, pinocchio::Motion &ddx_r)
+    {
+        // Ai and Ci obtained for each joint using constraints:
+        // T(t=0.0) = pose_0
+        // T(t=period/2) = pose_0 * Exp(delta_nu)
 
-    template<typename T>
-    std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
-        using namespace std;
-        copy(v.begin(), v.end(), ostream_iterator<T>(os, "\n"));
-        return os;
+        Vector6d w = (2 * M_PI / period_nu.array()).matrix();
+        Vector6d a = -delta_nu;
+        Vector6d c = delta_nu;
+
+        Vector6d nu = (a.array() * cos(w.array() * t)).matrix() + c;
+        dx_r = pinocchio::Motion((-w.array() * a.array() * sin(w.array() * t)).matrix());
+        ddx_r = pinocchio::Motion((-w.array().square() * a.array() * cos(w.array() * t)).matrix()); // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
+
+        x_r = pose_0 * pinocchio::exp6(nu);
     }
+
+
+
+    inline pinocchio::SE3 XYZQUATToSE3(std::vector<double> pose)
+    {
+        // pose: [px, py, pz,    qx, qy, qz, qw]
+        Eigen::Vector3d t(pose[0], pose[1], pose[2]);
+        Eigen::Quaterniond q(pose[6], pose[3], pose[4], pose[5]); // this constructor order is different : qw, qx, qy, qz 
+
+        q.normalize();
+        
+        return pinocchio::SE3(q.matrix(), t);
+    }
+
+
 
 } // namespace panda_torque_mpc

@@ -6,40 +6,16 @@ import matplotlib.pyplot as plt
 
 from read_plot_utils import read_jsid_bag
 
-CONTROLLER_NAME = 'ctrl_joint_space_ID'
-# DIRECTORY = '/home/mfourmy/Downloads/franka_experiments_31_01_23'
+DIRECTORY = '../bags/'
 
-# BAG_NAME = 'ctrl_joint_space_ID_franka_lowstiff.bag'
-# YML_NAME = 'ctrl_joint_space_ID_franka_lowstiff.yaml'
-# BAG_NAME = 'ctrl_joint_space_ID_franka_midstiff.bag'
-# YML_NAME = 'ctrl_joint_space_ID_franka_midstiff.yaml'
-# BAG_NAME = 'ctrl_joint_space_ID_franka_stiff.bag'
-# YML_NAME = 'ctrl_joint_space_ID_franka_stiff.yaml'
-# BAG_NAME = 'ctrl_joint_space_ID_pin_lowstiff.bag'
-# YML_NAME = 'ctrl_joint_space_ID_pin_lowstiff.yaml'
-# BAG_NAME = 'ctrl_joint_space_ID_pin_midstiff.bag'
-# YML_NAME = 'ctrl_joint_space_ID_pin_midstiff.yaml'
-# BAG_NAME = 'ctrl_joint_space_ID_pin_stiff.bag'
-# YML_NAME = 'ctrl_joint_space_ID_pin_stiff.yaml'
-
-# DIRECTORY = '/media/mfourmy/MEDUSB/Panda_expe'
+# CONTROLLER_NAME = 'ctrl_joint_space_ID'
 # BAG_NAMES = [
-#   'ctrl_joint_space_ID_franka_stiff.bag',
-#   'ctrl_joint_space_ID_pin_stiff.bag',
+#   f'{CONTROLLER_NAME}_expe.bag',
 # ]
 
-# DIRECTORY = '../bags/'
-# BAG_NAMES = [
-#   'ctrl_joint_space_ID_LONG_expe.bag',
-#   # 'ctrl_joint_space_ID_lowK_NoSat.bag',
-#   'ctrl_joint_space_ID_lowK_Sat.bag',
-# ]
-
-DIRECTORY = '/home/mfourmy/Downloads/Panda_Expe_BIS'
-
+CONTROLLER_NAME = 'ctrl_mpc_linearized'
 BAG_NAMES = [
-    'ctrl_joint_space_ID_franka_stiff.bag',
-    'ctrl_joint_space_ID_pin_stiff.bag',
+  f'{CONTROLLER_NAME}_expe.bag',
 ]
 
 
@@ -77,18 +53,18 @@ for i_field, field in enumerate(fields):
         ax_tau.plot(d_res['t'], d_res['tau'][field][:, i],
                     f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
 
-    d_res = read_jsid_bag(BAG_PATHS[1], CONTROLLER_NAME)
-    for i in range(7):
-        if not JOINTS_TO_PLOT[i]:
-            continue
-        c = COLORS[i]
-        sym = 'x'
-        ax_q.plot(d_res['t'], d_res['q'][field][:, i],
-                  f'{c}{sym}', label=f'q{i}', markersize=MSIZE)
-        ax_dq.plot(d_res['t'], d_res['dq'][field][:, i],
-                   f'{c}{sym}', label=f'dq{i}', markersize=MSIZE)
-        ax_tau.plot(d_res['t'], d_res['tau'][field][:, i],
-                    f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
+    # d_res = read_jsid_bag(BAG_PATHS[1], CONTROLLER_NAME)
+    # for i in range(7):
+    #     if not JOINTS_TO_PLOT[i]:
+    #         continue
+    #     c = COLORS[i]
+    #     sym = 'x'
+    #     ax_q.plot(d_res['t'], d_res['q'][field][:, i],
+    #               f'{c}{sym}', label=f'q{i}', markersize=MSIZE)
+    #     ax_dq.plot(d_res['t'], d_res['dq'][field][:, i],
+    #                f'{c}{sym}', label=f'dq{i}', markersize=MSIZE)
+    #     ax_tau.plot(d_res['t'], d_res['tau'][field][:, i],
+    #                 f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
 
     ax_q.set_title(field)
     ax_dq.set_title(field)

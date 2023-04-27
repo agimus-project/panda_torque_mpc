@@ -173,10 +173,10 @@ namespace panda_torque_mpc
         torques_publisher_.init(nh, "joint_torques_comparison", 1);
 
         // Pose subscriber
-        std::string target_pose_topic = "target_pose";
+        std::string ee_pose_ref_topic = "ee_pose_ref";
         if (use_external_pose_publisher_)
         {
-            pose_subscriber_ = nh.subscribe(target_pose_topic, 1, &CtrlTaskSpaceID::pose_callback, this);
+            ee_pose_ref_subscriber_ = nh.subscribe(ee_pose_ref_topic, 1, &CtrlTaskSpaceID::pose_callback, this);
         }
 
         // init some variables
@@ -213,20 +213,16 @@ namespace panda_torque_mpc
         // Time since start of the controller
         double Dt = (t - t_init_).toSec();
 
-        // Retrieve reference
-        pin::SE3 x_r;
+        // Instanciate reference pose variables
+        pin::SE3 x_r; 
         pin::Motion dx_r, ddx_r;
-        x_r_rtbox_.get(x_r);
-        dx_r_rtbox_.get(dx_r);
-        ddx_r_rtbox_.get(ddx_r);
 
-        // compute desired configuration and configuration velocity
+        // compute end effector reference if no topic reference exists
         if (!use_external_pose_publisher_)
         {
-            TicTac tictac_ref;
             compute_sinusoid_pose_reference(delta_nu_, period_nu_, T_b_e0_, Dt, x_r, dx_r, ddx_r);
-            // tictac_ref.print_tac("compute_sinusoid_pose_reference() took (ms): ");
-        }
+            x_r_rtbox_.set(x_r); dx_r_rtbox_.set(dx_r); ddx_r_rtbox_.set(ddx_r);
+        }    
 
         // Retrieve current measured robot state
         franka::RobotState robot_state = franka_state_handle_->getRobotState(); // return a const& of RobotState object -> not going to be modified
@@ -243,10 +239,11 @@ namespace panda_torque_mpc
         // filter the joint velocity measurements
         dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
 
-        // Compute desired torque
         TicTac tictac_comp;
+        // Compute desired torque according to current stored reference
+        x_r_rtbox_.get(x_r); dx_r_rtbox_.get(dx_r); ddx_r_rtbox_.get(ddx_r);
         Vector7d tau_d = compute_desired_torque(q_m, dq_m, dq_filtered_, x_r, dx_r, ddx_r, control_variant_, use_pinocchio_);
-        // tictac_comp.print_tac("compute_desired_torque() took (ms): ");
+        tictac_comp.print_tac("compute_desired_torque() took (ms): ");
 
         // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is
         // 1000 * (1 / sampling_time).
@@ -352,7 +349,7 @@ namespace panda_torque_mpc
         dx_r_rtbox_.get(last_dx_r_);
         last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 
-        // tictac.print_tac("update() took (ms): ");
+        tictac.print_tac("update() took (ms): ");
     }
 
     Vector7d CtrlTaskSpaceID::compute_desired_torque(
@@ -512,29 +509,6 @@ namespace panda_torque_mpc
         return tau_d;
     }
 
-    void CtrlTaskSpaceID::compute_sinusoid_pose_reference(const Vector6d &delta_nu, const Vector6d &period_nu, const pin::SE3 &pose_0, double t,
-                                                                pin::SE3 &x_r, pin::Motion &dx_r, pin::Motion &ddx_r)
-    {
-        // Ai and Ci obtained for each joint using constraints:
-        // T(t=0.0) = pose_0
-        // T(t=period/2) = pose_0 * Exp(delta_nu)
-
-        Vector6d w = (2 * M_PI / period_nu.array()).matrix();
-        Vector6d a = -delta_nu;
-        Vector6d c = delta_nu;
-
-        Vector6d nu = (a.array() * cos(w.array() * t)).matrix() + c;
-        dx_r = pin::Motion((-w.array() * a.array() * sin(w.array() * t)).matrix());
-        ddx_r = pin::Motion((-w.array().square() * a.array() * cos(w.array() * t)).matrix()); // non null initial acceleration!! needs to be dampened (e.g. torque staturation)
-
-        // ROS_INFO_STREAM("CtrlTaskSpaceID::compute_sinusoid_pose_reference pose_0: \n" << pose_0);
-        // ROS_INFO_STREAM("CtrlTaskSpaceID::compute_sinusoid_pose_reference nu: \n" << nu.transpose());
-        // ROS_INFO_STREAM("CtrlTaskSpaceID::compute_sinusoid_pose_reference pin::exp6(nu): \n" << pin::exp6(nu));
-
-        x_r = pose_0 * pin::exp6(nu);
-        // ROS_INFO_STREAM("CtrlTaskSpaceID::compute_sinusoid_pose_reference x_r: \n" << x_r);
-    }
-
     void CtrlTaskSpaceID::pose_callback(const PoseTaskGoal& msg)
     {   
 
@@ -548,18 +522,13 @@ namespace panda_torque_mpc
          * - e: "end" effector of the robot
         */
 
-        std::cout << "CtrlTaskSpaceID::pose_callback PoseTaskGoal:" << std::endl;
-        std::cout << msg.pose.position.x << std::endl;
-        std::cout << msg.pose.position.y << std::endl;
-        std::cout << msg.pose.position.z << std::endl;
-        std::cout << msg.pose.orientation.x << std::endl;
-        std::cout << msg.pose.orientation.y << std::endl;
-        std::cout << msg.pose.orientation.z << std::endl;
-        std::cout << msg.pose.orientation.w << std::endl;
 
         Eigen::Vector3d t_bt; t_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
-        Eigen::Quaterniond quat_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
+        Eigen::Quaterniond quat_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);  // w, x, y, z with this contructor
         pin::SE3 T_w_t(quat_bt, t_bt);
+
+        // std::cout << "CtrlTaskSpaceID::pose_callback T_w_t:" << std::endl;
+        // std::cout << T_w_t << std::endl;
 
         if (pose_frames_not_aligned_)
         {
@@ -619,6 +588,7 @@ namespace panda_torque_mpc
         a_wt.angular().x() = msg.acceleration.angular.x;
         a_wt.angular().y() = msg.acceleration.angular.y;
         a_wt.angular().z() = msg.acceleration.angular.z;
+
         // RT safe setting
         x_r_rtbox_.set(T_be);
         dx_r_rtbox_.set(nu_wt);

@@ -31,17 +31,17 @@
 
 #include "panda_torque_mpc/common.h"
 
-#include "tsid_manipulator_reaching.h"
-
+#include <linear_feedback_controller_msgs/Sensor.h>
+#include <linear_feedback_controller_msgs/Control.h>
 
 namespace panda_torque_mpc
 {
 
     namespace pin = pinocchio;
 
-    class CtrlTaskSpaceID : public controller_interface::MultiInterfaceController<franka_hw::FrankaModelInterface,
-                                                                                        franka_hw::FrankaStateInterface,
-                                                                                        hardware_interface::EffortJointInterface>
+    class CtrlMpcLinearized : public controller_interface::MultiInterfaceController<franka_hw::FrankaModelInterface,
+                                                                                    franka_hw::FrankaStateInterface,
+                                                                                    hardware_interface::EffortJointInterface>
     {
 
     public:
@@ -51,13 +51,6 @@ namespace panda_torque_mpc
         void stopping(const ros::Time &) override;
 
     private:
-        enum TSIDVariant
-        {
-            PosiPosture,
-            PosePosture,
-            TSID
-        };
-
         // Handles
         std::unique_ptr<franka_hw::FrankaModelHandle> franka_model_handle_;
         std::unique_ptr<franka_hw::FrankaStateHandle> franka_state_handle_;
@@ -67,16 +60,9 @@ namespace panda_torque_mpc
         const double kDeltaTauMax_{1.0}; // using static constexpr creates an undefined symbol error
 
         // Controller parameters
-        TSIDVariant control_variant_;
         Vector6d delta_nu_, period_nu_; // trajectory specification
-        bool use_pinocchio_;
         double alpha_dq_filter_;
-        
-        // TSID parameters
-        double kp_ee_, kd_ee_, kp_q_, kd_q_;      // task space control gains
-        double w_ee_, w_q_;                       // tasks relative weights
-        double tau_limit_scale_, v_limit_scale_;  // param for boundary constraints
-        Vector6d ee_task_mask_;
+        double Kp_jsid_, Kd_jsid_;
 
         // Current update state
         pin::SE3 last_x_r_;
@@ -91,27 +77,34 @@ namespace panda_torque_mpc
         Vector7d q_init_;
         pin::SE3 T_b_e0_;
 
-        // Publishers
+        // Publishers logs
         franka_hw::TriggerRate rate_trigger_{1.0};
-        realtime_tools::RealtimePublisher<TaskPoseComparison> task_pose_publisher_;
-        realtime_tools::RealtimePublisher<TaskTwistComparison> task_twist_publisher_;
+        realtime_tools::RealtimePublisher<JointValuesComparison> configurations_publisher_;
+        realtime_tools::RealtimePublisher<JointValuesComparison> velocities_publisher_;
         realtime_tools::RealtimePublisher<JointValuesComparison> torques_publisher_;
 
-        // Subscribers
-        ros::Subscriber ee_pose_ref_subscriber_;
-        bool use_external_pose_publisher_;
-        pin::SE3 T_w_t0_;  // initial value of broadcasted absolute pose 
-        bool pose_frames_not_aligned_;
-        realtime_tools::RealtimeBox<pin::SE3> x_r_rtbox_;
-        realtime_tools::RealtimeBox<pin::Motion> dx_r_rtbox_;
-        realtime_tools::RealtimeBox<pin::Motion> ddx_r_rtbox_;
+        // Publishers for motion server
+        realtime_tools::RealtimePublisher<linear_feedback_controller_msgs::Sensor> robot_state_publisher_;
+        
+        // Subscribers to motion server
+        ros::Subscriber motion_server_control_topic_sub_;
+
+        // Controller State Machine
+        bool control_ref_from_ddp_node_received_;
+        ros::Time t0_mpc_first_msg_;
+        double dt_transition_jsid_to_mpc_;
+        realtime_tools::RealtimeBox<Eigen::Matrix<double, 14, 1>> x0_mpc_rtbox_;
+        realtime_tools::RealtimeBox<Eigen::Matrix<double, 7, 1>> u0_mpc_rtbox_;
+        realtime_tools::RealtimeBox<Eigen::Matrix<double, 7, 14>> K_ricatti_rtbox_;
+
+        // Eigen::Matrix<double, 14, 1> x0_mpc_;    // updated by motion server callback
+        // Eigen::Matrix<double, 7, 1> u0_mpc_;     // updated by motion server callback
+        // Eigen::Matrix<double, 7, 14> K_ricatti_; // updated by motion server callback
+
 
         // Pinocchio objects
         pin::Model model_pin_;
         pin::Data data_pin_;
-
-        // Tsid formulation
-        TsidManipulatorReaching tsid_reaching_;
 
         // other
         std::string ee_frame_pin_;
@@ -122,18 +115,23 @@ namespace panda_torque_mpc
          *
          * @param[in] q_m measured joint configuration
          * @param[in] dq_m measured joint velocity
-         * @param[in] dq_filtered filtered joint velocity
          * @param[in] x_r target end effector pose
-         * @param[in] dx_r target end effector spatial velocity
-         * @param[in] ddx_r target end effector spatial acceleration
-         * @param[in] use_pinocchio use pinocchio for Rigid Body Dynamics Algorithms if true (else libfranka)
          */
-        Vector7d compute_desired_torque(
-            const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered,
-            const pin::SE3 &x_r, const pin::Motion &dx_r, const pin::Motion &ddx_r,
-            TSIDVariant control_variant, bool use_pinocchio);
+        Vector7d compute_desired_torque(const Vector7d &q_m, const Vector7d &dq_m, const pin::SE3 &x_r);
 
-        void pose_callback(const PoseTaskGoal& msg);
+        Vector7d compute_torque_jsid(const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &q_ref, const Vector7d &dq_ref);
+
+        Vector7d compute_torque_mpc_linear_feedback(const Vector7d &q_m, 
+                                                    const Vector7d &dq_m, 
+                                                    const Eigen::Matrix<double, 7, 1> &u0_mpc, 
+                                                    const Eigen::Matrix<double, 14, 1> &x0_mpc, 
+                                                    const Eigen::Matrix<double, 7, 14> &K_ricatti);
+
+
+
+        void callback_motion_server(const linear_feedback_controller_msgs::Control&);
+
+        void publish_robot_state(const Eigen::VectorXd &q_m, const Eigen::VectorXd &dq_m, ros::Time t);
     };
 
 } // namespace panda_torque_mpc

@@ -29,7 +29,7 @@ LISTEN_TO_TF = not args.compute_sinusoid
 VISUAL_SERVOING = args.visual_servoing
 if VISUAL_SERVOING:
     TOPIC_POSE_PUBLISHED = 'ee_pose_ref_visual_servoing'
-    # DELAY_AVOID_EXTRAP = 0.06  # ICG
+    # DELAY_AVOID_EXTRAP = 0.15  # ICG
     DELAY_AVOID_EXTRAP = 0.2  # Apriltag
 else:
     TOPIC_POSE_PUBLISHED = 'ee_pose_ref'

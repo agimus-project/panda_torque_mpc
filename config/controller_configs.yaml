@@ -235,10 +235,10 @@ ctrl_mpc_linearized:
     armature: [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
     # armature: [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
     
-    w_frame_running:  20
-    w_frame_terminal: 20
-    # w_frame_running:  100
-    # w_frame_terminal: 100
+    # w_frame_running:  50  # T265
+    # w_frame_terminal: 50  # T265
+    w_frame_running:  10  # VS
+    w_frame_terminal: 10  # VS
     w_x_reg_running: 0.1
     w_x_reg_terminal: 1.0
     scale_q_vs_v_reg: 0.1
@@ -246,6 +246,6 @@ ctrl_mpc_linearized:
     diag_u_reg_running: [1.0,1.0,1.0,1.0,1.0,1.0,1.0]
     
     # px, py, pz,    qx, qy, qz, qw
-    pose_e_c: [0.007, -0.057, 0.07,    0, 0, 0.382683,  0.92388]
-    # pose_c_o_ref: [0.0, 0.0, 0.5,    -0.5, -0.5, 0.5, -0.5 ]   # Cheezit
-    pose_c_o_ref: [0.0, 0.0, 0.50,     1, 0, 0, 0 ]   # Apriltag
+    pose_e_c: [0.007, -0.057, 0.07,    0, 0, 0.382683,  0.92388]  # Camera CALIBRATION (TODO: better vals)
+    pose_c_o_ref: [0.0, 0.0, 0.6,     1, 0, 0, 0 ]   # Apriltag 0
+    # pose_c_o_ref: [0.0, 0.0, 0.6,    -0.5, -0.5, 0.5, -0.5 ]   # Cheezit

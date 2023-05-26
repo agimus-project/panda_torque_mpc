@@ -99,7 +99,7 @@ namespace panda_torque_mpc
         CrocoddylConfig config_croco_;
 
         // other
-        std::string ee_frame_pin_;
+        std::string ee_frame_name_;
         pin::FrameIndex ee_frame_id_;
 
         /**

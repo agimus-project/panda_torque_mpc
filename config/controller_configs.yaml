@@ -102,6 +102,7 @@ ctrl_task_space_ID:
     type: panda_torque_mpc/CtrlTaskSpaceID
     arm_id: $(arg arm_id)
     urdf_path: $(find panda_torque_mpc)/res/panda_inertias.urdf
+    ee_frame_name: panda_hand
     joint_names:
         - $(arg arm_id)_joint1
         - $(arg arm_id)_joint2
@@ -126,11 +127,11 @@ ctrl_task_space_ID:
         - 5.0
         - 5.0
     publish_rate: 10.0
-    use_external_pose_publisher: true
+    use_external_pose_publisher: false
     # 0: PosiPosture
     # 1: PosePosture  # TODO: not working -> pbe in jacobian
-    # 2: TSID
-    control_variant: 2
+    # 2: TSIDPose
+    control_variant: 1
     use_pinocchio: true
     alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0
     # Controller configs
@@ -144,8 +145,8 @@ ctrl_task_space_ID:
     kd_q: 40
     w_ee: 1
     w_q: 0.001
-    tau_limit_scale: 0.5
-    v_limit_scale: 0.6
+    tau_limit_scale: 0.8
+    v_limit_scale: 0.8
     # ee_task_mask: [1,1,1,1,1,1]
     ee_task_mask: [1,1,1,0,0,0]
 
@@ -158,6 +159,7 @@ ctrl_mpc_croco:
     type: panda_torque_mpc/CtrlMpcCroco
     arm_id: $(arg arm_id)
     urdf_path: $(find panda_torque_mpc)/res/panda_inertias.urdf
+    ee_frame_name: panda_hand
     joint_names:
         - $(arg arm_id)_joint1
         - $(arg arm_id)_joint2
@@ -207,6 +209,7 @@ ctrl_mpc_linearized:
     type: panda_torque_mpc/CtrlMpcLinearized
     arm_id: $(arg arm_id)
     urdf_path: $(find panda_torque_mpc)/res/panda_inertias.urdf
+    ee_frame_name: panda_hand
     joint_names:
         - $(arg arm_id)_joint1
         - $(arg arm_id)_joint2
@@ -246,6 +249,6 @@ ctrl_mpc_linearized:
     diag_u_reg_running: [1.0,1.0,1.0,1.0,1.0,1.0,1.0]
     
     # px, py, pz,    qx, qy, qz, qw
-    pose_e_c: [0.007, -0.057, 0.07,    0, 0, 0.382683,  0.92388]  # Camera CALIBRATION (TODO: better vals)
+    pose_e_c: [0.0437, -0.0341, 0.0611,    0.0006, -0.0080, 0.70654, 0.70762]  # Camera CALIBRATION d435i
     pose_c_o_ref: [0.0, 0.0, 0.6,     1, 0, 0, 0 ]   # Apriltag 0
     # pose_c_o_ref: [0.0, 0.0, 0.6,    -0.5, -0.5, 0.5, -0.5 ]   # Cheezit

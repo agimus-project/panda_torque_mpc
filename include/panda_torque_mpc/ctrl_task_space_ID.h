@@ -55,7 +55,8 @@ namespace panda_torque_mpc
         {
             PosiPosture,
             PosePosture,
-            TSID
+            TSIDPose,
+            Admittance
         };
 
         // Handles
@@ -114,7 +115,7 @@ namespace panda_torque_mpc
         TsidManipulatorReaching tsid_reaching_;
 
         // other
-        std::string ee_frame_pin_;
+        std::string ee_frame_name_;
         pin::FrameIndex ee_frame_id_;
 
         /**
@@ -123,6 +124,7 @@ namespace panda_torque_mpc
          * @param[in] q_m measured joint configuration
          * @param[in] dq_m measured joint velocity
          * @param[in] dq_filtered filtered joint velocity
+         * @param[in] tau_m measured joint torques
          * @param[in] x_r target end effector pose
          * @param[in] dx_r target end effector spatial velocity
          * @param[in] ddx_r target end effector spatial acceleration

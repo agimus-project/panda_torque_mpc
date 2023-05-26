@@ -36,7 +36,7 @@ namespace panda_torque_mpc
         double tau_limit_scale = 0.5;
         double v_limit_scale = 0.2;
 
-        std::string ee_frame_name = "panda_link8";
+        std::string ee_frame_name = "panda_hand";
         Vector6d ee_task_mask = (Vector6d() << 1, 1, 1, 1, 1, 1).finished();
     };
 

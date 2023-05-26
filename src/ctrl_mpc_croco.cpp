@@ -92,8 +92,8 @@ namespace panda_torque_mpc
 
         // Load panda model with pinocchio
         std::string urdf_path;
-        if (!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path"))
-            return false;
+        if (!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path")) return false;
+        if (!get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name")) return false;
 
         /////////////////////////////////////////////////
         //                 Pinocchio                   //
@@ -109,8 +109,7 @@ namespace panda_torque_mpc
         }
 
         // Define corresponding frame id for pinocchio and Franka (see ctrl_model_pinocchio_vs_franka)
-        ee_frame_pin_ = "panda_link8";
-        ee_frame_id_ = model_pin_.getFrameId(ee_frame_pin_);
+        ee_frame_id_ = model_pin_.getFrameId(ee_frame_name_);
 
         /////////////////////////////////////////////////
         //                    MPC                      //
@@ -118,7 +117,7 @@ namespace panda_torque_mpc
         config_croco_.T = nb_shooting_nodes;
         config_croco_.dt_ocp = dt_ocp;
         config_croco_.nb_iterations_max = nb_iterations_max;
-        config_croco_.ee_frame_name = ee_frame_pin_;
+        config_croco_.ee_frame_name = ee_frame_name_;
         config_croco_.w_frame_running = w_frame_running;
         config_croco_.w_frame_terminal = w_frame_terminal;
         config_croco_.w_x_reg_running = w_x_reg_running;

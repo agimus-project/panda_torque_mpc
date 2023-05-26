@@ -37,6 +37,7 @@ namespace panda_torque_mpc
         if(!get_param_error_tpl<double>(nh, w_q_,  "w_q"))  return false;
         if(!get_param_error_tpl<double>(nh, tau_limit_scale_, "tau_limit_scale"))  return false;
         if(!get_param_error_tpl<double>(nh, v_limit_scale_,   "v_limit_scale"))  return false;
+        
 
         std::vector<double> ee_task_mask_vec;
         if(!get_param_error_tpl<std::vector<double>>(nh, ee_task_mask_vec, "ee_task_mask", 
@@ -75,6 +76,7 @@ namespace panda_torque_mpc
         // Load panda model with pinocchio
         std::string urdf_path;
         if(!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path")) return false;
+        if(!get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name")) return false;
 
         /////////////////////////////////////////////////
         //                 Pinocchio                   //
@@ -90,8 +92,7 @@ namespace panda_torque_mpc
         }
 
         // Define corresponding frame id for pinocchio and Franka (see ctrl_model_pinocchio_vs_franka)
-        ee_frame_pin_ = "panda_link8";
-        ee_frame_id_ = model_pin_.getFrameId(ee_frame_pin_);
+        ee_frame_id_ = model_pin_.getFrameId(ee_frame_name_);
 
         /////////////////////////////////////////////////
         //                    TSID                     //
@@ -105,7 +106,7 @@ namespace panda_torque_mpc
         conf.w_q = w_q_; 
         conf.tau_limit_scale = tau_limit_scale_;
         conf.v_limit_scale = v_limit_scale_;
-        conf.ee_frame_name = ee_frame_pin_;
+        conf.ee_frame_name = ee_frame_name_;
         conf.ee_task_mask = ee_task_mask_;
         tsid_reaching_ = TsidManipulatorReaching(urdf_path, conf);
         /////////////////////////////////////////////////
@@ -380,7 +381,7 @@ namespace panda_torque_mpc
          */
 
         /**
-         * For differential Forward Kinematics and jacobians, use LOCAL_WORL_ALIGNED
+         * For differential Forward Kinematics and jacobians, use LOCAL_WORLD_ALIGNED
          * for all computations since corresponds to the "classical" euclidean velocity (easier to think about)
          *
          */
@@ -437,20 +438,33 @@ namespace panda_torque_mpc
             // ROS_INFO_STREAM("TSIDVariant::PosePosture, pinocchio: " << use_pinocchio_);
 
             // EE SE3 POSE + POSTURE tasks  --> NOPE, likely problem with the jacobian computation
-            // End effector pose taskquat_r_local
-            // pin::SE3 e = x_r.inverse() * T_o_e_m;  // does not seem to be the issue
-            pin::SE3 e = T_o_e_m.inverse() * x_r;
-            pin::Motion de = nu_o_e_m - dx_r;
-            Vector6d ddx_d = ddx_r - 2 * sqrt(kp_ee_) * de - kp_ee_ * pin::log6(e);
-            Eigen::Matrix<double, 6, 6> Jlog;
-            pin::Jlog6(e, Jlog);
 
-            // Posture task : q --> q_init
+            // 1) End effector pose taskquat_r_local
+            // !! we are in LOCAL_WORLD_ALIGNED mode
+            // --> task error needs to be coherent!
+            // e_T = minus(Tm, Tref) = log6(Tm^-1 * Tref) or log6(Tref^-1 * Tm) depending on:
+            // pin::Motion e_x = pin::log6(x_r.inverse() * T_o_e_m);  // WORLD se3 cartesian tangent space difference  -> NOPE
+            // pin::Motion e_x = pin::log6(T_o_e_m.inverse() * x_r);  // LOCAL se3 cartesian tangent space difference  -> NOPE
+
+            // LOCAL_WORLD_ALIGNED se3 cartesian tangent space difference
+            // e_t = minus(tm, tref) = tm - tref   by definition of SO(3) manifold difference operator
+            // e_R = minus(Rm, Rref) = log3(Rref.T * Rm)   by definition of SO(3) manifold difference operator
+            pin::Motion e_x = pin::Motion::Zero();
+            e_x.linear() = T_o_e_m.translation() - x_r.translation();
+            // e_x.angular() = pin::log3(x_r.rotation().transpose() * T_o_e_m.rotation());  // in world frame!
+            // e_x.angular() = pin::log3(T_o_e_m.rotation().transpose() * x_r.rotation());  // in body frame!
+            e_x.angular() = Eigen::Vector3d::Zero();  // HACK!! two above do NOT work!!
+            pin::Motion de_x = nu_o_e_m - dx_r;
+
+            // A pin::Motion behaves like a Eigen::Vector6d in this case
+            Vector6d ddx_d = ddx_r - kp_ee_ * e_x - kd_ee_ * de_x;
+
+            // 2) Posture task : q --> q_init
             // Let's keep the same dynamics but alpha will handle the weighting between the 2 tasks
             // ddq_r = 0 = dq_r here
             Vector7d eq = q_m - q_init_;
             Vector7d deq = dq_m;
-            Vector7d ddq_reg_d = -kp_ee_ * eq - 2 * sqrt(kp_ee_) * deq;
+            Vector7d ddq_reg_d = -kp_ee_ * eq - kd_ee_ * deq;
 
             // SE3 ONLY -> UNDERDETERMINED
             // Eigen::Matrix<double, 6, 7> A = Jlog * J_pin;
@@ -459,7 +473,7 @@ namespace panda_torque_mpc
 
             // Create and solve least square problem to get desired joint acceleration
             Eigen::Matrix<double, 13, 7> A;
-            A.block<6, 7>(0, 0) = pow(w_ee_, 2) * (Jlog * J_pin);
+            A.block<6, 7>(0, 0) = pow(w_ee_, 2) * J_pin;
             A.block<7, 7>(6, 0) = pow(w_q_, 2) * Eigen::Matrix<double, 7, 7>::Identity();
             Eigen::Matrix<double, 13, 1> b;
             b.segment<6>(0) = pow(w_ee_, 2) * (ddx_d - dJ_pin * dq_m);
@@ -468,7 +482,8 @@ namespace panda_torque_mpc
 
             break;
         }
-        case TSIDVariant::TSID:
+        case TSIDVariant::TSIDPose:
+        {
             // ROS_INFO_STREAM("TSIDVariant::TSID, pinocchio: " << use_pinocchio_);
 
             tsid_reaching_.setEERef(x_r, dx_r, ddx_r);
@@ -482,6 +497,7 @@ namespace panda_torque_mpc
 
             break;
         }
+        }  // end of the switch
 
         Vector7d tau_d;
         if (use_pinocchio_)

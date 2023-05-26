@@ -84,6 +84,7 @@ namespace panda_torque_mpc
             // Load panda model with pinocchio
             std::string urdf_path;
             params_success = get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path") && params_success;
+            params_success = get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name") && params_success;
 
             if (!params_success)
             {
@@ -104,8 +105,7 @@ namespace panda_torque_mpc
             }
 
             // Define corresponding frame id for pinocchio and Franka (see ctrl_model_pinocchio_vs_franka)
-            ee_frame_pin_ = "panda_link8";
-            ee_frame_id_ = model_pin_.getFrameId(ee_frame_pin_);
+            ee_frame_id_ = model_pin_.getFrameId(ee_frame_name_);
 
             /////////////////////////////////////////////////
             //                MPC CONFIG                   //
@@ -113,7 +113,7 @@ namespace panda_torque_mpc
             config_croco_.T = nb_shooting_nodes;
             config_croco_.dt_ocp = dt_ocp;
             config_croco_.nb_iterations_max = nb_iterations_max;
-            config_croco_.ee_frame_name = ee_frame_pin_;
+            config_croco_.ee_frame_name = ee_frame_name_;
             config_croco_.reference_is_placement = reference_is_placement;
             config_croco_.w_frame_running = w_frame_running;
             config_croco_.w_frame_terminal = w_frame_terminal;
@@ -267,73 +267,6 @@ namespace panda_torque_mpc
                 first_pose_ref_msg_received_ = true;
             }
         }
-
-
-        // bool retrieve_pose_ref_from_tf()
-        // {   
-        //     if (!first_sensor_msg_received_)
-        //     {
-        //         return false;
-        //     } 
-
-        //     ros::Duration delay(0.1);  // delay in seconds to avoid tf extrapolation error
-
-        //     if ((t_sensor_ - ros::Time(0)) <  delay)
-        //     {
-        //         std::cout << "Warning: Negative Time in retrieve_pose_ref_from_tf!" << std::endl;
-        //         return false;
-        //     }
-            
-        //     pin::SE3 T_b_e_ref;  // to be computed by each case
-        //     if (demo_is_visual_servoing_)
-        //     {
-        //         ////////////////
-        //         // VISUAL SERVOING DEMO
-        //         ////////////////
-        //         geometry_msgs::TransformStamped msg = tf_buffer_.lookupTransform(camera_color_optical_frame_, object_frame_, t_sensor_ - delay);
-        //         auto tr = msg.transform;
-
-        //         // TODOOOOOOOOOOOOOOOOO
-        //         // TODOOOOOOOOOOOOOOOOO
-        //         // TODOOOOOOOOOOOOOOOOO
-        //         // TODOOOOOOOOOOOOOOOOO
-        //         // TODOOOOOOOOOOOOOOOOO
-
-                
-        //     }
-        //     else
-        //     {
-        //         ////////////////
-        //         // T265 DEMO
-        //         ////////////////
-        //         // geometry_msgs::TransformStamped msg = tf_buffer_.lookupTransform(world_frame_, camera_pose_frame_, t_sensor_ - delay);
-        //         geometry_msgs::TransformStamped msg = tf_buffer_.lookupTransform(camera_pose_frame_, world_frame_, t_sensor_ - delay);  // WRONG
-        //         auto tr = msg.transform;
-        //         Eigen::Vector3d p_bt; p_bt << tr.translation.x, tr.translation.y, tr.translation.z;
-        //         Eigen::Quaterniond quap_bt(tr.rotation.w, tr.rotation.x, tr.rotation.y, tr.rotation.z);
-        //         pin::SE3 T_w_t(quap_bt, p_bt);
-
-        //         if (!first_pose_ref_msg_received_)
-        //         {
-        //             T_w_t0_ = T_w_t;
-        //             first_pose_ref_msg_received_ = true;
-        //         }
-
-        //         // Cf ctrl_task_space_ID for instance for why this choice
-        //         pin::SE3 T_e0_e = pin::SE3::Identity();
-        //         auto R_e0_b = T_b_e0_.rotation().transpose();
-        //         T_e0_e.translation() = R_e0_b * (T_w_t.translation() - T_w_t0_.translation());
-
-        //         // Set reference pose
-        //         // compose initial pose with relative/local transform
-        //         pin::SE3 T_b_e_ref = T_b_e0_ * T_e0_e;
-
-        //     }
-
-        //     // RT safe setting
-        //     T_b_e_ref_rtbox_.set(T_b_e_ref);
-            
-        // }
 
         void callback_sensor(const lfc_msgs::Sensor &sensor_msg)
         {
@@ -492,7 +425,7 @@ namespace panda_torque_mpc
         // Pinocchio objects
         pin::Model model_pin_;
         pin::Data data_pin_;
-        std::string ee_frame_pin_;
+        std::string ee_frame_name_;
         pin::FrameIndex ee_frame_id_;
 
         // MPC formulation

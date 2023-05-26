@@ -53,8 +53,8 @@ namespace panda_torque_mpc
 
         // Load panda model with pinocchio
         std::string urdf_path;
-        if (!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path"))
-            return false;
+        if (!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path")) return false;
+        if (!get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name")) return false;
 
         /////////////////////////////////////////////////
         //                 Pinocchio                   //
@@ -70,8 +70,7 @@ namespace panda_torque_mpc
         }
 
         // Define corresponding frame id for pinocchio and Franka (see ctrl_model_pinocchio_vs_franka)
-        ee_frame_pin_ = "panda_link8";
-        ee_frame_id_ = model_pin_.getFrameId(ee_frame_pin_);
+        ee_frame_id_ = model_pin_.getFrameId(ee_frame_name_);
 
         ///////////////////
         // Claim interfaces

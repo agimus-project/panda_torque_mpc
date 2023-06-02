@@ -1,0 +1,15 @@
+<launch>
+  <arg name="expe" default="expe"/>
+
+  <node pkg="rosbag" type="record" name="rosbag_record_rs_and_joints"
+        args="record --output-name $(find panda_torque_mpc)/bags/rs_joints_$(arg expe)
+                    /camera/color/camera_info
+                    /camera/color/image_raw
+                    /camera/depth/camera_info
+                    /camera/depth/image_rect_raw
+                    /camera/extrinsics/depth_to_color
+                    /franka_state_controller/joint_states
+                    "
+  />
+
+</launch>

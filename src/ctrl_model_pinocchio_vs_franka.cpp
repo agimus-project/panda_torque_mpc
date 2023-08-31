@@ -185,24 +185,7 @@ namespace panda_torque_mpc
             Eigen::Map<Matrix7d> M_fra(mass.data());
 
             ROS_INFO("\n\n\n--------------------------------------------------");
-            // std::cout << "\ndiff coriolis: \n" << coriolis);
-            std::cout << "\ngravity_fra :\n"
-                      << (g_fra).transpose();
-            std::cout << "\ngravity_pin :\n"
-                      << (g_pin).transpose();
-            std::cout << "\ndiff gravity :\n"
-                      << (g_fra - g_pin).transpose(); // NOT SAME
-            // std::cout << "\ngravity fra:\n" << g_fra.transpose();
-            // std::cout << "\ngravity pin:\n" << g_pin.transpose();
-            std::cout << "\ndiff data_pin_.tau - (C_pin*dq + g_pin) :\n"
-                      << (data_pin_.tau - (C_pin * dq + g_pin)).transpose(); // SAME
 
-            std::cout << "\ndiff coriolis vector :\n"
-                      << (cor_fra - C_pin * dq).transpose(); // NOT SAME
-            std::cout << "\ndiff mass matrix :\n"
-                      << M_fra - M_pin; // NOT SAME
-            // std::cout << "\nM_pin :\n" << M_pin);
-            // std::cout << "\nM_fra :\n" << M_fra);
             std::cout << "\ndiff oM4_fra - oMj4_pin :\n"
                       << oM4_fra - oMj4_pin; // SAME
             std::cout << "\ndiff oM7_fra - oMj7_pin :\n"
@@ -216,6 +199,22 @@ namespace panda_torque_mpc
             // std::cout << "\ndiff oJ7_pin_f - oJ7_fra_j :\n" << oJ7_pin_f - oJ7_fra_j;    // NOT SAME: Franka "zero" Jac = LOCAL_WORLD_ALIGNED, not WORLD
             std::cout << "\ndiff loJ7_pin_f - oJ7_fra_j :\n"
                       << loJ7_pin_f - oJ7_fra_j; // SAME
+            std::cout << "\ndiff data_pin_.tau - (C_pin*dq + g_pin) :\n"
+                      << (data_pin_.tau - (C_pin * dq + g_pin)).transpose(); // SAME
+
+            std::cout << "\ndiff coriolis vector :\n"
+                      << (cor_fra - C_pin * dq).transpose(); // NOT SAME
+            std::cout << "\ndiff mass matrix :\n"
+                      << M_fra - M_pin; // NOT SAME
+            std::cout << "\ngravity_fra :\n"
+                      << (g_fra).transpose();
+            std::cout << "\ngravity_pin :\n"
+                      << (g_pin).transpose();
+            std::cout << "\ndiff gravity :\n"
+                      << (g_fra - g_pin).transpose(); // NOT SAME
+
+
+            std::cout << "\n\n";
         }
     }
 

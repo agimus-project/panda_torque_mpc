@@ -47,8 +47,8 @@ ctrl_joint_space_ID:
         - $(arg arm_id)_joint6
         - $(arg arm_id)_joint7
     # Gains for IDControl
-    Kp: 500  # Stiff
-    Kd: 50  # Stiff
+    Kp: 300  # Stiff
+    Kd: 30  # Stiff
     # Kp: 100 
     # Kd: 10 
     # Kp: 50
@@ -113,9 +113,9 @@ ctrl_task_space_ID:
         - $(arg arm_id)_joint7
     # Trajectory simulation
     delta_nu:
-        - 0.07
-        - 0.08
-        - 0.09
+        - 0.00
+        - 0.00
+        - 0.00
         - 0.0
         - 0.0
         - 0.0
@@ -131,14 +131,14 @@ ctrl_task_space_ID:
     # 0: PosiPosture
     # 1: PosePosture  # TODO: not working -> pbe in jacobian
     # 2: TSIDPose
-    control_variant: 1
+    control_variant: 2
     use_pinocchio: true
     alpha_dq_filter: 1.0 # should be close to 1 and <= 1.0
     # Controller configs
-    kp_ee: 500  # Stiff
-    kd_ee: 200 
-    # kp_ee: 100 
-    # kd_ee: 60 
+    # kp_ee: 500  # Stiff
+    # kd_ee: 200 
+    kp_ee: 100 
+    kd_ee: 60 
     # kp_ee: 20
     # kd_ee: 5 
     kp_q: 100
@@ -249,6 +249,9 @@ ctrl_mpc_linearized:
     diag_u_reg_running: [1.0,1.0,1.0,1.0,1.0,1.0,1.0]
     
     # px, py, pz,    qx, qy, qz, qw
+    # eye in hand extrinsicscontrol_ref_from_ddp_node_received_
     pose_e_c: [0.0437, -0.0341, 0.0611,    0.0006, -0.0080, 0.70654, 0.70762]  # Camera CALIBRATION d435i
+
+    # Target relative pose
     pose_c_o_ref: [0.0, 0.0, 0.6,     1, 0, 0, 0 ]   # Apriltag 0
     # pose_c_o_ref: [0.0, 0.0, 0.6,    -0.5, -0.5, 0.5, -0.5 ]   # Cheezit

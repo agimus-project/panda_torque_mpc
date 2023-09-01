@@ -18,7 +18,6 @@
 #include <realtime_tools/realtime_box.h>
 #include <ros/node_handle.h>
 #include <ros/time.h>
-#include <geometry_msgs/PoseStamped.h>
 
 #include <franka_hw/franka_cartesian_command_interface.h>
 #include <franka_hw/franka_model_interface.h>

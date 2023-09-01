@@ -195,8 +195,10 @@ ctrl_mpc_croco:
     armature: [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
     # armature: [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
     
-    w_frame_running:  100
-    w_frame_terminal: 100
+    # w_frame_running:  100
+    # w_frame_terminal: 100
+    w_frame_running:  20
+    w_frame_terminal: 20
     w_x_reg_running: 0.1
     w_x_reg_terminal: 1.0
     scale_q_vs_v_reg: 0.1
@@ -248,10 +250,9 @@ ctrl_mpc_linearized:
     w_u_reg_running: 0.01
     diag_u_reg_running: [1.0,1.0,1.0,1.0,1.0,1.0,1.0]
     
-    # px, py, pz,    qx, qy, qz, qw
-    # eye in hand extrinsicscontrol_ref_from_ddp_node_received_
-    pose_e_c: [0.0437, -0.0341, 0.0611,    0.0006, -0.0080, 0.70654, 0.70762]  # Camera CALIBRATION d435i
+    # pose format: px, py, pz,    qx, qy, qz, qw
+    pose_e_c: [0.137, -0.01, -0.059,  0.0869, -0.0866, -0.70365, 0.69986]  # Camera CALIBRATION d455
 
     # Target relative pose
-    pose_c_o_ref: [0.0, 0.0, 0.6,     1, 0, 0, 0 ]   # Apriltag 0
+    pose_c_o_ref: [0.0, 0.0, 0.71,     1, 0, 0, 0 ]   # Apriltag 0
     # pose_c_o_ref: [0.0, 0.0, 0.6,    -0.5, -0.5, 0.5, -0.5 ]   # Cheezit

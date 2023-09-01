@@ -83,12 +83,16 @@ In two different shells (change use_gripper according to which urdf model you us
 * `roslaunch panda_torque_mpc sim_controllers.launch controller:=<controller-name>`
 
 ## Real
+Set `PANDA_IP` env variable, e.g.:
+`export PANDA_IP=192.168.102.11` (CIIRC 6th floor)  
+`export PANDA_IP=192.168.88.140` (CIIRC 4th floor)  
+
 `robot_ip` and `load_gripper` arguments should be changed accordingly for each launch files
 
 * Bring robot to init position  
-`roslaunch panda_torque_mpc move_to_start.launch robot_ip:=192.168.102.11 load_gripper:=true robot:=panda`
+`roslaunch panda_torque_mpc move_to_start.launch robot_ip:=$PANDA_IP load_gripper:=true robot:=panda`
 * Start one of the custom controllers  
-`roslaunch panda_torque_mpc real_controllers.launch controller:=<controller-name> robot_ip:=192.168.102.11 load_gripper:=true robot:=panda`
+`roslaunch panda_torque_mpc real_controllers.launch controller:=<controller-name> robot_ip:=$PANDA_IP load_gripper:=true robot:=panda`
 
 ## Custom controllers
 The parameters of each controller are defined in `config/controller_configs.yaml`. To run one of them in simulation or real, replace <controller-name> with:
@@ -121,7 +125,7 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_serv
 ```bash
 roslaunch realsense2_camera demo_t265.launch
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
-roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=192.168.102.11 load_gripper:=true robot:=panda
+roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP load_gripper:=true robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
 ```
 
@@ -129,7 +133,7 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_serv
 ```bash
 roslaunch realsense2_camera rs_camera.launch
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --visual_servoing
-roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=192.168.102.11 load_gripper:=true robot:=panda
+roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP load_gripper:=true robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
 ```
 

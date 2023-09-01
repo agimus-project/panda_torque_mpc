@@ -27,7 +27,6 @@
 #include "panda_torque_mpc/JointValuesComparison.h"
 #include "panda_torque_mpc/TaskPoseComparison.h"
 #include "panda_torque_mpc/TaskTwistComparison.h"
-#include "panda_torque_mpc/PoseTaskGoal.h"
 
 #include "panda_torque_mpc/common.h"
 
@@ -135,7 +134,7 @@ namespace panda_torque_mpc
             const pin::SE3 &x_r, const pin::Motion &dx_r, const pin::Motion &ddx_r,
             TSIDVariant control_variant, bool use_pinocchio);
 
-        void pose_callback(const PoseTaskGoal& msg);
+        void pose_callback(const geometry_msgs::PoseStamped& msg);
     };
 
 } // namespace panda_torque_mpc

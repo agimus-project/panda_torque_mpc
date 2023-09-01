@@ -19,7 +19,7 @@
 #include "panda_torque_mpc/common.h"
 #include "panda_torque_mpc/crocoddyl_reaching.h"
 
-#include "panda_torque_mpc/PoseTaskGoal.h"
+#include "geometry_msgs/PoseStamped.h"
 
 
 
@@ -151,7 +151,7 @@ namespace panda_torque_mpc
 
         }
 
-        void callback_pose_ref_t265(const PoseTaskGoal &msg)
+        void callback_pose_ref_t265(const geometry_msgs::PoseStamped &msg)
         {
             /**
              * If the first sensor state of the robot has not yet been received, no need to process the pose ref
@@ -206,8 +206,7 @@ namespace panda_torque_mpc
         }
 
 
-
-        void callback_pose_ref_tracker(const PoseTaskGoal &msg)
+        void callback_pose_ref_tracker(const geometry_msgs::PoseStamped &msg)
         {
             /**
              * If the first sensor state of the robot has not yet been received, no need to process the pose ref

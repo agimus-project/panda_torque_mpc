@@ -25,9 +25,6 @@
 #include <franka_hw/trigger_rate.h>
 
 #include "panda_torque_mpc/JointValuesComparison.h"
-#include "panda_torque_mpc/TaskPoseComparison.h"
-#include "panda_torque_mpc/TaskTwistComparison.h"
-#include "panda_torque_mpc/PoseTaskGoal.h"
 
 #include "panda_torque_mpc/common.h"
 

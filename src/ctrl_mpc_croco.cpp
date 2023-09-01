@@ -430,7 +430,7 @@ namespace panda_torque_mpc
         return tau_d;
     }
 
-    void CtrlMpcCroco::pose_callback(const PoseTaskGoal &msg)
+    void CtrlMpcCroco::pose_callback(const geometry_msgs::PoseStamped &msg)
     {
 
         /**
@@ -449,7 +449,7 @@ namespace panda_torque_mpc
         Eigen::Quaterniond quat_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
         pin::SE3 T_w_t(quat_bt, t_bt);
         
-        std::cout << "CtrlMpcCroco::pose_callback PoseTaskGoal T_w_t:" << std::endl;
+        std::cout << "CtrlMpcCroco::pose_callback PoseStamped T_w_t:" << std::endl;
         std::cout << T_w_t << std::endl;
 
         if (pose_frames_not_aligned_)

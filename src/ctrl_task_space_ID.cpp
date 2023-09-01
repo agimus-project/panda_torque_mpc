@@ -525,7 +525,7 @@ namespace panda_torque_mpc
         return tau_d;
     }
 
-    void CtrlTaskSpaceID::pose_callback(const PoseTaskGoal& msg)
+    void CtrlTaskSpaceID::pose_callback(const geometry_msgs::PoseStamped& msg)
     {   
 
         /**
@@ -588,22 +588,8 @@ namespace panda_torque_mpc
         // compose initial pose with relative/local transform
         pin::SE3 T_be = T_b_e0_*T_e0_e;
 
-        pin::Motion nu_wt;
-        // Set reference twist
-        nu_wt.linear().x() = msg.twist.linear.x;
-        nu_wt.linear().y() = msg.twist.linear.y;
-        nu_wt.linear().z() = msg.twist.linear.z;
-        nu_wt.angular().x() = msg.twist.angular.x;
-        nu_wt.angular().y() = msg.twist.angular.y;
-        nu_wt.angular().z() = msg.twist.angular.z;
-        // Set reference spatial acceleration
-        pin::Motion a_wt;
-        a_wt.linear().x() = msg.acceleration.linear.x;
-        a_wt.linear().y() = msg.acceleration.linear.y;
-        a_wt.linear().z() = msg.acceleration.linear.z;
-        a_wt.angular().x() = msg.acceleration.angular.x;
-        a_wt.angular().y() = msg.acceleration.angular.y;
-        a_wt.angular().z() = msg.acceleration.angular.z;
+        pin::Motion nu_wt = pin::Motion::Zero();
+        pin::Motion a_wt = pin::Motion::Zero();
 
         // RT safe setting
         x_r_rtbox_.set(T_be);

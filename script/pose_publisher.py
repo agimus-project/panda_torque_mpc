@@ -13,7 +13,7 @@ import rospy
 import tf2_ros
 import argparse
 
-from panda_torque_mpc.msg import PoseTaskGoal
+from geometry_msgs.msg import PoseStamped
 
 
 parser = argparse.ArgumentParser(
@@ -115,7 +115,7 @@ PERIOD_NU = np.array([
 
 
 def talker():
-    pub = rospy.Publisher(TOPIC_POSE_PUBLISHED, PoseTaskGoal, queue_size=10)
+    pub = rospy.Publisher(TOPIC_POSE_PUBLISHED, PoseStamped, queue_size=10)
     
     rospy.init_node('pose_publisher', anonymous=False)
     rate = rospy.Rate(FREQ)
@@ -151,8 +151,6 @@ def talker():
 
                 print(T_bt_ref)
 
-                nu_bt_ref = np.zeros(6)
-                dnu_bt_ref = np.zeros(6)
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
                 if VERBOSE:
                     print(e)
@@ -161,10 +159,8 @@ def talker():
             
         else:
             T_bt_ref, nu_bt_ref, dnu_bt_ref = compute_sinusoid_pose_delta_reference(DELTA_NU, PERIOD_NU, (t - t0).to_sec())
-            nu_bt_ref = np.zeros(6)
-            dnu_bt_ref = np.zeros(6)
 
-        msg = PoseTaskGoal()
+        msg = PoseStamped()
         msg.header.stamp.secs = t.secs
         msg.header.stamp.nsecs = t.nsecs
 
@@ -176,20 +172,6 @@ def talker():
         msg.pose.orientation.y = q.y
         msg.pose.orientation.z = q.z
         msg.pose.orientation.w = q.w
-
-        msg.twist.linear.x = nu_bt_ref[0]
-        msg.twist.linear.y = nu_bt_ref[1]
-        msg.twist.linear.z = nu_bt_ref[2]
-        msg.twist.angular.x = nu_bt_ref[3]
-        msg.twist.angular.y = nu_bt_ref[4]
-        msg.twist.angular.z = nu_bt_ref[5]
-
-        msg.acceleration.linear.x = dnu_bt_ref[0]
-        msg.acceleration.linear.y = dnu_bt_ref[1]
-        msg.acceleration.linear.z = dnu_bt_ref[2]
-        msg.acceleration.angular.x = dnu_bt_ref[3]
-        msg.acceleration.angular.y = dnu_bt_ref[4]
-        msg.acceleration.angular.z = dnu_bt_ref[5]
 
         pub.publish(msg)
 

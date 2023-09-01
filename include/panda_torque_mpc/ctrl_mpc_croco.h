@@ -27,7 +27,6 @@
 #include "panda_torque_mpc/JointValuesComparison.h"
 #include "panda_torque_mpc/TaskPoseComparison.h"
 #include "panda_torque_mpc/TaskTwistComparison.h"
-#include "panda_torque_mpc/PoseTaskGoal.h"
 
 #include "panda_torque_mpc/common.h"
 
@@ -113,7 +112,7 @@ namespace panda_torque_mpc
         Vector7d compute_desired_torque(
             const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &dq_filtered, const pin::SE3 &x_r, const CrocoddylConfig &);
 
-        void pose_callback(const PoseTaskGoal &msg);
+        void pose_callback(const geometry_msgs::PoseStamped &msg);
     };
 
 } // namespace panda_torque_mpc

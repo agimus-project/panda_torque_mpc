@@ -121,19 +121,19 @@ add_dependencies(panda_torque_mpc panda_torque_mpc_generate_messages_cpp)
 ##############################
 # Motion server crocoddyl node
 ##############################
-add_executable(croccodyl_motion_server_node src/croccodyl_motion_server_node.cpp)
+add_executable(crocoddyl_motion_server_node src/crocoddyl_motion_server_node.cpp)
 
-target_link_libraries(croccodyl_motion_server_node PUBLIC
+target_link_libraries(crocoddyl_motion_server_node PUBLIC
   ${catkin_LIBRARIES}
   panda_torque_mpc_utils
   pinocchio::pinocchio 
   pinocchio::pinocchio_headers
 )
 
-target_include_directories(croccodyl_motion_server_node SYSTEM PUBLIC
+target_include_directories(crocoddyl_motion_server_node SYSTEM PUBLIC
   ${catkin_INCLUDE_DIRS}
   include
 )
 
 # Make sure that the messages are built before this target
-add_dependencies(croccodyl_motion_server_node panda_torque_mpc_generate_messages_cpp)
+add_dependencies(crocoddyl_motion_server_node panda_torque_mpc_generate_messages_cpp)

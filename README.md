@@ -102,7 +102,7 @@ The parameters of each controller are defined in `config/controller_configs.yaml
 * `ctrl_joint_space_ID`: follow joint trajectory reference using different flavors of joint space Inverse Dynamics 
 * `ctrl_task_space_ID`: follow task space end-effector trajectory ($\mathbb{R}^3$ or SE(3)) 
 * `ctrl_mpc_croco`: synchronously solving of OCP using crocoddyl and sending the first torque command -> limited to very short horizons to avoid breaking real time constraint 
-* `ctrl_mpc_linearized`: asynchronous execution a linearized control reference from OCP solver running in another node (croccodyl_motion_server_node) using Ricatti gains -> very few computation, no update() skipped
+* `ctrl_mpc_linearized`: asynchronous execution a linearized control reference from OCP solver running in another node (crocoddyl_motion_server_node) using Ricatti gains -> very few computation, no update() skipped
 
 ## Realsense T265 demo with TSID (launch in this order in different shells)
 ```bash
@@ -118,7 +118,7 @@ roslaunch realsense2_camera demo_t265.launch
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
 roslaunch franka_gazebo panda.launch arm_id:=panda headless:=false use_gripper:=true
 roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized record_joints:=true
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ```
 
 ## Realsense T265 demo with asynchronous MPC (real)
@@ -126,7 +126,7 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_serv
 roslaunch realsense2_camera demo_t265.launch
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP load_gripper:=true robot:=panda
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ```
 
 ## Realsense VISUAL SERVOING demo with asynchronous MPC (real)
@@ -134,7 +134,7 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_serv
 roslaunch realsense2_camera rs_camera.launch
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --visual_servoing
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP load_gripper:=true robot:=panda
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ```
 
 # TODOLIST

@@ -231,7 +231,8 @@ namespace panda_torque_mpc
             pin::SE3 T_b_e;
             T_b_e_rtbox_.get(T_b_e);
 
-            pin::SE3 T_b_c_ref = T_b_e * T_e_c_ * T_c_o_meas * T_o_c_ref_;
+            pin::SE3 T_b_c_ref = T_b_e * T_e_c_ * T_c_o_meas * T_o_c_ref_;  // ORIGINAL
+            // pin::SE3 T_b_c_ref = T_b_e * T_e_c_ * T_c_o_ref_ * T_o_c_meas;  // NOPPPPPPPPE
             pin::SE3 T_b_e_ref = T_b_c_ref * T_c_e_;
 
             // !!!!!!!!!!!!!
@@ -371,9 +372,9 @@ namespace panda_torque_mpc
             bool reaching_task_is_active = true;
             if (config_croco_.reference_is_placement)
             {
-                // std::cout << "config_croco_.reference_is_placement\n" << T_b_e_ref << std::endl;
-                // std::cout << "T_b_e_ref\n" << T_b_e_ref << std::endl;
-                // std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
+                std::cout << "config_croco_.reference_is_placement\n" << T_b_e_ref << std::endl;
+                std::cout << "T_b_e_ref\n" << T_b_e_ref << std::endl;
+                std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
                 croco_reaching_.set_ee_ref_placement(T_b_e_ref, reaching_task_is_active);
             }
             else
@@ -473,7 +474,7 @@ namespace panda_torque_mpc
 int main(int argc, char **argv)
 {
 
-    ros::init(argc, argv, "croccodyl_motion_server_node");
+    ros::init(argc, argv, "crocoddyl_motion_server_node");
     ros::NodeHandle nh;
     std::string robot_sensors_topic_sub = "robot_sensors";
     std::string control_topic_pub = "motion_server_control";

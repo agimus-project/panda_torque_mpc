@@ -19,7 +19,7 @@ roslaunch panda_torque_mpc move_to_start.launch robot_ip:=192.168.102.11 load_gr
 roslaunch realsense2_camera demo_t265.launch
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=192.168.102.11 load_gripper:=true robot:=panda
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 
 # DEBUG
 # print TF frames
@@ -47,7 +47,7 @@ rviz
 
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --visual_servoing
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=192.168.102.11 load_gripper:=true robot:=panda
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 
 
 ###############################
@@ -66,7 +66,7 @@ rosrun tf static_transform_publisher 0 0 0 0 0 0 map camera_link 1.0
 rviz
 
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=192.168.102.11 load_gripper:=true robot:=panda
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc croccodyl_motion_server_node
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 
 
 

@@ -539,9 +539,7 @@ namespace panda_torque_mpc
         */
 
 
-        Eigen::Vector3d t_bt; t_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
-        Eigen::Quaterniond quat_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);  // w, x, y, z with this contructor
-        pin::SE3 T_w_t(quat_bt, t_bt);
+        pin::SE3 T_w_t = posemsg2SE3(msg.pose);
 
         // std::cout << "CtrlTaskSpaceID::pose_callback T_w_t:" << std::endl;
         // std::cout << T_w_t << std::endl;

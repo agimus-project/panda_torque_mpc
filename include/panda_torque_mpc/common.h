@@ -5,10 +5,12 @@
 #include <ratio>
 #include <Eigen/Core>
 #include <ros/node_handle.h>
+#include <geometry_msgs/Pose.h>
 
 #include <pinocchio/spatial/se3.hpp>
 #include <pinocchio/spatial/motion.hpp>
 #include <pinocchio/spatial/explog.hpp>
+
 
 
 
@@ -52,6 +54,7 @@ namespace panda_torque_mpc {
         }
         return tau_d_sat;
     }
+
 
     struct TicTac
     {
@@ -153,8 +156,7 @@ namespace panda_torque_mpc {
     }
 
 
-
-    inline pinocchio::SE3 XYZQUATToSE3(std::vector<double> pose)
+    inline pinocchio::SE3 XYZQUATToSE3(const std::vector<double>& pose)
     {
         // pose: [px, py, pz,    qx, qy, qz, qw]
         Eigen::Vector3d t(pose[0], pose[1], pose[2]);
@@ -166,5 +168,27 @@ namespace panda_torque_mpc {
     }
 
 
+    inline pinocchio::SE3 posemsg2SE3(const geometry_msgs::Pose& pose)
+    {
+        std::vector<double> xyzquat = {pose.position.x, pose.position.y, pose.position.z, 
+                                       pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w};
+        return XYZQUATToSE3(xyzquat);
+    }
+
+
+    inline geometry_msgs::Pose SE32posemsg(const pinocchio::SE3& T)
+    {
+        geometry_msgs::Pose pose;
+        Eigen::Quaterniond q(T.rotation()); 
+
+        pose.position.x = T.translation()[0];
+        pose.position.y = T.translation()[1];
+        pose.position.z = T.translation()[2];
+        pose.orientation.x = q.x();
+        pose.orientation.y = q.y();
+        pose.orientation.z = q.z();
+        pose.orientation.w = q.w();
+        return pose;
+    }
 
 } // namespace panda_torque_mpc

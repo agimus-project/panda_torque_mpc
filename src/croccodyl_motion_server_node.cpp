@@ -83,7 +83,8 @@ namespace panda_torque_mpc
 
             // Load panda model with pinocchio
             std::string urdf_path;
-            params_success = get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path") && params_success;
+            urdf_path = "/home/imitlearn/sanbox_mfourmy/ws_panda_ctrl/src/panda_torque_mpc/res/panda_inertias.urdf";
+            // params_success = get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path") && params_success;
             params_success = get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name") && params_success;
 
             if (!params_success)
@@ -165,10 +166,7 @@ namespace panda_torque_mpc
 
             std::cout << "callback_pose_ref_t265 " << std::endl;
 
-            Eigen::Vector3d p_bt;
-            p_bt << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
-            Eigen::Quaterniond quap_bt(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
-            pin::SE3 T_w_t(quap_bt, p_bt);
+            pin::SE3 T_w_t = posemsg2SE3(msg.pose);
 
             // Cf ctrl_task_space_ID for instance for why this choice
             // TRANSLATION ref
@@ -220,11 +218,7 @@ namespace panda_torque_mpc
 
             std::cout << "callback_pose_ref_tracker " << std::endl;
 
-
-            Eigen::Vector3d p_co;
-            p_co << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
-            Eigen::Quaterniond quap_co(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
-            pin::SE3 T_c_o_meas(quap_co, p_co);
+            pin::SE3 T_c_o_meas = posemsg2SE3(msg.pose);
             pin::SE3 T_o_c_meas = T_c_o_meas.inverse();
 
             std::cout << "\n\n\n\n\ncallback_pose_ref_tracker" << std::endl;
@@ -273,7 +267,6 @@ namespace panda_torque_mpc
             t_sensor_ = sensor_msg.header.stamp;
             lfc_msgs::Eigen::Sensor sensor_eig;
             lfc_msgs::sensorMsgToEigen(sensor_msg, sensor_eig);
-            // TODO: Protect by a mutex!
             Eigen::Matrix<double, 14, 1> current_x;
             current_x << sensor_eig.joint_state.position, sensor_eig.joint_state.velocity;
             current_x_rtbox_.set(current_x);

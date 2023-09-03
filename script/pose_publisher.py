@@ -51,6 +51,22 @@ camera_color_optical_frame = "camera_color_optical_frame"
 object_frame = "object_frame"
 
 
+# Fake T265 reference parameters
+# DELTA_NU = np.array([
+#     0.0, 0.0, 0.0, 
+#     0.0, 0.0, 0.0
+# ])
+
+DELTA_NU = np.array([
+    0.07, 0.08, 0.09, 
+    0.0, 0.0, 0.0
+])
+ 
+PERIOD_NU = np.array([
+    4.0, 4.0, 4.0, 
+    5.0, 5.0, 5.0
+])
+
 
 # Documentation is not clear about which transformation is retrieved by lookup_transform (target/source or source/target)
 # After testing with T265 node, it seems it is T_wc, s.t. 
@@ -90,28 +106,6 @@ def compute_sinusoid_pose_delta_reference(delta_nu, period_nu, t):
     return T_bt_ref, nu_bt_ref, dnu_bt_ref
 
 
-
-
-# DELTA_NU = np.array([
-#     0.0, 0.0, 0.0, 
-#     0.0, 0.0, 0.0
-# ])
-
-# DELTA_NU = np.array([
-#     0.04, 0.04, 0.04, 
-#     0.0, 0.0, 0.0
-# ])
-
-DELTA_NU = np.array([
-    0.07, 0.08, 0.09, 
-    0.0, 0.0, 0.0
-])
-
- 
-PERIOD_NU = np.array([
-    4.0, 4.0, 4.0, 
-    5.0, 5.0, 5.0
-])
 
 
 def talker():

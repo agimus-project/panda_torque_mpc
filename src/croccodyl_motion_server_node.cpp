@@ -308,6 +308,9 @@ namespace panda_torque_mpc
             pin::SE3 T_b_e_ref;
             T_b_e_ref_rtbox_.get(T_b_e_ref);
 
+            // Solve and send
+            std::cout << "\n -------- T_b_e_ref\n" << T_b_e_ref << std::endl;
+
             // Retrieve initial configuration in thread-safe way
             Vector7d q_init;
             q_init_rtbox_.get(q_init);
@@ -363,8 +366,9 @@ namespace panda_torque_mpc
             // Set initial state and end-effector ref
             croco_reaching_.ddp_->get_problem()->set_x0(current_x);
 
-            bool reaching_task_is_active = (ros::Time::now() - last_pose_ref_ts_).toSec() < 0.5;
-            std::cout << "\n\n!!!!!!!!reaching_task_is_active!!!!!!!!\n" << reaching_task_is_active << std::endl;
+            // bool reaching_task_is_active = (ros::Time::now() - last_pose_ref_ts_).toSec() < 0.5;
+            // Deactivating reaching task would requires to re-equilibrate the OCP weights, easier to keep the last reference active
+            bool reaching_task_is_active = true;
             if (config_croco_.reference_is_placement)
             {
                 // std::cout << "config_croco_.reference_is_placement\n" << T_b_e_ref << std::endl;

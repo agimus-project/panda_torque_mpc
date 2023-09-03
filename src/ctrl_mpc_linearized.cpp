@@ -48,9 +48,6 @@ namespace panda_torque_mpc
         }
         rate_trigger_ = franka_hw::TriggerRate(publish_log_rate);
 
-        if (!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter"))
-            return false;
-
         // Load panda model with pinocchio
         std::string urdf_path;
         if (!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path")) return false;
@@ -140,9 +137,6 @@ namespace panda_torque_mpc
         std::string motion_server_sub_topic = "motion_server_control";
         motion_server_control_topic_sub_ = nh.subscribe(motion_server_sub_topic, 10, &CtrlMpcLinearized::callback_motion_server, this);
 
-        // init some variables
-        dq_filtered_ = Vector7d::Zero();
-
         // Controller state machine
         bool control_ref_from_ddp_node_received_ = false;
 
@@ -154,11 +148,6 @@ namespace panda_torque_mpc
         ROS_INFO_STREAM("CtrlMpcLinearized::starting");
         t_init_ = t0;
         q_init_ = Eigen::Map<const Vector7d>(franka_state_handle_->getRobotState().q.data());
-        pin::forwardKinematics(model_pin_, data_pin_, q_init_);
-        pin::updateFramePlacements(model_pin_, data_pin_);
-        T_b_e0_ = data_pin_.oMf[ee_frame_id_];
-
-        ROS_INFO_STREAM("CtrlMpcLinearized::starting T_b_e0_: \n" << T_b_e0_);
     }
 
     void CtrlMpcLinearized::update(const ros::Time &t, const ros::Duration &period)
@@ -173,15 +162,6 @@ namespace panda_torque_mpc
         Eigen::Map<Vector7d> q_m(robot_state.q.data());
         Eigen::Map<Vector7d> dq_m(robot_state.dq.data());
         Eigen::Map<Vector7d> tau_m(robot_state.tau_J.data()); // measured torques -> naturally contains gravity torque
-        // End effector computed state
-        // FK and differential FK
-        pin::forwardKinematics(model_pin_, data_pin_, q_m, dq_m);
-        pin::updateFramePlacements(model_pin_, data_pin_);
-        pin::SE3 T_o_e_m = data_pin_.oMf[ee_frame_id_];
-        pin::Motion nu_o_e_m = pin::getFrameVelocity(model_pin_, data_pin_, ee_frame_id_, pin::LOCAL_WORLD_ALIGNED);
-
-        // filter the joint velocity measurements
-        dq_filtered_ = (1 - alpha_dq_filter_) * dq_filtered_ + alpha_dq_filter_ * dq_m;
 
         /////////////////////////////////////////////////////////////
         /////////////////////////////////////////////////////////////
@@ -213,6 +193,7 @@ namespace panda_torque_mpc
         x0_mpc_rtbox_.get(x0_mpc);
         u0_mpc_rtbox_.get(u0_mpc);
         K_ricatti_rtbox_.get(K_ricatti);
+        
         if (!control_ref_from_ddp_node_received_)
         {
             std::cout << "control_ref_from_ddp_node_received_ == false" << std::endl;
@@ -224,7 +205,6 @@ namespace panda_torque_mpc
             std::cout << "TRANSITION: " << (t - t0_mpc_first_msg_).toSec() << " < " << dt_transition_jsid_to_mpc_ << std::endl;
             Vector7d dq_ref = Vector7d::Zero();
             Vector7d tau_jsid = compute_torque_jsid(q_m, dq_m, q_init_, dq_ref);
-
 
             Vector7d tau_linear_mpc = compute_torque_mpc_linear_feedback(q_m, dq_m, u0_mpc, x0_mpc, K_ricatti);
             double alpha_tau = (t - t0_mpc_first_msg_).toSec() / dt_transition_jsid_to_mpc_;

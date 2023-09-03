@@ -57,7 +57,6 @@ namespace panda_torque_mpc
 
         // Controller parameters
         Vector6d delta_nu_, period_nu_; // trajectory specification
-        double alpha_dq_filter_;
         double Kp_jsid_, Kd_jsid_;
 
         // Current update state
@@ -66,7 +65,6 @@ namespace panda_torque_mpc
         Vector7d last_q_r_;
         Vector7d last_dq_r_;
         Vector7d last_tau_d_{};
-        Vector7d dq_filtered_;
 
         // initial values
         ros::Time t_init_;

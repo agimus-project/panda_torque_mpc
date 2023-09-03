@@ -347,10 +347,13 @@ namespace panda_torque_mpc
                 xs_init = croco_reaching_.ddp_->get_xs();
                 us_init = croco_reaching_.ddp_->get_us();
 
-                // Shift trajectory by 1 node <==> config_croco_.dt_ocp
-                // !!!!!!! //
-                // HYP: config_croco_.dt_ocp == freq_node
-                // xs_init.insert(std::begin(xs_init), current_x);
+                /**
+                 * 
+                 * Shift trajectory by 1 node <==> config_croco_.dt_ocp
+                 * 
+                 * !!! HYP: config_croco_.dt_ocp == freq_node
+                 * xs_init.insert(std::begin(xs_init), current_x);
+                */
                 xs_init.insert(std::begin(xs_init), xs_init[0]);
                 xs_init.erase(std::end(xs_init) - 1);
                 us_init.insert(std::begin(us_init), us_init[0]);

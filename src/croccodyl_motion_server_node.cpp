@@ -32,8 +32,10 @@ namespace panda_torque_mpc
     public:
         CrocoMotionServer(ros::NodeHandle &nh,
                           std::string robot_sensors_topic_sub,
-                          std::string motion_server_control_topic_pub,
-                          std::string ee_pose_ref_topic_sub)
+                          std::string control_topic_pub,
+                          std::string ee_pose_ref_t265_topic_sub,
+                          std::string cam_pose_ref_viz_topic_pub
+                          )
         {
             bool params_success = true;
             ///////////////////
@@ -129,17 +131,18 @@ namespace panda_torque_mpc
             /////////////////////////////////////////////////
 
             // Publisher/Subscriber
-            control_pub_ = nh.advertise<lfc_msgs::Control>(motion_server_control_topic_pub, 1);
+            control_pub_ = nh.advertise<lfc_msgs::Control>(control_topic_pub, 1);
+            pose_ref_viz_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub, 1);
             sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_sensor, this);
-            pose_ref_t265_sub_ = nh.subscribe(ee_pose_ref_topic_sub, 10, &CrocoMotionServer::callback_pose_ref_t265, this);
+            pose_ref_t265_sub_ = nh.subscribe(ee_pose_ref_t265_topic_sub, 10, &CrocoMotionServer::callback_pose_ref_t265, this);
             std::string ee_pose_ref_visual_servoing_topic_sub = "ee_pose_ref_visual_servoing"; 
-            pose_ref_tracker_sub_ = nh.subscribe(ee_pose_ref_visual_servoing_topic_sub, 10, &CrocoMotionServer::callback_pose_ref_tracker, this);
+            pose_ref_tracker_sub_ = nh.subscribe(ee_pose_ref_visual_servoing_topic_sub, 10, &CrocoMotionServer::callback_pose_camera_object, this);
 
             // tf2
             // tf_listener_ = tf2_ros::TransformListener(tf_buffer_);
 
             // Init some variables
-            first_sensor_msg_received_ = false;
+            first_camera_object_pose_received_ = false;
             first_pose_ref_msg_received_ = false;
             first_solve_ = true;
 
@@ -159,7 +162,7 @@ namespace panda_torque_mpc
              */
             last_pose_ref_ts_ = ros::Time::now();
 
-            if (!first_sensor_msg_received_)
+            if (!first_camera_object_pose_received_)
             {
                 return;
             }
@@ -204,24 +207,24 @@ namespace panda_torque_mpc
         }
 
 
-        void callback_pose_ref_tracker(const geometry_msgs::PoseStamped &msg)
+        void callback_pose_camera_object(const geometry_msgs::PoseStamped &msg_pose_c_o)
         {
             /**
              * If the first sensor state of the robot has not yet been received, no need to process the pose ref
              */
             last_pose_ref_ts_ = ros::Time::now();
 
-            if (!first_sensor_msg_received_)
+            if (!first_camera_object_pose_received_)
             {
                 return;
             }
 
-            std::cout << "callback_pose_ref_tracker " << std::endl;
+            std::cout << "callback_pose_camera_object " << std::endl;
 
-            pin::SE3 T_c_o_meas = posemsg2SE3(msg.pose);
+            pin::SE3 T_c_o_meas = posemsg2SE3(msg_pose_c_o.pose);
             pin::SE3 T_o_c_meas = T_c_o_meas.inverse();
 
-            std::cout << "\n\n\n\n\ncallback_pose_ref_tracker" << std::endl;
+            std::cout << "\n\n\n\n\ncallback_pose_camera_object" << std::endl;
             std::cout << "T_c_o_meas\n" << T_c_o_meas << std::endl;
             std::cout << "T_c_o_ref_\n" << T_c_o_ref_ << std::endl;
 
@@ -250,7 +253,6 @@ namespace panda_torque_mpc
             std::cout << "T_b_e_ref" << std::endl;
             std::cout << T_b_e_ref << std::endl;
 
-
             // RT safe setting
             T_b_e_ref_rtbox_.set(T_b_e_ref);
 
@@ -259,6 +261,13 @@ namespace panda_torque_mpc
             {
                 first_pose_ref_msg_received_ = true;
             }
+
+            // Send message with reference camera pose
+            pin::SE3 T_c_cref = T_c_o_meas * T_o_c_ref_;
+            geometry_msgs::PoseStamped msg_pose_ccref;
+            msg_pose_ccref.pose = SE32posemsg(T_c_cref);
+            msg_pose_ccref.header = msg_pose_c_o.header;
+            pose_ref_viz_pub_.publish(msg_pose_ccref);
         }
 
         void callback_sensor(const lfc_msgs::Sensor &sensor_msg)
@@ -278,19 +287,19 @@ namespace panda_torque_mpc
             T_b_e_rtbox_.set(T_b_e);
 
             // Separate callback for reference?
-            if (!first_sensor_msg_received_)
+            if (!first_camera_object_pose_received_)
             {
                 T_b_e0_ = T_b_e;
 
                 q_init_rtbox_.set(sensor_eig.joint_state.position);
-                first_sensor_msg_received_ = true;
+                first_camera_object_pose_received_ = true;
             }
         }
 
         void solve_and_send()
         {
             // Do nothing if no pose reference and sensor state has been received
-            if (!(first_sensor_msg_received_ && first_pose_ref_msg_received_))
+            if (!(first_camera_object_pose_received_ && first_pose_ref_msg_received_))
             {
                 return;
             }
@@ -388,7 +397,7 @@ namespace panda_torque_mpc
         }
 
         // sensor callback
-        bool first_sensor_msg_received_;
+        bool first_camera_object_pose_received_;
         ros::Time t_sensor_;
         realtime_tools::RealtimeBox<Vector7d> q_init_rtbox_;
         realtime_tools::RealtimeBox<Eigen::Matrix<double, 14, 1>> current_x_rtbox_;
@@ -426,6 +435,7 @@ namespace panda_torque_mpc
 
         // Publisher of commands
         ros::Publisher control_pub_;
+        ros::Publisher pose_ref_viz_pub_;
 
         // Subscriber to robot sensor from linearized ctrl
         ros::Subscriber sensor_sub_;
@@ -459,9 +469,16 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "croccodyl_motion_server_node");
     ros::NodeHandle nh;
     std::string robot_sensors_topic_sub = "robot_sensors";
-    std::string motion_server_control_topic_pub = "motion_server_control";
-    std::string ee_pose_ref_topic_sub = "ee_pose_ref";
-    auto motion_server = panda_torque_mpc::CrocoMotionServer(nh, robot_sensors_topic_sub, motion_server_control_topic_pub, ee_pose_ref_topic_sub);
+    std::string control_topic_pub = "motion_server_control";
+    std::string ee_pose_ref_t265_topic_sub = "ee_pose_ref";
+    std::string cam_pose_ref_viz_topic_pub = "cam_pose_ref_viz";
+    auto motion_server = panda_torque_mpc::CrocoMotionServer(
+                            nh, 
+                            robot_sensors_topic_sub,
+                            control_topic_pub,
+                            ee_pose_ref_t265_topic_sub,
+                            cam_pose_ref_viz_topic_pub
+                            );
 
     int freq_node = (int) 1.0/motion_server.config_croco_.dt_ocp;
     ros::Rate loop_rate(freq_node);

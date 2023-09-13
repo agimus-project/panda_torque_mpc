@@ -8,8 +8,8 @@ Panels:
         - /Status1
         - /TF1/Frames1
         - /Pose1
+        - /Pose2
         - /MarkerArray1
-        - /MarkerArray1/Status1
       Splitter Ratio: 0.2794788181781769
     Tree Height: 544
   - Class: rviz/Selection
@@ -70,6 +70,58 @@ Visualization Manager:
           Value: false
         camera_link:
           Value: false
+        object_frame:
+          Value: true
+        panda_EE:
+          Value: true
+        panda_K:
+          Value: true
+        panda_NE:
+          Value: true
+        panda_hand:
+          Value: true
+        panda_hand_sc:
+          Value: true
+        panda_hand_tcp:
+          Value: true
+        panda_leftfinger:
+          Value: true
+        panda_link0:
+          Value: true
+        panda_link0_sc:
+          Value: true
+        panda_link1:
+          Value: true
+        panda_link1_sc:
+          Value: true
+        panda_link2:
+          Value: true
+        panda_link2_sc:
+          Value: true
+        panda_link3:
+          Value: true
+        panda_link3_sc:
+          Value: true
+        panda_link4:
+          Value: true
+        panda_link4_sc:
+          Value: true
+        panda_link5:
+          Value: true
+        panda_link5_sc:
+          Value: true
+        panda_link6:
+          Value: true
+        panda_link6_sc:
+          Value: true
+        panda_link7:
+          Value: true
+        panda_link7_sc:
+          Value: true
+        panda_link8:
+          Value: true
+        panda_rightfinger:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -80,14 +132,15 @@ Visualization Manager:
         camera_link:
           camera_color_frame:
             camera_color_optical_frame:
-              {}
+              object_frame:
+                {}
           camera_depth_frame:
             camera_depth_optical_frame:
               {}
       Update Interval: 0
       Value: true
     - Class: rviz/Camera
-      Enabled: false
+      Enabled: true
       Image Rendering: background and overlay
       Image Topic: /camera/color/image_raw
       Name: Camera
@@ -95,11 +148,11 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
-      Value: false
+      Value: true
       Visibility:
-        "": true
         Camera: true
         Grid: true
+        MarkerArray: true
         Pose: true
         TF: true
         Value: true
@@ -120,8 +173,24 @@ Visualization Manager:
       Topic: /ctrl_mpc_linearized/ee_pose_ref_visual_servoing
       Unreliable: false
       Value: true
-    - Class: rviz/Camera
+    - Alpha: 1
+      Axes Length: 0.10000000149011612
+      Axes Radius: 0.009999999776482582
+      Class: rviz/Pose
+      Color: 255; 25; 0
       Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Queue Size: 10
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Axes
+      Topic: /ctrl_mpc_linearized/cam_pose_ref_viz
+      Unreliable: false
+      Value: true
+    - Class: rviz/Camera
+      Enabled: false
       Image Rendering: background and overlay
       Image Topic: /camera/color/image_raw
       Name: Camera
@@ -129,7 +198,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
-      Value: true
+      Value: false
       Visibility:
         Camera: true
         Grid: true
@@ -143,7 +212,7 @@ Visualization Manager:
       Marker Topic: /ctrl_mpc_linearized/mesh_visualization
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -174,7 +243,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 10.485764503479004
+      Distance: 2.377169609069824
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -190,9 +259,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.0697973296046257
+      Pitch: 0.5947970151901245
       Target Frame: <Fixed Frame>
-      Yaw: 0.05039912462234497
+      Yaw: 0.08039911836385727
     Saved: ~
 Window Geometry:
   Camera:

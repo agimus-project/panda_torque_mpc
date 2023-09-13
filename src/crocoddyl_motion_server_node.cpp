@@ -85,7 +85,7 @@ namespace panda_torque_mpc
 
             // Load panda model with pinocchio
             std::string urdf_path;
-            urdf_path = "/home/imitlearn/sanbox_mfourmy/ws_panda_ctrl/src/panda_torque_mpc/res/panda_inertias.urdf";
+            urdf_path = "/home/imitlearn/sanbox_mfourmy/ws_panda_ctrl/src/panda_torque_mpc/urdf/panda_inertias.urdf";
             // params_success = get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path") && params_success;
             params_success = get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name") && params_success;
 
@@ -231,8 +231,7 @@ namespace panda_torque_mpc
             pin::SE3 T_b_e;
             T_b_e_rtbox_.get(T_b_e);
 
-            pin::SE3 T_b_c_ref = T_b_e * T_e_c_ * T_c_o_meas * T_o_c_ref_;  // ORIGINAL
-            // pin::SE3 T_b_c_ref = T_b_e * T_e_c_ * T_c_o_ref_ * T_o_c_meas;  // NOPPPPPPPPE
+            pin::SE3 T_b_c_ref = T_b_e * T_e_c_ * T_c_o_meas * T_o_c_ref_;
             pin::SE3 T_b_e_ref = T_b_c_ref * T_c_e_;
 
             // !!!!!!!!!!!!!

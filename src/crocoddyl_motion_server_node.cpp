@@ -135,19 +135,16 @@ namespace panda_torque_mpc
             pose_ref_viz_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub, 1);
             sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_sensor, this);
             pose_ref_t265_sub_ = nh.subscribe(ee_pose_ref_t265_topic_sub, 10, &CrocoMotionServer::callback_pose_ref_t265, this);
-            std::string ee_pose_ref_visual_servoing_topic_sub = "ee_pose_ref_visual_servoing"; 
-            pose_ref_tracker_sub_ = nh.subscribe(ee_pose_ref_visual_servoing_topic_sub, 10, &CrocoMotionServer::callback_pose_camera_object, this);
-
-            // tf2
-            // tf_listener_ = tf2_ros::TransformListener(tf_buffer_);
+            std::string pose_camera_object_topic_sub = "pose_camera_object"; 
+            std::string pose_object_rel_topic_sub = "pose_object_rel"; 
+            pose_camera_object_sub_ = nh.subscribe(pose_camera_object_topic_sub, 10, &CrocoMotionServer::callback_pose_camera_object, this);
+            pose_body_object_rel_sub_ = nh.subscribe(pose_object_rel_topic_sub, 10, &CrocoMotionServer::callback_pose_object0_object, this);
 
             // Init some variables
-            first_camera_object_pose_received_ = false;
+            first_robot_sensor_msg_received_ = false;
             first_pose_ref_msg_received_ = false;
             first_solve_ = true;
 
-            last_pose_ref_ts_ = ros::Time::now();
-            
             T_e_c_ = XYZQUATToSE3(pose_e_c);
             T_c_e_ = T_e_c_.inverse();
             T_c_o_ref_ = XYZQUATToSE3(pose_c_o_ref);
@@ -160,9 +157,8 @@ namespace panda_torque_mpc
             /**
              * If the first sensor state of the robot has not yet been received, no need to process the pose ref
              */
-            last_pose_ref_ts_ = ros::Time::now();
 
-            if (!first_camera_object_pose_received_)
+            if (!first_robot_sensor_msg_received_)
             {
                 return;
             }
@@ -198,6 +194,7 @@ namespace panda_torque_mpc
             T_b_e_ref_rtbox_.set(T_b_e_ref);
 
 
+            // !!! Triggers the solver !!!
             if (!first_pose_ref_msg_received_)
             {
                 T_w_t0_ = T_w_t;
@@ -212,9 +209,7 @@ namespace panda_torque_mpc
             /**
              * If the first sensor state of the robot has not yet been received, no need to process the pose ref
              */
-            last_pose_ref_ts_ = ros::Time::now();
-
-            if (!first_camera_object_pose_received_)
+            if (!first_robot_sensor_msg_received_)
             {
                 return;
             }
@@ -257,6 +252,7 @@ namespace panda_torque_mpc
             T_b_e_ref_rtbox_.set(T_b_e_ref);
 
 
+            // !!! Triggers the solver !!!
             if (!first_pose_ref_msg_received_)
             {
                 first_pose_ref_msg_received_ = true;
@@ -269,6 +265,55 @@ namespace panda_torque_mpc
             msg_pose_ccref.header = msg_pose_c_o.header;
             pose_ref_viz_pub_.publish(msg_pose_ccref);
         }
+
+
+        void callback_pose_object0_object(const geometry_msgs::PoseStamped &msg_pose_o0_o)
+        {
+            
+            /**
+             * Idea: simulate a visual servoing task by updating an initial object pose computed from 
+             * - T_c_o_ref_
+             * - T_b_e0_ (set when first robot sensor message received)
+             * - T_o0_o contained in msg_pose_o0_o, should start with identity and then send relative poses
+             * from initial virtual robot 
+             * 
+            */
+
+            pin::SE3 T_b_e;
+            T_b_e_rtbox_.get(T_b_e);
+
+            if (!first_pose_ref_msg_received_)
+            {
+                T_b_o_init_ = T_b_e * T_e_c_ * T_c_o_ref_;
+            }
+
+            pin::SE3 T_o0_o_meas = posemsg2SE3(msg_pose_o0_o.pose);
+
+            // Simulate change in object pose relative to origin
+            pin::SE3 T_b_o = T_b_o_init_ * T_o0_o_meas;
+
+            // Recover reference base pose so that T_o_c_ref_ is maintained
+            pin::SE3 T_b_c_ref = T_b_o * T_o_c_ref_;
+            pin::SE3 T_b_e_ref = T_b_c_ref * T_c_e_;
+            
+            // RT safe setting
+            T_b_e_ref_rtbox_.set(T_b_e_ref);
+
+
+            // !!! Triggers the solver !!!
+            if (!first_pose_ref_msg_received_)
+            {
+                first_pose_ref_msg_received_ = true;
+            }
+
+            // // Send message with reference camera pose
+            // pin::SE3 T_c_cref = T_c_o_meas * T_o_c_ref_;
+            // geometry_msgs::PoseStamped msg_pose_ccref;
+            // msg_pose_ccref.pose = SE32posemsg(T_c_cref);
+            // msg_pose_ccref.header = msg_pose_c_o.header;
+            // pose_ref_viz_pub_.publish(msg_pose_ccref);
+        }
+
 
         void callback_sensor(const lfc_msgs::Sensor &sensor_msg)
         {
@@ -286,20 +331,19 @@ namespace panda_torque_mpc
             pin::SE3 T_b_e = data_pin_.oMf[ee_frame_id_];
             T_b_e_rtbox_.set(T_b_e);
 
-            // Separate callback for reference?
-            if (!first_camera_object_pose_received_)
+            if (!first_robot_sensor_msg_received_)
             {
                 T_b_e0_ = T_b_e;
 
                 q_init_rtbox_.set(sensor_eig.joint_state.position);
-                first_camera_object_pose_received_ = true;
+                first_robot_sensor_msg_received_ = true;
             }
         }
 
         void solve_and_send()
         {
             // Do nothing if no pose reference and sensor state has been received
-            if (!(first_camera_object_pose_received_ && first_pose_ref_msg_received_))
+            if (!(first_robot_sensor_msg_received_ && first_pose_ref_msg_received_))
             {
                 return;
             }
@@ -366,7 +410,6 @@ namespace panda_torque_mpc
             // Set initial state and end-effector ref
             croco_reaching_.ddp_->get_problem()->set_x0(current_x);
 
-            // bool reaching_task_is_active = (ros::Time::now() - last_pose_ref_ts_).toSec() < 0.5;
             // Deactivating reaching task would requires to re-equilibrate the OCP weights, easier to keep the last reference active
             bool reaching_task_is_active = true;
             if (config_croco_.reference_is_placement)
@@ -387,7 +430,7 @@ namespace panda_torque_mpc
 
             TicTac tt_solve;
             bool success_solve = croco_reaching_.solve(xs_init, us_init);
-            tt_solve.print_tac("");
+            tt_solve.print_tac("Solve time (ms)");
             // if problem not ready or no good solution, don't send a solution
             if (!success_solve) return;
             //////////////////////////////////////
@@ -404,7 +447,6 @@ namespace panda_torque_mpc
         }
 
         // sensor callback
-        bool first_camera_object_pose_received_;
         ros::Time t_sensor_;
         realtime_tools::RealtimeBox<Vector7d> q_init_rtbox_;
         realtime_tools::RealtimeBox<Eigen::Matrix<double, 14, 1>> current_x_rtbox_;
@@ -421,14 +463,13 @@ namespace panda_torque_mpc
 
 
         // pose ref callback
-        bool first_pose_ref_msg_received_;
-        ros::Time last_pose_ref_ts_;
         pin::SE3 T_w_t0_;
         realtime_tools::RealtimeBox<pin::SE3> T_b_e_ref_rtbox_;
 
         // Solve state machine
         bool first_solve_;
-
+        bool first_pose_ref_msg_received_;
+        bool first_robot_sensor_msg_received_;
 
         // Pinocchio objects
         pin::Model model_pin_;
@@ -449,19 +490,18 @@ namespace panda_torque_mpc
 
         // Subscriber to pose reference topic
         ros::Subscriber pose_ref_t265_sub_;
-        ros::Subscriber pose_ref_tracker_sub_;
+        ros::Subscriber pose_camera_object_sub_;
+        ros::Subscriber pose_body_object_rel_sub_;
 
-        // tf2
-        tf2_ros::Buffer tf_buffer_;
-        // tf2_ros::TransformListener tf_listener_;
-
-        // tf2 frame ids
         // T265 demo
         std::string world_frame_ = "camera_odom_frame";  // static inertial "world=w" frame    
         std::string camera_pose_frame_ = "camera_pose_frame";  // moving "camera=c" frame
         // camera2object from icg (eye in hand case)
         std::string camera_color_optical_frame_ = "camera_color_optical_frame";
         std::string object_frame_ = "object_frame";
+
+        // Simulated object
+        pin::SE3 T_b_o_init_;
 
         // DEMO mode
         bool keep_original_ee_rotation_ = false;
@@ -489,15 +529,6 @@ int main(int argc, char **argv)
 
     int freq_node = (int) 1.0/motion_server.config_croco_.dt_ocp;
     ros::Rate loop_rate(freq_node);
-
-    // // Listener fills the tf2 buffer
-    // tf2_ros::TransformListener tf_listener(motion_server.tf_buffer_);
-
-    // double dt_to_fill_the_buffer = 1.0;
-    // ros::Rate rate_sleep_init(dt_to_fill_the_buffer);
-    // std::cout << "Filling tf transform buffer for (sec)" << dt_to_fill_the_buffer << std::endl;
-    // rate_sleep_init.sleep();
-
 
     while (ros::ok())
     {

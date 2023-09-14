@@ -34,6 +34,8 @@ namespace panda_torque_mpc
                           std::string robot_sensors_topic_sub,
                           std::string control_topic_pub,
                           std::string ee_pose_ref_t265_topic_sub,
+                          std::string pose_camera_object_topic_sub, 
+                          std::string pose_object_rel_topic_sub, 
                           std::string cam_pose_ref_viz_topic_pub
                           )
         {
@@ -135,8 +137,6 @@ namespace panda_torque_mpc
             pose_ref_viz_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub, 1);
             sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_sensor, this);
             pose_ref_t265_sub_ = nh.subscribe(ee_pose_ref_t265_topic_sub, 10, &CrocoMotionServer::callback_pose_ref_t265, this);
-            std::string pose_camera_object_topic_sub = "pose_camera_object"; 
-            std::string pose_object_rel_topic_sub = "pose_object_rel"; 
             pose_camera_object_sub_ = nh.subscribe(pose_camera_object_topic_sub, 10, &CrocoMotionServer::callback_pose_camera_object, this);
             pose_body_object_rel_sub_ = nh.subscribe(pose_object_rel_topic_sub, 10, &CrocoMotionServer::callback_pose_object0_object, this);
 
@@ -517,13 +517,17 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     std::string robot_sensors_topic_sub = "robot_sensors";
     std::string control_topic_pub = "motion_server_control";
-    std::string ee_pose_ref_t265_topic_sub = "ee_pose_ref";
+    std::string ee_pose_ref_t265_topic_sub = "ee_pose_ref";  // T265 DEMO
+    std::string pose_camera_object_topic_sub = "pose_camera_object";  // VISUAL SERVOING DEMO 
+    std::string pose_object_rel_topic_sub = "pose_object_rel";  // SIMULATION OF VIRTUAL OBJECT
     std::string cam_pose_ref_viz_topic_pub = "cam_pose_ref_viz";
     auto motion_server = panda_torque_mpc::CrocoMotionServer(
                             nh, 
                             robot_sensors_topic_sub,
                             control_topic_pub,
                             ee_pose_ref_t265_topic_sub,
+                            pose_camera_object_topic_sub,
+                            pose_object_rel_topic_sub,
                             cam_pose_ref_viz_topic_pub
                             );
 

@@ -137,6 +137,13 @@ roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_lineariz
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ```
 
+## Impulse test with asynchronous MPC (real)
+```bash
+roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP load_gripper:=true robot:=panda
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --visual_servoing
+```
+
 # TODOLIST
 * Double check if `initialized` topic is streamed when using the real controller (not likely) 
 * Switch between the urdf files depending on `load_gripper` argument

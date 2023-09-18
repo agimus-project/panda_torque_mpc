@@ -84,11 +84,10 @@ namespace panda_torque_mpc
 
 
 
-
             // Load panda model with pinocchio
             std::string urdf_path;
+            params_success = get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path") && params_success;
             urdf_path = "/home/imitlearn/sanbox_mfourmy/ws_panda_ctrl/src/panda_torque_mpc/urdf/panda_inertias.urdf";
-            // params_success = get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path") && params_success;
             params_success = get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name") && params_success;
 
             if (!params_success)
@@ -135,7 +134,8 @@ namespace panda_torque_mpc
             // Publisher/Subscriber
             control_pub_ = nh.advertise<lfc_msgs::Control>(control_topic_pub, 1);
             pose_ref_viz_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub, 1);
-            sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_sensor, this);
+            pose_ref_viz_pub_bis_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub+"_bis", 1);
+            sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_robot_state, this);
             pose_ref_t265_sub_ = nh.subscribe(ee_pose_ref_t265_topic_sub, 10, &CrocoMotionServer::callback_pose_ref_t265, this);
             pose_camera_object_sub_ = nh.subscribe(pose_camera_object_topic_sub, 10, &CrocoMotionServer::callback_pose_camera_object, this);
             pose_body_object_rel_sub_ = nh.subscribe(pose_object_rel_topic_sub, 10, &CrocoMotionServer::callback_pose_object0_object, this);
@@ -149,12 +149,13 @@ namespace panda_torque_mpc
             T_c_e_ = T_e_c_.inverse();
             T_c_o_ref_ = XYZQUATToSE3(pose_c_o_ref);
             T_o_c_ref_ = T_c_o_ref_.inverse();
-
         }
 
         void callback_pose_ref_t265(const geometry_msgs::PoseStamped &msg)
         {
             /**
+             * Callback for t265 demo, not part of the visual servoing experiments.
+             * 
              * If the first sensor state of the robot has not yet been received, no need to process the pose ref
              */
 
@@ -162,8 +163,6 @@ namespace panda_torque_mpc
             {
                 return;
             }
-
-            std::cout << "callback_pose_ref_t265 " << std::endl;
 
             pin::SE3 T_w_t = posemsg2SE3(msg.pose);
 
@@ -173,28 +172,17 @@ namespace panda_torque_mpc
             auto R_e0_b = T_b_e0_.rotation().transpose();
             T_e0_e.translation() = R_e0_b * (T_w_t.translation() - T_w_t0_.translation());
 
-            // // ROTATION ref  --> NOPE
+            // // ROTATION ref  --> PBE for now
             // Eigen::Matrix3d R_w_t0 = T_w_t0_.rotation();
             // Eigen::Matrix3d R_e0_t0 = R_e0_b* R_w_t0;
             // Eigen::Matrix3d R_t0_t = R_w_t0.transpose() * T_w_t.rotation();
             // T_e0_e.rotation() = R_e0_t0 * R_t0_t;
 
-            // std::cout << "\n\nYOOOOOOOO" << std::endl;
-            // std::cout << "R_w_t0\n" << R_w_t0 << std::endl;
-            // std::cout << "R_e0_b\n" << R_e0_b << std::endl;
-            // std::cout << "T_w_t\n" << T_w_t << std::endl;
-            // std::cout << "R_t0_t\n" << R_t0_t << std::endl;
-            // std::cout << "T_e0_e.rotation()\n" << T_e0_e.rotation() << std::endl;
-
             // Set reference pose
             // compose initial pose with relative/local transform
             pin::SE3 T_b_e_ref = T_b_e0_ * T_e0_e;
-
-            // RT safe setting
             T_b_e_ref_rtbox_.set(T_b_e_ref);
 
-
-            // !!! Triggers the solver !!!
             if (!first_pose_ref_msg_received_)
             {
                 T_w_t0_ = T_w_t;
@@ -214,54 +202,33 @@ namespace panda_torque_mpc
                 return;
             }
 
-            std::cout << "callback_pose_camera_object " << std::endl;
-
             pin::SE3 T_c_o_meas = posemsg2SE3(msg_pose_c_o.pose);
             pin::SE3 T_o_c_meas = T_c_o_meas.inverse();
 
-            std::cout << "\n\n\n\n\ncallback_pose_camera_object" << std::endl;
-            std::cout << "T_c_o_meas\n" << T_c_o_meas << std::endl;
-            std::cout << "T_c_o_ref_\n" << T_c_o_ref_ << std::endl;
-
-            pin::SE3 T_b_e;
-            T_b_e_rtbox_.get(T_b_e);
+            pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
 
             pin::SE3 T_b_c_ref = T_b_e * T_e_c_ * T_c_o_meas * T_o_c_ref_;
             pin::SE3 T_b_e_ref = T_b_c_ref * T_c_e_;
 
-            // !!!!!!!!!!!!!
-            // !!!!!!!!!!!!!
-            // Test without also
             if (keep_original_ee_rotation_)
             {
                 T_b_e_ref.rotation() = T_b_e0_.rotation();
             }
-            // !!!!!!!!!!!!!
-            // !!!!!!!!!!!!!
-            // !!!!!!!!!!!!!
 
-
-            std::cout << "T_b_e0_" << std::endl;
-            std::cout << T_b_e0_ << std::endl;
-            std::cout << "T_b_e" << std::endl;
-            std::cout << T_b_e << std::endl;
-            std::cout << "T_b_e_ref" << std::endl;
-            std::cout << T_b_e_ref << std::endl;
+            std::cout << "callback_pose_camera_object" << std::endl;
 
             // RT safe setting
             T_b_e_ref_rtbox_.set(T_b_e_ref);
 
-
-            // !!! Triggers the solver !!!
             if (!first_pose_ref_msg_received_)
             {
                 first_pose_ref_msg_received_ = true;
             }
 
             // Send message with reference camera pose
-            pin::SE3 T_c_cref = T_c_o_meas * T_o_c_ref_;
+            pin::SE3 T_b_c_cref = T_c_o_meas * T_o_c_ref_;
             geometry_msgs::PoseStamped msg_pose_ccref;
-            msg_pose_ccref.pose = SE32posemsg(T_c_cref);
+            msg_pose_ccref.pose = SE32posemsg(T_b_c_cref);
             msg_pose_ccref.header = msg_pose_c_o.header;
             pose_ref_viz_pub_.publish(msg_pose_ccref);
         }
@@ -279,13 +246,17 @@ namespace panda_torque_mpc
              * 
             */
 
-            pin::SE3 T_b_e;
-            T_b_e_rtbox_.get(T_b_e);
+            std::cout << "callback_pose_object0_object " << std::endl;
+
+            pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
 
             if (!first_pose_ref_msg_received_)
             {
                 T_b_o_init_ = T_b_e * T_e_c_ * T_c_o_ref_;
             }
+
+            std::cout << msg_pose_o0_o.pose << std::endl;
+
 
             pin::SE3 T_o0_o_meas = posemsg2SE3(msg_pose_o0_o.pose);
 
@@ -299,23 +270,27 @@ namespace panda_torque_mpc
             // RT safe setting
             T_b_e_ref_rtbox_.set(T_b_e_ref);
 
-
-            // !!! Triggers the solver !!!
             if (!first_pose_ref_msg_received_)
             {
                 first_pose_ref_msg_received_ = true;
             }
 
-            // // Send message with reference camera pose
-            // pin::SE3 T_c_cref = T_c_o_meas * T_o_c_ref_;
-            // geometry_msgs::PoseStamped msg_pose_ccref;
-            // msg_pose_ccref.pose = SE32posemsg(T_c_cref);
-            // msg_pose_ccref.header = msg_pose_c_o.header;
-            // pose_ref_viz_pub_.publish(msg_pose_ccref);
+            // Send message with reference camera pose
+            geometry_msgs::PoseStamped msg_pose_bc_ref;
+            msg_pose_bc_ref.pose = SE32posemsg(T_b_c_ref);
+            msg_pose_bc_ref.header = msg_pose_o0_o.header;
+            pose_ref_viz_pub_.publish(msg_pose_bc_ref);
+
+            // Send message with current camera pose
+            pin::SE3 T_b_c = T_b_e * T_e_c_;
+            geometry_msgs::PoseStamped msg_pose_bc;
+            msg_pose_bc.pose = SE32posemsg(T_b_c);
+            msg_pose_bc.header = msg_pose_o0_o.header;
+            pose_ref_viz_pub_bis_.publish(msg_pose_bc);
         }
 
 
-        void callback_sensor(const lfc_msgs::Sensor &sensor_msg)
+        void callback_robot_state(const lfc_msgs::Sensor &sensor_msg)
         {
             // Recover latest robot state from the sensor msg
             t_sensor_ = sensor_msg.header.stamp;
@@ -349,28 +324,20 @@ namespace panda_torque_mpc
             }
 
             // Retrieve reference in thread-safe way
-            pin::SE3 T_b_e_ref;
-            T_b_e_ref_rtbox_.get(T_b_e_ref);
-
-            // Solve and send
-            std::cout << "\n -------- T_b_e_ref\n" << T_b_e_ref << std::endl;
+            pin::SE3 T_b_e_ref; T_b_e_ref_rtbox_.get(T_b_e_ref);
 
             // Retrieve initial configuration in thread-safe way
-            Vector7d q_init;
-            q_init_rtbox_.get(q_init);
-            Eigen::Matrix<double,14,1> x_init; 
-            x_init << q_init, Vector7d::Zero();  // Fix zero velocity as reference
+            Vector7d q_init; q_init_rtbox_.get(q_init);
+            Eigen::Matrix<double,14,1> x_init; x_init << q_init, Vector7d::Zero();  // Fix zero velocity as reference
 
             // Retrieve current state in a thread-safe way
-            Eigen::Matrix<double, 14, 1> current_x;
-            current_x_rtbox_.get(current_x);
-
+            Eigen::Matrix<double, 14, 1> current_x; current_x_rtbox_.get(current_x);
             Vector7d q = current_x.head(model_pin_.nq);
             Vector7d v = current_x.tail(model_pin_.nv);
 
+            // State/control trajectories
             std::vector<Eigen::Matrix<double, -1, 1>> xs_init;
             std::vector<Eigen::Matrix<double, -1, 1>> us_init;
-
             if (first_solve_)
             {
                 // Warm start with gravity compensation control term
@@ -393,46 +360,39 @@ namespace panda_torque_mpc
                 // Warm start with previous solution shifted
                 xs_init = croco_reaching_.ddp_->get_xs();
                 us_init = croco_reaching_.ddp_->get_us();
-
+                
                 /**
-                 * 
                  * Shift trajectory by 1 node <==> config_croco_.dt_ocp
-                 * 
-                 * !!! HYP: config_croco_.dt_ocp == freq_node
-                 * xs_init.insert(std::begin(xs_init), current_x);
+                 * !!! HYP: config_croco_.dt_ocp == 1/freq_node
                 */
+                // TODO: check if putting current measurement in initial guess state traj makes sense
+                // xs_init.insert(std::begin(xs_init), current_x);
                 xs_init.insert(std::begin(xs_init), xs_init[0]);
                 xs_init.erase(std::end(xs_init) - 1);
                 us_init.insert(std::begin(us_init), us_init[0]);
                 us_init.erase(std::end(us_init) - 1);
             }
 
-            // Set initial state and end-effector ref
+            // Set the fixed initial state for the OCP state trajectory using current measurements
             croco_reaching_.ddp_->get_problem()->set_x0(current_x);
 
-            // Deactivating reaching task would requires to re-equilibrate the OCP weights, easier to keep the last reference active
+            // Deactivating reaching task would requires to re-equilibrate the OCP weights
+            // -> easier to track last known reference active
             bool reaching_task_is_active = true;
             if (config_croco_.reference_is_placement)
             {
-                std::cout << "config_croco_.reference_is_placement\n" << T_b_e_ref << std::endl;
-                std::cout << "T_b_e_ref\n" << T_b_e_ref << std::endl;
-                std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
                 croco_reaching_.set_ee_ref_placement(T_b_e_ref, reaching_task_is_active);
             }
             else
             {
-                std::cout << "config_croco_.reference_is_NOOOOOOT_placement" << std::endl;
-                std::cout << "T_b_e_ref\n" << T_b_e_ref << std::endl;
-                std::cout << "T_b_e0_\n" << T_b_e0_ << std::endl;
                 croco_reaching_.set_ee_ref_translation(T_b_e_ref.translation(), reaching_task_is_active);
             }
             croco_reaching_.set_posture_ref(x_init);
 
             TicTac tt_solve;
-            bool success_solve = croco_reaching_.solve(xs_init, us_init);
-            tt_solve.print_tac("Solve time (ms)");
+            croco_reaching_.solve(xs_init, us_init);
+            tt_solve.print_tac("Solve time (ms) ");
             // if problem not ready or no good solution, don't send a solution
-            if (!success_solve) return;
             //////////////////////////////////////
 
             // Fill and send control message
@@ -457,10 +417,10 @@ namespace panda_torque_mpc
         // Camera calibration
         pin::SE3 T_e_c_;
         pin::SE3 T_c_e_;
+
         // Pose reference
         pin::SE3 T_o_c_ref_;
         pin::SE3 T_c_o_ref_;
-
 
         // pose ref callback
         pin::SE3 T_w_t0_;
@@ -484,6 +444,7 @@ namespace panda_torque_mpc
         // Publisher of commands
         ros::Publisher control_pub_;
         ros::Publisher pose_ref_viz_pub_;
+        ros::Publisher pose_ref_viz_pub_bis_;
 
         // Subscriber to robot sensor from linearized ctrl
         ros::Subscriber sensor_sub_;

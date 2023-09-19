@@ -1,3 +1,0 @@
-<launch>
-  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find panda_torque_mpc)/rviz/object_pose_estimation.rviz" />
-</launch>

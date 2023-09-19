@@ -53,7 +53,12 @@ namespace panda_torque_mpc
         CrocoddylReaching(pin::Model _model_pin, CrocoddylConfig _config);
 
         void set_ee_ref_translation(Eigen::Vector3d trans, bool is_active=true);
-        void set_ee_ref_placement(pin::SE3 placement, bool is_active=true);
+        /**
+         * placement: pin::SE3, reference placement, constant for the whole horizon
+         * is_active: bool, activate/deactivate the costs
+         * weight_scaling: double, should be in [0.0,1.0] interval
+        */
+        void set_ee_ref_placement(pin::SE3 placement, bool is_active=true, double weight_scaling=1.0);
 
         void set_posture_ref(Eigen::VectorXd x0);
 

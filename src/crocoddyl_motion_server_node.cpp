@@ -67,6 +67,12 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<double>(nh, w_x_reg_terminal, "w_x_reg_terminal") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_u_reg_running, "w_u_reg_running") && params_success;
 
+            params_success = get_param_error_tpl<double>(nh, high_dist_, "high_dist") && params_success;
+            params_success = get_param_error_tpl<double>(nh, low_dist_,  "low_dist") && params_success;
+            params_success = get_param_error_tpl<double>(nh, min_scaling_, "min_scaling") && params_success;
+            params_success = get_param_error_tpl<double>(nh, max_scaling_, "max_scaling") && params_success;
+
+
             params_success = get_param_error_tpl<std::vector<double>>(nh, diag_q_reg_running, "diag_q_reg_running",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 7; }) && params_success;
@@ -87,8 +93,7 @@ namespace panda_torque_mpc
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 7; }) && params_success;
 
-
-
+            
             // Load panda model with pinocchio
             std::string urdf_path;
             params_success = get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path") && params_success;
@@ -127,9 +132,9 @@ namespace panda_torque_mpc
             config_croco_.w_frame_running = w_frame_running;
             config_croco_.w_frame_terminal = w_frame_terminal;
             config_croco_.w_x_reg_running = w_x_reg_running;
-            config_croco_.diag_q_reg_running = diag_q_reg_running;
-            config_croco_.w_x_reg_running = w_x_reg_running;
-            config_croco_.diag_v_reg_running = diag_v_reg_running;
+            config_croco_.w_x_reg_terminal = w_x_reg_terminal;
+            config_croco_.diag_q_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_q_reg_running.data()) ;
+            config_croco_.diag_v_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_v_reg_running.data());
             config_croco_.w_u_reg_running = w_u_reg_running;
             config_croco_.diag_u_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_u_reg_running.data());
             config_croco_.armature = Eigen::Map<Eigen::Matrix<double, 7, 1>>(armature.data());
@@ -338,8 +343,9 @@ namespace panda_torque_mpc
                 return;
             }
 
-            // Retrieve reference in thread-safe way
+            // Retrieve end effector reference/current in thread-safe way
             pin::SE3 T_b_e_ref; T_b_e_ref_rtbox_.get(T_b_e_ref);
+            pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
 
             // Retrieve initial configuration in thread-safe way
             Vector7d q_init; q_init_rtbox_.get(q_init);
@@ -396,7 +402,36 @@ namespace panda_torque_mpc
             bool reaching_task_is_active = true;
             if (config_croco_.reference_is_placement)
             {
-                croco_reaching_.set_ee_ref_placement(T_b_e_ref, reaching_task_is_active);
+                // Weigth scheduling: far from the task, lower the gain to prevent aggressive motions
+                Eigen::Vector3d t_error = T_b_e_ref.translation() - T_b_e.translation();
+                double dist = t_error.norm();
+
+                double high_dist = 0.2;
+                double low_dist = 0.03;
+                double min_scaling = 0.1;
+                double max_scaling = 1.0;
+
+                /**
+                 * max_scaling _________ 
+                 *            |         \
+                 *            |          \
+                 *            |           \
+                 *            |            \_______min_scaling
+                 *            |             |
+                 *          low_dist -------high_dist
+                */
+                double weight_scaling = 0.0;
+                if (dist > high_dist) {
+                    weight_scaling = min_scaling;
+                }
+                else if (dist < low_dist) {
+                    weight_scaling = max_scaling;
+                }
+                else {
+                    weight_scaling = max_scaling + (dist - low_dist) * (min_scaling - max_scaling) / (high_dist - low_dist);
+                }
+                std::cout << "dist, weight_scaling: " << dist << ", " << weight_scaling << std::endl;
+                croco_reaching_.set_ee_ref_placement(T_b_e_ref, reaching_task_is_active, 1.0);
             }
             else
             {
@@ -455,6 +490,10 @@ namespace panda_torque_mpc
         // MPC formulation
         CrocoddylReaching croco_reaching_;
         CrocoddylConfig config_croco_;
+        double high_dist_ = 0.2;
+        double low_dist_ = 0.03;
+        double min_scaling_ = 0.1;
+        double max_scaling_ = 1.0;
 
         // Publisher of commands
         ros::Publisher control_pub_;

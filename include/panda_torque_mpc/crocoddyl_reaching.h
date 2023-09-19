@@ -26,18 +26,20 @@ namespace panda_torque_mpc
         std::string ee_frame_name;
         bool reference_is_placement = false;
 
-        Eigen::Matrix<double, 7, 1> armature;
 
         // Task weights
-        double w_frame_running = 100.0;
+        double w_frame_running = 10.0;
         double w_frame_terminal = 1000.0;
 
         double w_x_reg_running = 1.0;
-        double w_x_reg_terminal = 0.01;
-        double scale_q_vs_v_reg = 0.1;
+        double w_x_reg_terminal = 1.0;
+        Eigen::Matrix<double, 7, 1> diag_q_reg_running = Eigen::Matrix<double, 7, 1>::Ones();
+        Eigen::Matrix<double, 7, 1> diag_v_reg_running = Eigen::Matrix<double, 7, 1>::Ones();
 
         double w_u_reg_running = 0.01;
         Eigen::Matrix<double, 7, 1> diag_u_reg_running = Eigen::Matrix<double, 7, 1>::Ones();
+
+        Eigen::Matrix<double, 7, 1> armature;
     };
 
     class CrocoddylReaching

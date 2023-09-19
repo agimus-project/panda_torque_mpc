@@ -36,7 +36,10 @@ namespace panda_torque_mpc
                           std::string ee_pose_ref_t265_topic_sub,
                           std::string pose_camera_object_topic_sub, 
                           std::string pose_object_rel_topic_sub, 
-                          std::string cam_pose_ref_viz_topic_pub
+                          std::string cam_pose_viz_topic_pub,
+                          std::string cam_pose_ref_viz_topic_pub,
+                          std::string cam_pose_error_topic_pub
+                          
                           )
         {
             bool params_success = true;
@@ -48,8 +51,8 @@ namespace panda_torque_mpc
 
             // Croco params
             int nb_shooting_nodes, nb_iterations_max;
-            double dt_ocp, w_frame_running, w_frame_terminal, w_x_reg_running, w_x_reg_terminal, scale_q_vs_v_reg, w_u_reg_running;
-            std::vector<double> armature, diag_u_reg_running;
+            double dt_ocp, w_frame_running, w_frame_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running;
+            std::vector<double> armature, diag_q_reg_running, diag_v_reg_running, diag_u_reg_running;
             std::vector<double> pose_e_c, pose_c_o_ref;  // px,py,pz, qx,qy,qz,qw
             bool reference_is_placement;
 
@@ -62,16 +65,18 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<double>(nh, w_frame_terminal, "w_frame_terminal") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_x_reg_running, "w_x_reg_running") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_x_reg_terminal, "w_x_reg_terminal") && params_success;
-            params_success = get_param_error_tpl<double>(nh, scale_q_vs_v_reg, "scale_q_vs_v_reg") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_u_reg_running, "w_u_reg_running") && params_success;
 
-            params_success = get_param_error_tpl<double>(nh, w_u_reg_running, "w_u_reg_running") && params_success;
-
-
-            params_success = get_param_error_tpl<std::vector<double>>(nh, armature, "armature",
+            params_success = get_param_error_tpl<std::vector<double>>(nh, diag_q_reg_running, "diag_q_reg_running",
+                                                                      [](std::vector<double> v)
+                                                                      { return v.size() == 7; }) && params_success;
+            params_success = get_param_error_tpl<std::vector<double>>(nh, diag_v_reg_running, "diag_v_reg_running",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 7; }) && params_success;
             params_success = get_param_error_tpl<std::vector<double>>(nh, diag_u_reg_running, "diag_u_reg_running",
+                                                                      [](std::vector<double> v)
+                                                                      { return v.size() == 7; }) && params_success;
+            params_success = get_param_error_tpl<std::vector<double>>(nh, armature, "armature",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 7; }) && params_success;
 
@@ -87,6 +92,7 @@ namespace panda_torque_mpc
             // Load panda model with pinocchio
             std::string urdf_path;
             params_success = get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path") && params_success;
+            urdf_path = "/home/imitlearn/sanbox_mfourmy/ws_panda_ctrl/src/panda_torque_mpc/urdf/panda_inertias.urdf";
             params_success = get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name") && params_success;
 
             if (!params_success)
@@ -122,7 +128,6 @@ namespace panda_torque_mpc
             config_croco_.w_frame_terminal = w_frame_terminal;
             config_croco_.w_x_reg_running = w_x_reg_running;
             config_croco_.w_x_reg_terminal = w_x_reg_terminal;
-            config_croco_.scale_q_vs_v_reg = scale_q_vs_v_reg;
             config_croco_.w_u_reg_running = w_u_reg_running;
             config_croco_.armature = Eigen::Map<Eigen::Matrix<double, 7, 1>>(armature.data());
             config_croco_.diag_u_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_u_reg_running.data());
@@ -132,8 +137,10 @@ namespace panda_torque_mpc
 
             // Publisher/Subscriber
             control_pub_ = nh.advertise<lfc_msgs::Control>(control_topic_pub, 1);
-            pose_ref_viz_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub, 1);
-            pose_ref_viz_pub_bis_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub+"_bis", 1);
+            cam_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_viz_topic_pub, 1);
+            cam_pose_ref_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub, 1);
+            cam_pose_error_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_error_topic_pub, 1);
+            
             sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_robot_state, this);
             pose_ref_t265_sub_ = nh.subscribe(ee_pose_ref_t265_topic_sub, 10, &CrocoMotionServer::callback_pose_ref_t265, this);
             pose_camera_object_sub_ = nh.subscribe(pose_camera_object_topic_sub, 10, &CrocoMotionServer::callback_pose_camera_object, this);
@@ -214,7 +221,6 @@ namespace panda_torque_mpc
                 T_b_e_ref.rotation() = T_b_e0_.rotation();
             }
 
-
             // RT safe setting
             T_b_e_ref_rtbox_.set(T_b_e_ref);
 
@@ -223,14 +229,27 @@ namespace panda_torque_mpc
                 first_pose_ref_msg_received_ = true;
             }
 
-            // Send message with reference camera pose
-            pin::SE3 T_b_c_cref = T_c_o_meas * T_o_c_ref_;
-            geometry_msgs::PoseStamped msg_pose_ccref;
-            msg_pose_ccref.pose = SE32posemsg(T_b_c_cref);
-            msg_pose_ccref.header = msg_pose_c_o.header;
-            pose_ref_viz_pub_.publish(msg_pose_ccref);
-        }
+            // Send message with current camera pose from current kinematics
+            pin::SE3 T_b_c = T_b_e * T_e_c_;
+            geometry_msgs::PoseStamped msg_pose_bc;
+            msg_pose_bc.pose = SE32posemsg(T_b_c);
+            msg_pose_bc.header = msg_pose_c_o.header;
+            cam_pose_pub_.publish(msg_pose_bc);
 
+            // Send message with reference camera pose
+            geometry_msgs::PoseStamped msg_pose_bc_ref;
+            msg_pose_bc_ref.pose = SE32posemsg(T_b_c_ref);
+            msg_pose_bc_ref.header = msg_pose_c_o.header;
+            cam_pose_ref_pub_.publish(msg_pose_bc_ref);
+
+            pin::SE3 T_b_c_error;
+            T_b_c_error.translation() = T_b_c.translation() - T_b_c_ref.translation();
+            T_b_c_error.rotation() = T_b_c_ref.rotation().transpose() * T_b_c.rotation();
+            geometry_msgs::PoseStamped msg_pose_bc_error;
+            msg_pose_bc_error.pose = SE32posemsg(T_b_c_error);
+            msg_pose_bc_error.header = msg_pose_c_o.header;
+            cam_pose_error_pub_.publish(msg_pose_bc_error);
+        }
 
         void callback_pose_object0_object(const geometry_msgs::PoseStamped &msg_pose_o0_o)
         {
@@ -243,7 +262,6 @@ namespace panda_torque_mpc
              * from initial virtual robot 
              * 
             */
-
 
             pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
 
@@ -269,18 +287,19 @@ namespace panda_torque_mpc
                 first_pose_ref_msg_received_ = true;
             }
 
-            // Send message with reference camera pose
-            geometry_msgs::PoseStamped msg_pose_bc_ref;
-            msg_pose_bc_ref.pose = SE32posemsg(T_b_c_ref);
-            msg_pose_bc_ref.header = msg_pose_o0_o.header;
-            pose_ref_viz_pub_.publish(msg_pose_bc_ref);
 
-            // Send message with current camera pose
+            // Send message with current camera pose from current kinematics
             pin::SE3 T_b_c = T_b_e * T_e_c_;
             geometry_msgs::PoseStamped msg_pose_bc;
             msg_pose_bc.pose = SE32posemsg(T_b_c);
             msg_pose_bc.header = msg_pose_o0_o.header;
-            pose_ref_viz_pub_bis_.publish(msg_pose_bc);
+            cam_pose_pub_.publish(msg_pose_bc);
+
+            // Send message with reference camera pose
+            geometry_msgs::PoseStamped msg_pose_bc_ref;
+            msg_pose_bc_ref.pose = SE32posemsg(T_b_c_ref);
+            msg_pose_bc_ref.header = msg_pose_o0_o.header;
+            cam_pose_ref_pub_.publish(msg_pose_bc_ref);
         }
 
 
@@ -437,8 +456,9 @@ namespace panda_torque_mpc
 
         // Publisher of commands
         ros::Publisher control_pub_;
-        ros::Publisher pose_ref_viz_pub_;
-        ros::Publisher pose_ref_viz_pub_bis_;
+        ros::Publisher cam_pose_pub_;
+        ros::Publisher cam_pose_ref_pub_;
+        ros::Publisher cam_pose_error_pub_;
 
         // Subscriber to robot sensor from linearized ctrl
         ros::Subscriber sensor_sub_;
@@ -475,7 +495,9 @@ int main(int argc, char **argv)
     std::string ee_pose_ref_t265_topic_sub = "ee_pose_ref";  // T265 DEMO
     std::string pose_camera_object_topic_sub = "pose_camera_object";  // VISUAL SERVOING DEMO 
     std::string pose_object_rel_topic_sub = "pose_object_rel";  // SIMULATION OF VIRTUAL OBJECT
+    std::string cam_pose_viz_topic_pub = "cam_pose_viz";
     std::string cam_pose_ref_viz_topic_pub = "cam_pose_ref_viz";
+    std::string cam_pose_error_topic_pub = "cam_pose_error";
     auto motion_server = panda_torque_mpc::CrocoMotionServer(
                             nh, 
                             robot_sensors_topic_sub,
@@ -483,7 +505,9 @@ int main(int argc, char **argv)
                             ee_pose_ref_t265_topic_sub,
                             pose_camera_object_topic_sub,
                             pose_object_rel_topic_sub,
-                            cam_pose_ref_viz_topic_pub
+                            cam_pose_viz_topic_pub,
+                            cam_pose_ref_viz_topic_pub,
+                            cam_pose_error_topic_pub
                             );
 
     int freq_node = (int) 1.0/motion_server.config_croco_.dt_ocp;

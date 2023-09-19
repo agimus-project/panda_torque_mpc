@@ -43,11 +43,7 @@ namespace panda_torque_mpc
         auto state = boost::make_shared<crocoddyl::StateMultibody>(boost::make_shared<pinocchio::Model>(_model_pin));
         auto actuation = boost::make_shared<crocoddyl::ActuationModelFull>(state);
 
-        Eigen::Matrix<double, 7, 1> diag_q_reg_running = _config.scale_q_vs_v_reg * Eigen::Matrix<double, 7, 1>::Ones();
-        Eigen::Matrix<double, 7, 1> diag_v_reg_running = Eigen::Matrix<double, 7, 1>::Ones();
-        Eigen::Matrix<double, 14, 1> diag_x_reg_running;
-        diag_x_reg_running << diag_q_reg_running, diag_v_reg_running;
-
+        Eigen::Matrix<double, 14, 1> diag_x_reg_running; diag_x_reg_running << _config.diag_q_reg_running, _config.diag_v_reg_running;
         Eigen::Matrix<double, 14, 1> diag_x_reg_terminal = diag_x_reg_running;
 
         // !! Send an error if not enough tasks set?
@@ -115,9 +111,11 @@ namespace panda_torque_mpc
             boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(diag_x_reg_terminal),
             boost::make_shared<crocoddyl::ResidualModelState>(state, x0_dummy, actuation->get_nu()));
 
-        terminalCostModel.get()->addCost(state_reg_cost_name_, state_reg_cost, _config.w_x_reg_terminal);
-        terminalCostModel.get()->addCost(goal_cost_translation_name_, frame_goal_translation_cost, _config.w_frame_terminal);
-        terminalCostModel.get()->addCost(goal_cost_placement_name_, frame_goal_placement_cost, _config.w_frame_terminal);
+        // terminal gains have to be multiplied by dt in order to be up to scale with running costs
+        terminalCostModel.get()->addCost(state_reg_cost_name_,        state_reg_cost,              _config.w_x_reg_terminal*_config.dt_ocp);
+        terminalCostModel.get()->addCost(goal_cost_translation_name_, frame_goal_translation_cost, _config.w_frame_terminal*_config.dt_ocp);
+        terminalCostModel.get()->addCost(goal_cost_placement_name_,   frame_goal_placement_cost,   _config.w_frame_terminal*_config.dt_ocp);
+
 
         auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel);
         terminal_DAM->set_armature(_config.armature);

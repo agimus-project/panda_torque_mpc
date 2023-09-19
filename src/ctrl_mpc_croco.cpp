@@ -41,8 +41,6 @@ namespace panda_torque_mpc
             return false;
         if (!get_param_error_tpl<double>(nh, w_x_reg_terminal, "w_x_reg_terminal"))
             return false;
-        if (!get_param_error_tpl<double>(nh, scale_q_vs_v_reg, "scale_q_vs_v_reg"))
-            return false;
         if (!get_param_error_tpl<double>(nh, w_u_reg_running, "w_u_reg_running"))
             return false;
 

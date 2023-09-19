@@ -127,10 +127,12 @@ namespace panda_torque_mpc
             config_croco_.w_frame_running = w_frame_running;
             config_croco_.w_frame_terminal = w_frame_terminal;
             config_croco_.w_x_reg_running = w_x_reg_running;
-            config_croco_.w_x_reg_terminal = w_x_reg_terminal;
+            config_croco_.diag_q_reg_running = diag_q_reg_running;
+            config_croco_.w_x_reg_running = w_x_reg_running;
+            config_croco_.diag_v_reg_running = diag_v_reg_running;
             config_croco_.w_u_reg_running = w_u_reg_running;
-            config_croco_.armature = Eigen::Map<Eigen::Matrix<double, 7, 1>>(armature.data());
             config_croco_.diag_u_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_u_reg_running.data());
+            config_croco_.armature = Eigen::Map<Eigen::Matrix<double, 7, 1>>(armature.data());
 
             croco_reaching_ = CrocoddylReaching(model_pin_, config_croco_);
             /////////////////////////////////////////////////

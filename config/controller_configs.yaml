@@ -242,12 +242,12 @@ ctrl_mpc_linearized:
     
     # w_frame_running:  50  # T265
     # w_frame_terminal: 50  # T265
-    w_frame_running:  5  # VS
-    w_frame_terminal: 5  # VS
+    w_frame_running:  10  # VS
+    w_frame_terminal: 10  # VS
     w_x_reg_running:  0.001
     w_x_reg_terminal: 0.001
     w_u_reg_running: 0.003
-    diag_q_reg_running: [0.1,
+    diag_q_reg_running: [10.0,
                          0.1,
                          0.1,
                          0.1,
@@ -263,6 +263,12 @@ ctrl_mpc_linearized:
                          100.0
                          ]
     diag_u_reg_running: [1.0,1.0,1.0,1.0,1.0,1.0,1.0]
+
+    # Adaptive weight on end effector task
+    high_dist: 0.10
+    low_dist: 0.03
+    min_scaling: 0.2
+    max_scaling: 1.0
     
     # pose format: px, py, pz,    qx, qy, qz, qw
     pose_e_c: [0.137, -0.01, -0.059,  0.0869, -0.0866, -0.70365, 0.69986]  # Camera CALIBRATION d455

@@ -30,14 +30,14 @@ VERBOSE = True
 T_o0_o_ref = pin.SE3.Identity()
 
 
-CHANGE_AFTER_SECS = 5.0
+CHANGE_AFTER_SECS = 3.0
 
 # delta in object reference frame
 # For cheezit, looking straight at the front: X-Y-Z = BACK-RIGHT-UP
 DELTA_T = np.array([0.0,0.0,0.0])
 # MIN TESTED: -10.0,-10.0,-40.0
 # MAX TESTED: +10.0,20.0,+40.0
-DELTA_W_DEG = np.array([0.0,+10.0,0.0])
+DELTA_W_DEG = np.array([0.0,0.0,10.0])
 R_o0_o = pin.exp3(np.deg2rad(DELTA_W_DEG))
 
 def talker():
@@ -58,9 +58,11 @@ def talker():
             T_o0_o_ref.rotation = T_o0_o_ref.rotation @  R_o0_o
             change_done = True
 
+        print(T_o0_o_ref)
         msg = PoseStamped()
         msg.header.stamp.secs = t.secs
         msg.header.stamp.nsecs = t.nsecs
+        msg.header.frame_id = "panda_link0"
 
         msg.pose.position.x = T_o0_o_ref.translation[0]
         msg.pose.position.y = T_o0_o_ref.translation[1]

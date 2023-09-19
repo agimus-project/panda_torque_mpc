@@ -37,7 +37,7 @@ CHANGE_AFTER_SECS = 3.0
 DELTA_T = np.array([0.0,0.0,0.0])
 # MIN TESTED: -10.0,-10.0,-40.0
 # MAX TESTED: +10.0,20.0,+40.0
-DELTA_W_DEG = np.array([0.0,0.0,10.0])
+DELTA_W_DEG = np.array([0.0,0.0,20.0])
 R_o0_o = pin.exp3(np.deg2rad(DELTA_W_DEG))
 
 def talker():
@@ -57,8 +57,8 @@ def talker():
             T_o0_o_ref.translation += DELTA_T
             T_o0_o_ref.rotation = T_o0_o_ref.rotation @  R_o0_o
             change_done = True
+            print('\n\n\n\n\n\nGO!\n\n\n\n\n\n')
 
-        print(T_o0_o_ref)
         msg = PoseStamped()
         msg.header.stamp.secs = t.secs
         msg.header.stamp.nsecs = t.nsecs

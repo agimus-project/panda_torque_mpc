@@ -87,7 +87,6 @@ namespace panda_torque_mpc
             // Load panda model with pinocchio
             std::string urdf_path;
             params_success = get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path") && params_success;
-            urdf_path = "/home/imitlearn/sanbox_mfourmy/ws_panda_ctrl/src/panda_torque_mpc/urdf/panda_inertias.urdf";
             params_success = get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name") && params_success;
 
             if (!params_success)
@@ -215,7 +214,6 @@ namespace panda_torque_mpc
                 T_b_e_ref.rotation() = T_b_e0_.rotation();
             }
 
-            std::cout << "callback_pose_camera_object" << std::endl;
 
             // RT safe setting
             T_b_e_ref_rtbox_.set(T_b_e_ref);
@@ -246,7 +244,6 @@ namespace panda_torque_mpc
              * 
             */
 
-            std::cout << "callback_pose_object0_object " << std::endl;
 
             pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
 
@@ -254,9 +251,6 @@ namespace panda_torque_mpc
             {
                 T_b_o_init_ = T_b_e * T_e_c_ * T_c_o_ref_;
             }
-
-            std::cout << msg_pose_o0_o.pose << std::endl;
-
 
             pin::SE3 T_o0_o_meas = posemsg2SE3(msg_pose_o0_o.pose);
 

@@ -30,6 +30,10 @@ namespace panda_torque_mpc
         // Task weights
         double w_frame_running = 10.0;
         double w_frame_terminal = 1000.0;
+        
+        double w_frame_vel_running = 10.0;
+        double w_frame_vel_terminal = 1000.0;
+        Eigen::Matrix<double, 6, 1> diag_frame_vel = Eigen::Matrix<double, 6, 1>::Ones();
 
         double w_x_reg_running = 1.0;
         double w_x_reg_terminal = 1.0;
@@ -65,10 +69,11 @@ namespace panda_torque_mpc
         boost::shared_ptr<crocoddyl::SolverFDDP> ddp_;
         CrocoddylConfig config_;
 
-        std::string goal_cost_translation_name_;
-        std::string goal_cost_placement_name_;
-        std::string state_reg_cost_name_;
-        std::string ctrl_reg_cost_name_;
+        std::string cost_translation_name_;
+        std::string cost_placement_name_;
+        std::string cost_velocity_name_;
+        std::string cost_state_reg_name_;
+        std::string cost_ctrl_reg_name_;
         
         // safe guards
         bool goal_translation_set_;

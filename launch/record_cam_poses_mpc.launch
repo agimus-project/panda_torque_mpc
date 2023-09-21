@@ -1,0 +1,7 @@
+<launch>
+
+ <node pkg="rosbag" type="record" name="rosbag_record_cam_poses"
+       args="record -o $(find panda_torque_mpc)/bags/ /ctrl_mpc_linearized/cam_pose_viz /ctrl_mpc_linearized/cam_pose_ref_viz"
+       />
+
+</launch>

@@ -8,22 +8,35 @@ import matplotlib.pyplot as plt
 plt.rcParams['pdf.fonttype'] = 42  # avoid pbe with fonts when submitting paperplaza
 
 
-TOPIC_POSE_BC_REF = '/ctrl_mpc_linearized/cam_pose_ref_viz'  # msg_pose_bc_ref
-TOPIC_POSE_BC = '/ctrl_mpc_linearized/cam_pose_ref_viz_bis'  # msg_pose_bc
 
 LINEWIDTH = 3.0
 
-bags_folder = Path('../bags/mpc_simu_expes/')
 
 
-# EXPE_BATCH 1
-id_exp_lst = [5,10,20,30,50,80]
-# id_exp_lst = [5,10,20,30,40,50,60,70,80]
+# # EXPE_BATCH 1
+# bags_folder = Path('../bags/mpc_simu_expes_wframe/')
+# TOPIC_POSE_BC_REF = '/ctrl_mpc_linearized/cam_pose_ref_viz'  # msg_pose_bc_ref
+# TOPIC_POSE_BC = '/ctrl_mpc_linearized/cam_pose_ref_viz_bis'  # msg_pose_bc
+# id_exp_lst = [5,10,20,30,50,80]
+# # id_exp_lst = [5,10,20,30,40,50,60,70,80]
+# FOCUS_ID = 20
+# EXPES = {
+#     'names': [f'mpc_expe_wf_{id_exp:02}' for id_exp in id_exp_lst],
+#     'labels': [fr'$w_v={id_exp}$' for id_exp in id_exp_lst],
+    # 'linestyles': ['-' if id == FOCUS_ID else '--' for id in id_exp_lst]
+# }
+
+
+# EXPE_BATCH 2
+bags_folder = Path('../bags/mpc_simu_expe_dt_wfinal/')
+TOPIC_POSE_BC     = '/ctrl_mpc_linearized/cam_pose_viz'
+TOPIC_POSE_BC_REF = '/ctrl_mpc_linearized/cam_pose_ref_viz'
+dt_ocp_lst = ['001', '002', '003']
 EXPES = {
-    'names': [f'mpc_expe_wf_{id_exp:02}' for id_exp in id_exp_lst],
-    'labels': [fr'$w_v={id_exp}$' for id_exp in id_exp_lst]
+    'names': [f'nodt_{dt}' for dt in dt_ocp_lst] + [f'withdt_{dt}' for dt in dt_ocp_lst],
+    'labels': [f'nodt_{dt}' for dt in dt_ocp_lst] + [f'withdt_{dt}' for dt in dt_ocp_lst],
+    'linestyles': 3*['-'] + 3*['--'],
 }
-
 
 
 assert len(EXPES['names']) == len(EXPES['labels'])
@@ -83,8 +96,8 @@ for k in range(N_EXPES):
     err_t = err_t[first_non_zero_idx:Ncut]
     err_o = err_o[first_non_zero_idx:Ncut]
 
-    ax_t.plot(ts_pose_ref, 1000*err_t, lw=LINEWIDTH, label=EXPES['labels'][k])
-    ax_o.plot(ts_pose_ref, err_o, lw=LINEWIDTH, label=EXPES['labels'][k])
+    ax_t.plot(ts_pose_ref, 1000*err_t, ls=EXPES['linestyles'][k], lw=LINEWIDTH, label=EXPES['labels'][k])
+    ax_o.plot(ts_pose_ref, err_o,      ls=EXPES['linestyles'][k], lw=LINEWIDTH, label=EXPES['labels'][k])
  
 
 font = {'fontname':'serif'}

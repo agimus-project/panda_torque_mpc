@@ -188,7 +188,7 @@ Visualization Manager:
       Shaft Length: 1
       Shaft Radius: 0.05000000074505806
       Shape: Axes
-      Topic: /ctrl_mpc_linearized/cam_pose_ref_viz_bis
+      Topic: /ctrl_mpc_linearized/cam_pose_ref_viz
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -204,7 +204,7 @@ Visualization Manager:
       Shaft Length: 1
       Shaft Radius: 0.05000000074505806
       Shape: Axes
-      Topic: /ctrl_mpc_linearized/cam_pose_ref_viz
+      Topic: /ctrl_mpc_linearized/cam_pose_viz
       Unreliable: false
       Value: true
     - Class: rviz/Camera
@@ -261,7 +261,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.7433488368988037
+      Distance: 2.245262861251831
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -277,9 +277,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.08479718863964081
+      Pitch: 0.25479722023010254
       Target Frame: <Fixed Frame>
-      Yaw: 6.268587589263916
+      Yaw: 0.37040263414382935
     Saved: ~
 Window Geometry:
   Camera:

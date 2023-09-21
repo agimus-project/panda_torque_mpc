@@ -26,6 +26,7 @@
 #include <crocoddyl/multibody/residuals/state.hpp>
 #include <crocoddyl/multibody/residuals/frame-translation.hpp>
 #include <crocoddyl/multibody/residuals/frame-placement.hpp>
+#include <crocoddyl/multibody/residuals/frame-velocity.hpp>
 #include <crocoddyl/multibody/costs/control-gravity.hpp>
 
 #include "panda_torque_mpc/crocoddyl_reaching.h"
@@ -55,20 +56,28 @@ namespace panda_torque_mpc
         Eigen::Matrix<double, 14, 1> x0_dummy = Eigen::Matrix<double, 14, 1>::Zero();
 
         // Cost names
-        goal_cost_translation_name_ = "translation_cost";
-        goal_cost_placement_name_ = "placement_cost";
-        state_reg_cost_name_ = "state_reg";
-        ctrl_reg_cost_name_ = "ctrl_reg";
+        cost_translation_name_ = "translation_cost";
+        cost_placement_name_ = "placement_cost";
+        cost_velocity_name_ = "velocity_cost";
+        cost_state_reg_name_ = "state_reg";
+        cost_ctrl_reg_name_ = "ctrl_reg";
 
         // Frame translation
-        auto frame_goal_translation_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+        auto frame_translation_cost = boost::make_shared<crocoddyl::CostModelResidual>(
             state,
             boost::make_shared<crocoddyl::ResidualModelFrameTranslation>(state, end_effector_frame_id, dummy_translation_reference, actuation->get_nu()));
 
         // Frame placement
-        auto frame_goal_placement_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+        auto frame_placement_cost = boost::make_shared<crocoddyl::CostModelResidual>(
             state,
             boost::make_shared<crocoddyl::ResidualModelFramePlacement>(state, end_effector_frame_id, dummy_placement_reference, actuation->get_nu()));
+
+        // Frame velocity
+        Eigen::Matrix<double, 6, 1> frame_velocity_reference = Eigen::Matrix<double, 6, 1>::Zero();
+        auto frame_velocity_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+            state,
+            boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(_config.diag_frame_vel),
+            boost::make_shared<crocoddyl::ResidualModelFrameVelocity>(state, end_effector_frame_id, pin::Motion(frame_velocity_reference), pin::ReferenceFrame::LOCAL_WORLD_ALIGNED, actuation->get_nu()));
 
         auto running_IAMs = std::vector<boost::shared_ptr<crocoddyl::ActionModelAbstract>>(_config.T);
 
@@ -88,18 +97,19 @@ namespace panda_torque_mpc
                 boost::make_shared<crocoddyl::ResidualModelControlGrav>(state, actuation->get_nu()));
 
             auto runningCostModel = boost::make_shared<crocoddyl::CostModelSum>(state);
-            runningCostModel.get()->addCost(state_reg_cost_name_, state_reg_cost, _config.w_x_reg_running);
-            runningCostModel.get()->addCost(ctrl_reg_cost_name_, ctrl_reg_cost, _config.w_u_reg_running);
-            runningCostModel.get()->addCost(goal_cost_translation_name_, frame_goal_translation_cost, _config.w_frame_running); // TODO: weight schedule
-            runningCostModel.get()->addCost(goal_cost_placement_name_, frame_goal_placement_cost, _config.w_frame_running); // TODO: weight schedule
+            runningCostModel.get()->addCost(cost_state_reg_name_,   state_reg_cost, _config.w_x_reg_running);
+            runningCostModel.get()->addCost(cost_ctrl_reg_name_,    ctrl_reg_cost, _config.w_u_reg_running);
+            runningCostModel.get()->addCost(cost_translation_name_, frame_translation_cost, _config.w_frame_running); // TODO: weight schedule
+            runningCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost, _config.w_frame_running); // TODO: weight schedule
+            runningCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost, _config.w_frame_vel_running); // TODO: weight schedule
 
             auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel);
             running_DAM->set_armature(_config.armature);
 
             // Deactivate goal cost by default until a proper reference is set
-            running_DAM->get_costs()->changeCostStatus(state_reg_cost_name_, false);
-            running_DAM->get_costs()->changeCostStatus(goal_cost_translation_name_, false);
-            running_DAM->get_costs()->changeCostStatus(goal_cost_placement_name_, false);
+            running_DAM->get_costs()->changeCostStatus(cost_state_reg_name_, false);
+            running_DAM->get_costs()->changeCostStatus(cost_translation_name_, false);
+            running_DAM->get_costs()->changeCostStatus(cost_placement_name_, false);
 
             running_IAMs[i] = boost::make_shared<crocoddyl::IntegratedActionModelEuler>(running_DAM, _config.dt_ocp);
         }
@@ -112,18 +122,19 @@ namespace panda_torque_mpc
             boost::make_shared<crocoddyl::ResidualModelState>(state, x0_dummy, actuation->get_nu()));
 
         // terminal gains have to be multiplied by dt in order to be up to scale with running costs
-        terminalCostModel.get()->addCost(state_reg_cost_name_,        state_reg_cost,              _config.w_x_reg_terminal*_config.dt_ocp);
-        terminalCostModel.get()->addCost(goal_cost_translation_name_, frame_goal_translation_cost, _config.w_frame_terminal*_config.dt_ocp);
-        terminalCostModel.get()->addCost(goal_cost_placement_name_,   frame_goal_placement_cost,   _config.w_frame_terminal*_config.dt_ocp);
+        terminalCostModel.get()->addCost(cost_state_reg_name_,   state_reg_cost,         _config.w_x_reg_terminal*_config.dt_ocp);
+        terminalCostModel.get()->addCost(cost_translation_name_, frame_translation_cost, _config.w_frame_terminal*_config.dt_ocp);
+        terminalCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost,   _config.w_frame_terminal*_config.dt_ocp);
+        terminalCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost,    _config.w_frame_vel_terminal*_config.dt_ocp);
 
 
         auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel);
         terminal_DAM->set_armature(_config.armature);
 
         // Deactivate goal cost by default until a proper reference is set
-        terminal_DAM->get_costs()->changeCostStatus(state_reg_cost_name_, false);
-        terminal_DAM->get_costs()->changeCostStatus(goal_cost_translation_name_, false);
-        terminal_DAM->get_costs()->changeCostStatus(goal_cost_placement_name_, false);
+        terminal_DAM->get_costs()->changeCostStatus(cost_state_reg_name_, false);
+        terminal_DAM->get_costs()->changeCostStatus(cost_translation_name_, false);
+        terminal_DAM->get_costs()->changeCostStatus(cost_placement_name_, false);
 
         auto terminal_IAM = boost::make_shared<crocoddyl::IntegratedActionModelEuler>(terminal_DAM, 0.0);
 
@@ -173,22 +184,22 @@ namespace panda_torque_mpc
         {
             auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_runningModels()[node_index]);
             auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
-            auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(running_DAM->get_costs()->get_costs().at(goal_cost_translation_name_)->cost->get_residual());
+            auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(running_DAM->get_costs()->get_costs().at(cost_translation_name_)->cost->get_residual());
             frame_res_running->set_reference(trans);
             if (!goal_translation_set_)
             {
-                running_DAM->get_costs()->changeCostStatus(goal_cost_translation_name_, is_active);
+                running_DAM->get_costs()->changeCostStatus(cost_translation_name_, is_active);
             }
         }
 
         // Terminal
         auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_terminalModel());
         auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
-        auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(terminal_DAM->get_costs()->get_costs().at(goal_cost_translation_name_)->cost->get_residual());
+        auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(terminal_DAM->get_costs()->get_costs().at(cost_translation_name_)->cost->get_residual());
         frame_res_terminal->set_reference(trans);
         if (!goal_translation_set_)
         {
-            terminal_DAM->get_costs()->changeCostStatus(goal_cost_translation_name_, is_active);
+            terminal_DAM->get_costs()->changeCostStatus(cost_translation_name_, is_active);
 
             // No need to activate again
             goal_translation_set_ = is_active;
@@ -202,30 +213,30 @@ namespace panda_torque_mpc
         {
             auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_runningModels()[node_index]);
             auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
-            auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(running_DAM->get_costs()->get_costs().at(goal_cost_placement_name_)->cost->get_residual());
+            auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(running_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
             frame_res_running->set_reference(placement);
             if (!goal_placement_set_)
             {
-                running_DAM->get_costs()->changeCostStatus(goal_cost_placement_name_, is_active);
+                running_DAM->get_costs()->changeCostStatus(cost_placement_name_, is_active);
             }
 
-            running_DAM->get_costs()->get_costs().at(goal_cost_placement_name_)->weight = weight_scaling * config_.w_frame_running;
+            running_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight = weight_scaling * config_.w_frame_running;
         }
 
         // Terminal
         auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_terminalModel());
         auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
-        auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(terminal_DAM->get_costs()->get_costs().at(goal_cost_placement_name_)->cost->get_residual());
+        auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
         frame_res_terminal->set_reference(placement);
         if (!goal_placement_set_)
         {
-            terminal_DAM->get_costs()->changeCostStatus(goal_cost_placement_name_, is_active);
+            terminal_DAM->get_costs()->changeCostStatus(cost_placement_name_, is_active);
 
             // No need to activate again
             goal_placement_set_ = is_active;
         }
 
-        terminal_DAM->get_costs()->get_costs().at(goal_cost_placement_name_)->weight = weight_scaling * config_.w_frame_running;
+        terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight = weight_scaling * config_.w_frame_running;
     }
 
 
@@ -238,22 +249,22 @@ namespace panda_torque_mpc
         {
             auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_runningModels()[node_index]);
             auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
-            auto posture_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelState>(running_DAM->get_costs()->get_costs().at(state_reg_cost_name_)->cost->get_residual());
+            auto posture_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelState>(running_DAM->get_costs()->get_costs().at(cost_state_reg_name_)->cost->get_residual());
             posture_res_running->set_reference(x0);
             if (!posture_set_)
             {
-                running_DAM->get_costs()->changeCostStatus(state_reg_cost_name_, true);
+                running_DAM->get_costs()->changeCostStatus(cost_state_reg_name_, true);
             }
         }
 
         // Terminal
         auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_terminalModel());
         auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
-        auto posture_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelState>(terminal_DAM->get_costs()->get_costs().at(state_reg_cost_name_)->cost->get_residual());
+        auto posture_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelState>(terminal_DAM->get_costs()->get_costs().at(cost_state_reg_name_)->cost->get_residual());
         posture_res_terminal->set_reference(x0);
         if (!posture_set_)
         {
-            terminal_DAM->get_costs()->changeCostStatus(state_reg_cost_name_, true);
+            terminal_DAM->get_costs()->changeCostStatus(cost_state_reg_name_, true);
 
             // No need to activate again
             posture_set_ = true;

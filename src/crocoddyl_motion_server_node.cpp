@@ -51,8 +51,8 @@ namespace panda_torque_mpc
 
             // Croco params
             int nb_shooting_nodes, nb_iterations_max;
-            double dt_ocp, w_frame_running, w_frame_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running;
-            std::vector<double> armature, diag_q_reg_running, diag_v_reg_running, diag_u_reg_running;
+            double dt_ocp, w_frame_running, w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running;
+            std::vector<double> diag_frame_vel, diag_q_reg_running, diag_v_reg_running, diag_u_reg_running, armature;
             std::vector<double> pose_e_c, pose_c_o_ref;  // px,py,pz, qx,qy,qz,qw
             bool reference_is_placement;
 
@@ -61,11 +61,13 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<int>(nh, nb_iterations_max, "nb_iterations_max") && params_success;
             params_success = get_param_error_tpl<bool>(nh, reference_is_placement, "reference_is_placement") && params_success;
             params_success = get_param_error_tpl<bool>(nh, keep_original_ee_rotation_, "keep_original_ee_rotation") && params_success;
-            params_success = get_param_error_tpl<double>(nh, w_frame_running, "w_frame_running") && params_success;
+            params_success = get_param_error_tpl<double>(nh, w_frame_running,  "w_frame_running") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_frame_terminal, "w_frame_terminal") && params_success;
-            params_success = get_param_error_tpl<double>(nh, w_x_reg_running, "w_x_reg_running") && params_success;
+            params_success = get_param_error_tpl<double>(nh, w_frame_vel_running,  "w_frame_vel_running") && params_success;
+            params_success = get_param_error_tpl<double>(nh, w_frame_vel_terminal, "w_frame_vel_terminal") && params_success;
+            params_success = get_param_error_tpl<double>(nh, w_x_reg_running,  "w_x_reg_running") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_x_reg_terminal, "w_x_reg_terminal") && params_success;
-            params_success = get_param_error_tpl<double>(nh, w_u_reg_running, "w_u_reg_running") && params_success;
+            params_success = get_param_error_tpl<double>(nh, w_u_reg_running,  "w_u_reg_running") && params_success;
 
             params_success = get_param_error_tpl<double>(nh, high_dist_, "high_dist") && params_success;
             params_success = get_param_error_tpl<double>(nh, low_dist_,  "low_dist") && params_success;
@@ -73,6 +75,9 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<double>(nh, max_scaling_, "max_scaling") && params_success;
 
 
+            params_success = get_param_error_tpl<std::vector<double>>(nh, diag_frame_vel, "diag_frame_vel",
+                                                                      [](std::vector<double> v)
+                                                                      { return v.size() == 6; }) && params_success;
             params_success = get_param_error_tpl<std::vector<double>>(nh, diag_q_reg_running, "diag_q_reg_running",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 7; }) && params_success;
@@ -129,9 +134,12 @@ namespace panda_torque_mpc
             config_croco_.nb_iterations_max = nb_iterations_max;
             config_croco_.ee_frame_name = ee_frame_name_;
             config_croco_.reference_is_placement = reference_is_placement;
-            config_croco_.w_frame_running = w_frame_running;
+            config_croco_.w_frame_running =  w_frame_running;
             config_croco_.w_frame_terminal = w_frame_terminal;
-            config_croco_.w_x_reg_running = w_x_reg_running;
+            config_croco_.w_frame_vel_running =  w_frame_vel_running;
+            config_croco_.w_frame_vel_terminal = w_frame_vel_terminal;
+            config_croco_.diag_frame_vel = Eigen::Map<Eigen::Matrix<double, 6, 1>>(diag_frame_vel.data()) ;
+            config_croco_.w_x_reg_running =  w_x_reg_running;
             config_croco_.w_x_reg_terminal = w_x_reg_terminal;
             config_croco_.diag_q_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_q_reg_running.data()) ;
             config_croco_.diag_v_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_v_reg_running.data());
@@ -406,11 +414,6 @@ namespace panda_torque_mpc
                 Eigen::Vector3d t_error = T_b_e_ref.translation() - T_b_e.translation();
                 double dist = t_error.norm();
 
-                double high_dist = 0.2;
-                double low_dist = 0.03;
-                double min_scaling = 0.1;
-                double max_scaling = 1.0;
-
                 /**
                  * max_scaling _________ 
                  *            |         \
@@ -421,17 +424,17 @@ namespace panda_torque_mpc
                  *          low_dist -------high_dist
                 */
                 double weight_scaling = 0.0;
-                if (dist > high_dist) {
-                    weight_scaling = min_scaling;
+                if (dist > high_dist_) {
+                    weight_scaling = min_scaling_;
                 }
-                else if (dist < low_dist) {
-                    weight_scaling = max_scaling;
+                else if (dist < low_dist_) {
+                    weight_scaling = max_scaling_;
                 }
                 else {
-                    weight_scaling = max_scaling + (dist - low_dist) * (min_scaling - max_scaling) / (high_dist - low_dist);
+                    weight_scaling = max_scaling_ + (dist - low_dist_) * (min_scaling_ - max_scaling_) / (high_dist_ - low_dist_);
                 }
                 std::cout << "dist, weight_scaling: " << dist << ", " << weight_scaling << std::endl;
-                croco_reaching_.set_ee_ref_placement(T_b_e_ref, reaching_task_is_active, 1.0);
+                croco_reaching_.set_ee_ref_placement(T_b_e_ref, reaching_task_is_active, weight_scaling);
             }
             else
             {

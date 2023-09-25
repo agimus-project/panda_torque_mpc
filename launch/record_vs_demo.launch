@@ -10,6 +10,8 @@
                               /camera/color/camera_info
                               /camera_scene/color/image_raw
                               /camera_scene/color/camera_info
+                              /tf 
+                              /tf_static
                               "
        />
 

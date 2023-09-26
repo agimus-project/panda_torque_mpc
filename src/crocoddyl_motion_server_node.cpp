@@ -2,20 +2,14 @@
 
 #include <pinocchio/fwd.hpp>
 #include <pinocchio/multibody/data.hpp>
-#include <pinocchio/parsers/urdf.hpp>
-#include <pinocchio/parsers/srdf.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/rnea.hpp>
-#include <pinocchio/algorithm/model.hpp>
-
 
 #include <linear_feedback_controller_msgs/Sensor.h>
 #include <linear_feedback_controller_msgs/Control.h>
 #include <linear_feedback_controller_msgs/eigen_conversions.hpp>
 
-// defines EXAMPLE_ROBOT_DATA_MODEL_DIR macro, path to the "..../example-robot-data/robots" directory 
-#include <example-robot-data/path.hpp>
 
 #include <realtime_tools/realtime_box.h>
 #include <ros/ros.h>
@@ -110,25 +104,9 @@ namespace panda_torque_mpc
             {
                 throw std::invalid_argument("CrocoMotionServer: check the your ROS parameters");
             }
-
-            /////////////////////////////////////////////////
-            //                 Pinocchio                   //
-            /////////////////////////////////////////////////
-            // Load panda model with pinocchio and example-robot-data
-            std::string urdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/urdf/panda.urdf";
-            std::string srdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/srdf/panda.srdf";
-
-            pin::Model model_pin_full;
-            pin::urdf::buildModel(urdf_path, model_pin_full);
-            pin::srdf::loadReferenceConfigurations(model_pin_full, srdf_path, false);
-            // pinocchio::srdf::loadRotorParameters(model_pin_full, srdf_path, false);
-            Eigen::VectorXd q0_full = model_pin_full.referenceConfigurations["default"];
-            std::vector<unsigned long> locked_joints_id {model_pin_full.getJointId("panda_finger_joint1"), 
-                                                         model_pin_full.getJointId("panda_finger_joint2")};
-            model_pin_ = pinocchio::buildReducedModel(model_pin_full, locked_joints_id, q0_full);
-            std::cout << "model name: " << model_pin_.name << std::endl;
+            
+            model_pin_ = loadPandaPinocchio();
             data_pin_ = pin::Data(model_pin_);
-
 
             if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
             {

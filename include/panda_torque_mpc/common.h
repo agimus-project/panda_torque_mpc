@@ -10,7 +10,12 @@
 #include <pinocchio/spatial/se3.hpp>
 #include <pinocchio/spatial/motion.hpp>
 #include <pinocchio/spatial/explog.hpp>
+#include <pinocchio/parsers/urdf.hpp>
+#include <pinocchio/parsers/srdf.hpp>
+#include <pinocchio/algorithm/model.hpp>
 
+// defines EXAMPLE_ROBOT_DATA_MODEL_DIR macro, path to the "..../example-robot-data/robots" directory 
+#include <example-robot-data/path.hpp>
 
 
 
@@ -28,6 +33,25 @@ namespace panda_torque_mpc {
     using Vector6d = Eigen::Matrix<double, 6, 1>;
     using Vector7d = Eigen::Matrix<double, 7, 1>;
     using Matrix7d = Eigen::Matrix<double, 7, 7>;
+
+
+
+    inline pinocchio::Model loadPandaPinocchio()
+    {
+        // Load panda model with pinocchio and example-robot-data
+        std::string urdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/urdf/panda.urdf";
+        std::string srdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/srdf/panda.srdf";
+
+        pinocchio::Model model_pin_full;
+        pinocchio::urdf::buildModel(urdf_path, model_pin_full);
+        pinocchio::srdf::loadReferenceConfigurations(model_pin_full, srdf_path, false);
+        // pinocchio::srdf::loadRotorParameters(model_pin_full, srdf_path, false);
+        Eigen::VectorXd q0_full = model_pin_full.referenceConfigurations["default"];
+        std::vector<unsigned long> locked_joints_id {model_pin_full.getJointId("panda_finger_joint1"), 
+                                                     model_pin_full.getJointId("panda_finger_joint2")};
+        std::cout << "model name: " << model_pin_full.name << std::endl;
+        return pinocchio::buildReducedModel(model_pin_full, locked_joints_id, q0_full);
+    }
 
 
     inline Vector7d saturateTorqueRate(const Vector7d &tau_d, const Vector7d &tau_d_prev, double delta_max)

@@ -17,3 +17,4 @@ dependencies:
   - pinocchio 
   - tsid 
   - crocoddyl
+  - example-robot-data 

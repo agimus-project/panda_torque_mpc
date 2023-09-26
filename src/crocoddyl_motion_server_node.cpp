@@ -3,13 +3,19 @@
 #include <pinocchio/fwd.hpp>
 #include <pinocchio/multibody/data.hpp>
 #include <pinocchio/parsers/urdf.hpp>
+#include <pinocchio/parsers/srdf.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/rnea.hpp>
+#include <pinocchio/algorithm/model.hpp>
+
 
 #include <linear_feedback_controller_msgs/Sensor.h>
 #include <linear_feedback_controller_msgs/Control.h>
 #include <linear_feedback_controller_msgs/eigen_conversions.hpp>
+
+// defines EXAMPLE_ROBOT_DATA_MODEL_DIR macro, path to the "..../example-robot-data/robots" directory 
+#include <example-robot-data/path.hpp>
 
 #include <realtime_tools/realtime_box.h>
 #include <ros/ros.h>
@@ -39,7 +45,6 @@ namespace panda_torque_mpc
                           std::string cam_pose_viz_topic_pub,
                           std::string cam_pose_ref_viz_topic_pub,
                           std::string cam_pose_error_topic_pub
-                          
                           )
         {
             bool params_success = true;
@@ -97,13 +102,9 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<std::vector<double>>(nh, pose_c_o_ref, "pose_c_o_ref",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 7; }) && params_success;
+            params_success = get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name") && params_success;
 
             
-            // Load panda model with pinocchio
-            std::string urdf_path;
-            params_success = get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path") && params_success;
-            urdf_path = "/home/imitlearn/sanbox_mfourmy/ws_panda_ctrl/src/panda_torque_mpc/urdf/panda_inertias.urdf";
-            params_success = get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name") && params_success;
 
             if (!params_success)
             {
@@ -113,9 +114,21 @@ namespace panda_torque_mpc
             /////////////////////////////////////////////////
             //                 Pinocchio                   //
             /////////////////////////////////////////////////
-            pin::urdf::buildModel(urdf_path, model_pin_);
+            // Load panda model with pinocchio and example-robot-data
+            std::string urdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/urdf/panda.urdf";
+            std::string srdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/srdf/panda.srdf";
+
+            pin::Model model_pin_full;
+            pin::urdf::buildModel(urdf_path, model_pin_full);
+            pin::srdf::loadReferenceConfigurations(model_pin_full, srdf_path, false);
+            // pinocchio::srdf::loadRotorParameters(model_pin_full, srdf_path, false);
+            Eigen::VectorXd q0_full = model_pin_full.referenceConfigurations["default"];
+            std::vector<unsigned long> locked_joints_id {model_pin_full.getJointId("panda_finger_joint1"), 
+                                                         model_pin_full.getJointId("panda_finger_joint2")};
+            model_pin_ = pinocchio::buildReducedModel(model_pin_full, locked_joints_id, q0_full);
             std::cout << "model name: " << model_pin_.name << std::endl;
             data_pin_ = pin::Data(model_pin_);
+
 
             if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
             {
@@ -315,6 +328,14 @@ namespace panda_torque_mpc
             msg_pose_bc_ref.pose = SE32posemsg(T_b_c_ref);
             msg_pose_bc_ref.header = msg_pose_o0_o.header;
             cam_pose_ref_pub_.publish(msg_pose_bc_ref);
+
+            pin::SE3 T_b_c_error;
+            T_b_c_error.translation() = T_b_c.translation() - T_b_c_ref.translation();
+            T_b_c_error.rotation() = T_b_c_ref.rotation().transpose() * T_b_c.rotation();
+            geometry_msgs::PoseStamped msg_pose_bc_error;
+            msg_pose_bc_error.pose = SE32posemsg(T_b_c_error);
+            msg_pose_bc_error.header = msg_pose_o0_o.header;
+            cam_pose_error_pub_.publish(msg_pose_bc_error);
         }
 
 

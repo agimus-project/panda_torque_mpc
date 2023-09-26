@@ -210,7 +210,6 @@ ctrl_mpc_croco:
 ctrl_mpc_linearized:
     type: panda_torque_mpc/CtrlMpcLinearized
     arm_id: $(arg arm_id)
-    urdf_path: $(find panda_torque_mpc)/urdf/panda_inertias.urdf
     ee_frame_name: panda_hand
     joint_names:
         - $(arg arm_id)_joint1

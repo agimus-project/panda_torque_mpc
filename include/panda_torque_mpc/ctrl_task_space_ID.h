@@ -6,7 +6,6 @@
 #include <math.h>
 
 #include <pinocchio/fwd.hpp>
-#include <pinocchio/parsers/urdf.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/algorithm/rnea.hpp>
 #include <pinocchio/algorithm/frames.hpp>

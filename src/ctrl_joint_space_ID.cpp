@@ -16,67 +16,45 @@ namespace panda_torque_mpc
                                       ros::NodeHandle &nh)
     {
 
-        ///////////////////
-        // Load parameters
-        ///////////////////
+
+
         std::string arm_id;
-        if (!nh.getParam("arm_id", arm_id))
-        {
-            ROS_ERROR("CtrlJointSpaceID: Could not read parameter arm_id");
-            return false;
-        }
+        if(!get_param_error_tpl<std::string>(nh, arm_id, "arm_id")) return false;
 
         std::vector<std::string> joint_names;
-        if (!nh.getParam("joint_names", joint_names) || joint_names.size() != 7)
-        {
-            ROS_ERROR("CtrlJointSpaceID: Invalid or no joint_names parameters provided, aborting controller init!");
-            return false;
-        }
+        if(!get_param_error_tpl<std::vector<std::string>>(nh, joint_names, "joint_names", 
+                                                          [](std::vector<std::string> v) {return v.size() == 7;})) return false;
 
-        if (!nh.getParam("Kp", Kp_))
-        {
-            ROS_ERROR("CtrlJointSpaceID: Could not read parameter Kp");
-            return false;
-        }
-
-        if (!nh.getParam("Kd", Kd_))
-        {
-            ROS_ERROR("CtrlJointSpaceID: Could not read parameter Kd");
-            return false;
-        }
+        if(!get_param_error_tpl<double>(nh, Kp_, "Kp")) return false;
+        if(!get_param_error_tpl<double>(nh, Kd_, "Kd")) return false;
 
         std::vector<double> kp_gains;
-        if (!nh.getParam("kp_gains", kp_gains) || kp_gains.size() != 7)
-        {
-            ROS_ERROR("CtrlJointSpaceID:  Invalid or no kp_gains parameters provided, aborting controller init!");
-            return false;
-        }
-        kp_gains_ = Eigen::Map<Vector7d>(kp_gains.data());
+        if(!get_param_error_tpl<std::vector<double>>(nh, kp_gains, "kp_gains", 
+                                                     [](std::vector<double> v) {return v.size() == 7;})) return false;
 
         std::vector<double> kd_gains;
-        if (!nh.getParam("kd_gains", kd_gains) || kd_gains_.size() != 7)
-        {
-            ROS_ERROR("CtrlJointSpaceID:  Invalid or no kd_gains parameters provided, aborting controller init!");
-            return false;
-        }
-        kd_gains_ = Eigen::Map<Vector7d>(kd_gains.data());
+        if(!get_param_error_tpl<std::vector<double>>(nh, kd_gains, "kd_gains", 
+                                                     [](std::vector<double> v) {return v.size() == 7;})) return false;
+
 
         std::vector<double> delta_q;
-        if (!nh.getParam("delta_q", delta_q) || delta_q.size() != 7)
-        {
-            ROS_INFO_STREAM("CtrlJointSpaceID:  " << delta_q.size());
-            ROS_ERROR("CtrlJointSpaceID:  Invalid or no delta_q parameters provided, aborting controller init!");
-            return false;
-        }
-        delta_q_ = Eigen::Map<Vector7d>(delta_q.data());
+        if(!get_param_error_tpl<std::vector<double>>(nh, delta_q, "delta_q", 
+                                                     [](std::vector<double> v) {return v.size() == 7;})) return false;
+
 
         std::vector<double> period_q;
-        if (!nh.getParam("period_q", period_q) || delta_q.size() != 7)
-        {
-            ROS_ERROR("CtrlJointSpaceID:  Invalid or no period_q parameters provided, aborting controller init!");
-            return false;
-        }
+        if(!get_param_error_tpl<std::vector<double>>(nh, period_q, "period_q", 
+                                                     [](std::vector<double> v) {return v.size() == 7;})) return false;
+
+        int idc;
+        if(!get_param_error_tpl<int>(nh, idc, "control_variant"),
+                                        [](int id) {return (id >= 0 && id < 4);}) return false;
+
+        kp_gains_ = Eigen::Map<Vector7d>(kp_gains.data());
+        kd_gains_ = Eigen::Map<Vector7d>(kd_gains.data());
+        delta_q_ = Eigen::Map<Vector7d>(delta_q.data());
         period_q_ = Eigen::Map<Vector7d>(period_q.data());
+        control_variant_ = static_cast<CtrlJointSpaceID::JSIDVariant>(idc);
 
         double publish_rate(30.0);
         if (!nh.getParam("publish_rate", publish_rate))
@@ -85,37 +63,12 @@ namespace panda_torque_mpc
         }
         rate_trigger_ = franka_hw::TriggerRate(publish_rate);
 
-        int idc;
-        if (!nh.getParam("control_variant", idc) || !(idc >= 0 && idc < 4))
-        {
-            ROS_ERROR_STREAM("CtrlJointSpaceID: Invalid or no control_variant parameters provided, aborting controller init! control_variant: " << idc);
-        }
-        control_variant_ = static_cast<CtrlJointSpaceID::JSIDVariant>(idc);
 
-        if (!nh.getParam("use_pinocchio", use_pinocchio_))
-        {
-            ROS_ERROR_STREAM("CtrlJointSpaceID: Could not read parameter use_pinocchio");
-        }
+        if(!get_param_error_tpl<bool>(nh, use_pinocchio_, "use_pinocchio")) return false;
+        if(!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter")) return false;
+        if(!get_param_error_tpl<bool>(nh, saturate_dtau_, "saturate_dtau")) return false;
 
-        if (!nh.getParam("alpha_dq_filter", alpha_dq_filter_))
-        {
-            ROS_ERROR_STREAM("CtrlJointSpaceID: Could not read parameter alpha_dq_filter");
-        }
-
-        if (!nh.getParam("saturate_dtau", saturate_dtau_))
-        {
-            ROS_ERROR_STREAM("CtrlJointSpaceID: Could not read parameter saturate_dtau");
-        }
-
-        // Load panda model with pinocchio
-        std::string urdf_path;
-        if (!nh.getParam("urdf_path", urdf_path))
-        {
-            ROS_ERROR("CtrlJointSpaceID: Could not read parameter urdf_path");
-            return false;
-        }
-        pin::urdf::buildModel(urdf_path, model_pin_);
-        std::cout << "model name: " << model_pin_.name << std::endl;
+        model_pin_ = loadPandaPinocchio();
         data_pin_ = pin::Data(model_pin_);
 
         if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))

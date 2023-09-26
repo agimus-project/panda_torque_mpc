@@ -9,6 +9,9 @@
 
 #include <franka/robot_state.h>
 
+#include <example-robot-data/path.hpp>
+
+
 
 
 namespace panda_torque_mpc
@@ -74,15 +77,9 @@ namespace panda_torque_mpc
         if(!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter")) return false;
 
         // Load panda model with pinocchio
-        std::string urdf_path;
-        if(!get_param_error_tpl<std::string>(nh, urdf_path, "urdf_path")) return false;
         if(!get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name")) return false;
 
-        /////////////////////////////////////////////////
-        //                 Pinocchio                   //
-        /////////////////////////////////////////////////
-        pin::urdf::buildModel(urdf_path, model_pin_);
-        std::cout << "model name: " << model_pin_.name << std::endl;
+        model_pin_ = loadPandaPinocchio();
         data_pin_ = pin::Data(model_pin_);
 
         if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
@@ -108,6 +105,7 @@ namespace panda_torque_mpc
         conf.v_limit_scale = v_limit_scale_;
         conf.ee_frame_name = ee_frame_name_;
         conf.ee_task_mask = ee_task_mask_;
+        std::string urdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/urdf/panda.urdf";
         tsid_reaching_ = TsidManipulatorReaching(urdf_path, conf);
         /////////////////////////////////////////////////
 

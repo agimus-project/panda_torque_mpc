@@ -31,29 +31,16 @@ namespace panda_torque_mpc
 {
 
     bool CtrlModelPinocchioVsFranka::init(hardware_interface::RobotHW *robot_hw,
-                                                ros::NodeHandle &node_handle)
+                                                ros::NodeHandle &nh)
     {
 
         ///////////////////
         // Load parameters
         ///////////////////
         std::string arm_id;
-        if (!node_handle.getParam("arm_id", arm_id))
-        {
-            ROS_ERROR("CtrlModelPinocchioVsFranka: Could not read parameter arm_id");
-            return false;
-        }
+        if(!get_param_error_tpl<std::string>(nh, arm_id, "arm_id")) return false;
 
-        // Load Pinocchio urdf
-        std::string urdf_path;
-        if (!node_handle.getParam("urdf_path", urdf_path))
-        {
-            ROS_ERROR("CtrlModelPinocchioVsFranka: Could not read parameter urdf_path");
-            return false;
-        }
-        // Load panda model with pinocchio
-        pin::urdf::buildModel(urdf_path, model_pin_);
-        std::cout << "model name: " << model_pin_.name << std::endl;
+        model_pin_ = loadPandaPinocchio();
         data_pin_ = pin::Data(model_pin_);
 
         if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))

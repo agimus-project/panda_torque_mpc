@@ -9,10 +9,6 @@
 
 #include <franka/robot_state.h>
 
-#include <example-robot-data/path.hpp>
-
-
-
 
 namespace panda_torque_mpc
 {
@@ -67,12 +63,13 @@ namespace panda_torque_mpc
         }
         rate_trigger_ = franka_hw::TriggerRate(publish_rate);
 
-        int idc;
-        if(!get_param_error_tpl<int>(nh, idc, "control_variant", 
-                                     [](int x) {return x >= 0 && x < 3;})) return false;
-                                     
-        control_variant_ = static_cast<CtrlTaskSpaceID::TSIDVariant>(idc);
-
+         int idc;
+         if (!nh.getParam("control_variant", idc) || !(idc >= 0 && idc < 3))
+         {
+             ROS_ERROR_STREAM("CtrlTaskSpaceID: Invalid or no control_variant parameters provided, aborting controller init! control_variant: " << idc);
+         }
+         control_variant_ = static_cast<CtrlTaskSpaceID::TSIDVariant>(idc);
+ 
         if(!get_param_error_tpl<bool>(nh, use_pinocchio_, "use_pinocchio")) return false;
         if(!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter")) return false;
 
@@ -105,8 +102,7 @@ namespace panda_torque_mpc
         conf.v_limit_scale = v_limit_scale_;
         conf.ee_frame_name = ee_frame_name_;
         conf.ee_task_mask = ee_task_mask_;
-        std::string urdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/urdf/panda.urdf";
-        tsid_reaching_ = TsidManipulatorReaching(urdf_path, conf);
+        tsid_reaching_ = TsidManipulatorReaching(model_pin_, conf);
         /////////////////////////////////////////////////
 
         ///////////////////

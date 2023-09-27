@@ -141,14 +141,11 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_serv
 ```bash
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP load_gripper:=true robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --visual_servoing
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher_simulated_object_mvt.py
 ```
 
 # TODOLIST
 * Double check if `initialized` topic is streamed when using the real controller (not likely) 
-* Switch between the urdf files depending on `load_gripper` argument
 * Figure out why measured torque signs are inverted between simulation and real robot.
 Do the sign flipping in code automatically
-* Switch to `#include <example-robot-data/path.hpp>` + EXAMPLE_ROBOT_DATA_MODEL_DIR
 * Refactor log publishers -> LoggingExperiment class with RTpublishers?
-* Other logs: update() time, libfranka packet loss stats

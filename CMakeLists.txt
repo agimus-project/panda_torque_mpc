@@ -31,6 +31,8 @@ endif()
 find_package(pinocchio REQUIRED)
 find_package(tsid REQUIRED)
 find_package(crocoddyl REQUIRED)
+find_package(example-robot-data REQUIRED)
+
 
 add_message_files(
   FILES
@@ -80,9 +82,10 @@ target_include_directories(panda_torque_mpc_utils PUBLIC
 
 target_link_libraries(panda_torque_mpc_utils PUBLIC
   Eigen3::Eigen
-  pinocchio::pinocchio 
+  pinocchio::pinocchio
   pinocchio::pinocchio_headers
   crocoddyl::crocoddyl
+  example-robot-data::example-robot-data
 )
 
 #######################
@@ -113,6 +116,7 @@ target_link_libraries(panda_torque_mpc PUBLIC
   pinocchio::pinocchio 
   pinocchio::pinocchio_headers
   tsid::tsid
+  example-robot-data::example-robot-data
 )
 
 # Make sure that the messages are built before this target

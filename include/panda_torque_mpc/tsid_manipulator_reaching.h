@@ -1,6 +1,7 @@
 #include <Eigen/Dense>
 
 #include <pinocchio/fwd.hpp>
+#include <pinocchio/multibody/model.hpp>
 
 #include <tsid/robots/robot-wrapper.hpp>
 #include <tsid/formulations/inverse-dynamics-formulation-acc-force.hpp>
@@ -56,20 +57,10 @@ namespace panda_torque_mpc
             // dummy constructor necessary to use this class as a member variable directly
         }
 
-        TsidManipulatorReaching(std::string _model_path, const TsidConfig &_conf) : conf_(_conf)
+        TsidManipulatorReaching(pinocchio::Model _model_pin, const TsidConfig &_conf) : 
+            conf_(_conf)
         {
-            /**
-             * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-             * Do NOT use:
-             * RobotWrapper(pin::Model model, true)
-             *
-             * This constructor currently (23/02/23) harcodes the assumption of the presence of a free-flyer joint
-             * which produces an inconsistent problem down the line
-             *
-             */
-            tsid_robot_ = std::make_unique<RobotWrapper>(_model_path, std::vector<std::string>(), true);
-            // std::cout << "tsid_robot_->nq(), tsid_robot_->nv(), tsid_robot_->na():\n"
-            //           << tsid_robot_->nq() << ", " << tsid_robot_->nv() << ", " << tsid_robot_->na() << std::endl;
+            tsid_robot_ = std::make_unique<RobotWrapper>(_model_pin, RobotWrapper::FIXED_BASE_SYSTEM, true);
             formulation_ = std::make_unique<IDFormulation>("tsid", *tsid_robot_, false);
 
             // 1) posture task

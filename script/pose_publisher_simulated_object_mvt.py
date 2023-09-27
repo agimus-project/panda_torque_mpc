@@ -37,7 +37,7 @@ CHANGE_AFTER_SECS = 3.0
 DELTA_T = np.array([0.0,0.0,0.0])
 # MIN TESTED: -10.0,-10.0,-40.0
 # MAX TESTED: +10.0,20.0,+40.0
-DELTA_W_DEG = np.array([0.0,0.0,20.0])
+DELTA_W_DEG = np.array([0.0,0.0,40.0])
 R_o0_o = pin.exp3(np.deg2rad(DELTA_W_DEG))
 
 def talker():
@@ -47,10 +47,10 @@ def talker():
     rate = rospy.Rate(FREQ)
 
     change_done = False
+    rate.sleep()  # seems to sync with other clocks 
     t0 = rospy.Time.now()
     while not rospy.is_shutdown():
         t = rospy.Time.now()
-
         print('t-t0', (t-t0).to_sec())
 
         if not change_done and (t-t0).to_sec() > CHANGE_AFTER_SECS:

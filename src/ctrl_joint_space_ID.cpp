@@ -47,14 +47,16 @@ namespace panda_torque_mpc
                                                      [](std::vector<double> v) {return v.size() == 7;})) return false;
 
         int idc;
-        if(!get_param_error_tpl<int>(nh, idc, "control_variant"),
-                                        [](int id) {return (id >= 0 && id < 4);}) return false;
+        if (!nh.getParam("control_variant", idc) || !(idc >= 0 && idc < 4))
+        {
+            ROS_ERROR_STREAM("CtrlJointSpaceID: Invalid or no control_variant parameters provided, aborting controller init! control_variant: " << idc);
+        }
+        control_variant_ = static_cast<CtrlJointSpaceID::JSIDVariant>(idc);
 
         kp_gains_ = Eigen::Map<Vector7d>(kp_gains.data());
         kd_gains_ = Eigen::Map<Vector7d>(kd_gains.data());
         delta_q_ = Eigen::Map<Vector7d>(delta_q.data());
         period_q_ = Eigen::Map<Vector7d>(period_q.data());
-        control_variant_ = static_cast<CtrlJointSpaceID::JSIDVariant>(idc);
 
         double publish_rate(30.0);
         if (!nh.getParam("publish_rate", publish_rate))

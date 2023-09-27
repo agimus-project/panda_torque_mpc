@@ -2,7 +2,6 @@
 <launch>
   <arg name="robot" default="panda" doc="choose your robot. Possible values: [panda, fr3]"/>
   <arg name="arm_id" default="$(arg robot)" />
-
   <arg name="record_joints" default="false"/>
   <arg name="record_task" default="false"/>
   <arg name="expe" default="expe"/>
@@ -10,14 +9,9 @@
 
   <rosparam command="load" file="$(find panda_torque_mpc)/config/controller_configs.yaml" subst_value="true" />
 
-  <!-- Dump controller related parameters for this experiment in a yaml file with similar name as bag file -->
-  <group if="$(arg record_joints)">
-    <include file="$(find panda_torque_mpc)/launch/record_joint_ctrl.launch" pass_all_args="true"/>
-  </group>
-  <group if="$(arg record_task)">
-    <include file="$(find panda_torque_mpc)/launch/record_task_ctrl.launch" pass_all_args="true"/>
-  </group>
-
+  <!-- <include file="$(find franka_gazebo)/launch/panda.launch">
+    <arg name="arm_id" value="$(arg arm_id)"/>
+  </include> -->
 
   <!-- spawns the controller after "initialized" topic tells us the robot is initialized  -->
   <node pkg="controller_manager"

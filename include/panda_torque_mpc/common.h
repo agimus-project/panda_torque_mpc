@@ -14,10 +14,6 @@
 #include <pinocchio/parsers/srdf.hpp>
 #include <pinocchio/algorithm/model.hpp>
 
-// defines EXAMPLE_ROBOT_DATA_MODEL_DIR macro, path to the "..../example-robot-data/robots" directory 
-#include <example-robot-data/path.hpp>
-
-
 
 namespace panda_torque_mpc {
 
@@ -139,7 +135,8 @@ namespace panda_torque_mpc {
                              const std::function< bool(T) > &check = [](T v) {return true;})
     {
         if (!( nh.getParam(param_name, param) && check(param) ))
-        {
+        {   
+            std::cout << "Error reading/checking parameter " << param_name << ", " << param << std::endl;
             ROS_ERROR_STREAM("Error reading/checking parameter " << param_name << ", " << param);
             return false;
         }

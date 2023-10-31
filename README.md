@@ -5,72 +5,9 @@ Various torque controllers, building toward torque MPC of Panda manipulator.
 # Building
 `mamba` is faster but you can use conda interchangeably.
 ## conda/mamba env fast setup
-`conda create -n panda_control python=3.9`
+`conda create -n panda_control`
 `conda activate panda_control`
 `mamba env update --file environment.yaml`
-
-## conda/mamba env manual setup
-* Create environment:  
-`conda create -n panda_control python=3.9`
-`conda activate panda_control`
-`conda config --add channels conda-forge`
-`conda config --add channels robostack-staging`
-
-* Install build tools:  
-`mamba install compilers cmake pkg-config make ninja -c conda-forge`
-
-* Install ROS related packages:  
-`mamba install ros-noetic-desktop ros-noetic-combined-robot-hw catkin_tools ros-noetic-realsense2-camera -c conda-forge -c robostack-staging`
-
-* Install robotics control libraries:  
-`mamba install pinocchio tsid example-robot-data crocoddyl -c conda-forge`
-
-## Franka panda
-TLDR;  
-`mamba install ros-noetic-libfranka ros-noetic-franka-ros -c robostack-staging -c conda-forge`
-
-### libfranka
-Check [compatibility](https://frankaemika.github.io/docs/compatibility.html "FCI-libfranka compatibily matrix") of your Franka Control Interface version to determine which libfranka version to install.
-
-At CIIRC, FCI version == 4.2.2  --> libfranka version >= 0.9.1 < 0.10.0. `robostack` conda channel provides 9.2 version which requires python 3.9 to be installed (hence `python=3.9` when creating the conda env).   
-`mamba install ros-noetic-libfranka -c robostack-staging -c conda-forge`
-
-## Franka ROS
-### From conda
-`mamba install ros-noetic-franka-ros -c robostack-staging -c conda-forge`
-
-### From source
-In your catkin workspace src directory  
-`git clone git@github.com:frankaemika/franka_ros.git`  
-`catkin build franka_ros -DCMAKE_BUILD_TYPE=RELEASE`  
-
-## Other packages to clone
-`git clone git@github.com:loco-3d/linear-feedback-controller-msgs.git`
-
-## Crocoddyl installation from sources
-NOTE: after benchmarking, crocoddyl from conda-forge is just as good as single from source.
-Compiling with multithreading makes things worse.
-
-Step 1: 
-Compile crocoddyl in active panda_control conda env but overidding conda compiler with system one
-```bash
-CROCO_INSTALL=<your/own/path>
-cd <crocoddyl-repo-dir>/build
-# choose your system compiler (linker error when using the conda g++ bin!!). E.G.:
-CXX=/usr/bin/clang++
-cmake .. -DBUILD_EXAMPLES=OFF -DBUILD_PYTHON_INTERFACE=OFF -DCMAKE_INSTALL_PREFIX=$CROCO_INSTALL
-# or with multithreading ON
-cmake .. -DBUILD_EXAMPLES=OFF -DBUILD_PYTHON_INTERFACE=OFF -DCMAKE_INSTALL_PREFIX=$CROCO_INSTALL -BUILD_WITH_MULTITHREADS=ON
-make -j4
-make install
-```
-
-Step 2:
-Make sure that the CXX env variable is set to the conda compiler (if not: `conda deactivate; conda activate panda_control`). 
-Also make sure crocoddyl is not in your environment otherwise it will be used. 
-Then:
-`CMAKE_BUILD_PARALLEL_LEVEL=4 catkin build panda_torque_mpc -Dcrocoddyl_DIR=$CROCO_INSTALL/lib/cmake/crocoddyl/ -DCMAKE_BUILD_TYPE=RELEASE`
-
 ## Build catkin package
 `CMAKE_BUILD_PARALLEL_LEVEL=4 catkin build panda_torque_mpc -DCMAKE_BUILD_TYPE=RELEASE`
 

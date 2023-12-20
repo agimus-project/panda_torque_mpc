@@ -23,6 +23,7 @@ In two different shells (change use_gripper according to which urdf model you us
 Set `PANDA_IP` env variable, e.g.:
 `export PANDA_IP=192.168.102.11` (CIIRC 6th floor)  
 `export PANDA_IP=192.168.88.140` (CIIRC 4th floor)  
+`export PANDA_IP=172.17.1.3` (...)  
 
 `robot_ip` and `load_gripper` arguments should be changed accordingly for each launch files
 
@@ -70,6 +71,13 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_serv
 ```bash
 roslaunch realsense2_camera rs_camera.launch
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --visual_servoing
+roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP load_gripper:=true robot:=panda
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
+```
+## Realsense VISUAL SERVOING demo with asynchronous MPC (apriltag)
+```bash
+roslaunch realsense2_camera rs_camera.launch
+roslaunch apriltag_ros continuous_detection.launch  # check the tag id/tag size etc. -> TODO: document
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP load_gripper:=true robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ```

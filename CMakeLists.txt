@@ -76,6 +76,9 @@ add_library(panda_torque_mpc_utils
   src/crocoddyl_reaching.cpp
 )
 
+target_include_directories(panda_torque_mpc_utils SYSTEM PUBLIC
+  ${catkin_INCLUDE_DIRS}
+  )
 target_include_directories(panda_torque_mpc_utils PUBLIC
   include
 )
@@ -102,6 +105,7 @@ add_library(panda_torque_mpc
   src/ctrl_mpc_linearized.cpp
 )
 
+#message(FATAL_ERROR "dbg: ${catkin_INCLUDE_DIRS}")
 target_include_directories(panda_torque_mpc SYSTEM PUBLIC
   ${catkin_INCLUDE_DIRS}
   ${Franka_INCLUDE_DIRS}

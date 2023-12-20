@@ -60,6 +60,9 @@ def talker():
             print('\n\n\n\n\n\nGO!\n\n\n\n\n\n')
 
         msg = PoseStamped()
+
+
+
         msg.header.stamp.secs = t.secs
         msg.header.stamp.nsecs = t.nsecs
         msg.header.frame_id = "panda_link0"

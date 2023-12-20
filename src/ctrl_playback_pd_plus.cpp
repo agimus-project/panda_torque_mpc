@@ -1,3 +1,4 @@
+#include <pinocchio/fwd.hpp>
 #include <panda_torque_mpc/ctrl_playback_pd_plus.h>
 
 #include <cmath>

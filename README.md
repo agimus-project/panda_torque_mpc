@@ -1,6 +1,6 @@
 # panda_torque_mpc
 ------------------
-Various torque controllers, building toward torque MPC of Panda manipulator. 
+ROS package for torque controlled MPC of a Panda manipulator. 
 
 # Building
 `mamba` is faster but you can use conda interchangeably.
@@ -8,6 +8,10 @@ Various torque controllers, building toward torque MPC of Panda manipulator.
 `conda create -n panda_control`
 `conda activate panda_control`
 `mamba env update --file environment.yaml`
+
+## Other dependencies
+In your catkin workspace `src` folder:  
+`git clone git@github.com:loco-3d/linear-feedback-controller-msgs.git`
 ## Build catkin package
 `CMAKE_BUILD_PARALLEL_LEVEL=4 catkin build panda_torque_mpc -DCMAKE_BUILD_TYPE=RELEASE`
 

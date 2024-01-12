@@ -109,9 +109,9 @@ ctrl_task_space_ID:
         - $(arg arm_id)_joint7
     # Trajectory simulation
     delta_nu:
-        - 0.00
-        - 0.00
-        - 0.00
+        - 0.30
+        - 0.30
+        - 0.30
         - 0.0
         - 0.0
         - 0.0

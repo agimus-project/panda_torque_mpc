@@ -182,10 +182,10 @@ namespace panda_torque_mpc
         torques_publisher_.init(nh, "joint_torques_comparison", 1);
 
         // Pose subscriber
-        std::string ee_pose_ref_topic = "ee_pose_ref";
+        std::string motion_capture_pose_ref_topic = "motion_capture_pose_ref";
         if (use_external_pose_publisher_)
         {
-            ee_pose_ref_subscriber_ = nh.subscribe(ee_pose_ref_topic, 1, &CtrlMpcCroco::pose_callback, this);
+            motion_capture_pose_ref_subscriber_ = nh.subscribe(motion_capture_pose_ref_topic, 1, &CtrlMpcCroco::pose_callback, this);
         }
 
         // init some variables

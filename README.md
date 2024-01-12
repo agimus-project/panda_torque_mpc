@@ -5,9 +5,11 @@ Torque control MPC of a Panda manipulator with ROS 1 and roscontrol.
 # Build
 ## conda/mamba env fast setup
 `mamba` is faster but you can use conda interchangeably.  
-`conda create -n panda_control`
-`conda activate panda_control`
-`mamba env update --file environment.yaml`
+```
+conda create -n panda_control
+conda activate panda_control
+mamba env update --file environment.yaml
+```
 
 ## Other dependencies
 In your catkin workspace `src` folder:  
@@ -29,9 +31,9 @@ Set `PANDA_IP` env variable, e.g.:
 `export PANDA_IP=192.168.88.140` (CIIRC 4th floor)  
 `export PANDA_IP=172.17.1.3`     (adream)  
 
-* Bring robot to init position  
+* Bring robot to init position:  
 `roslaunch panda_torque_mpc move_to_start.launch robot_ip:=$PANDA_IP robot:=panda`
-* Start one of the controllers
+* Start one of the controllers:  
 `roslaunch panda_torque_mpc real_controllers.launch controller:=<controller-name> robot_ip:=$PANDA_IP robot:=panda`
 
 ## Custom controllers
@@ -87,7 +89,9 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher_simula
 
 ### Follow sinusoid end-effector reference
 Same as "Impulse test with asynchronous MPC", replace last command by  
-`ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --compute_local_sinusoid`
+```
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --compute_local_sinusoid
+```
 
 ### Realsense VISUAL SERVOING demo with asynchronous MPC (real)
 ```bash

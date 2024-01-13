@@ -48,7 +48,6 @@ catkin_package(
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS
     roscpp
-    # rospy
     urdf
     pluginlib
     controller_interface
@@ -62,7 +61,6 @@ catkin_package(
     geometry_msgs
     visualization_msgs
     linear_feedback_controller_msgs
-    # message_generation
     tf
     tf_conversions
   DEPENDS Franka pinocchio tsid crocoddyl
@@ -101,7 +99,6 @@ add_library(panda_torque_mpc
   src/ctrl_playback_pd_plus.cpp
   src/ctrl_joint_space_ID.cpp
   src/ctrl_task_space_ID.cpp
-  src/ctrl_mpc_croco.cpp
   src/ctrl_mpc_linearized.cpp
 )
 

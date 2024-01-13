@@ -43,7 +43,6 @@ The parameters of each controller are defined in `config/controller_configs.yaml
 * `ctrl_playback_pd_plus`: reads a joint trajectory stored in csv files q.csv, v.csv, tau.csv and plays it back using PD+ 
 * `ctrl_joint_space_ID`: follow joint trajectory reference using different flavors of joint space Inverse Dynamics 
 * `ctrl_task_space_ID`: follow task space end-effector trajectory ($\mathbb{R}^3$ or SE(3)) 
-* `ctrl_mpc_croco`: synchronously solving of OCP using crocoddyl and sending the first torque command -> (!) limited to very short horizons to avoid breaking real time constraint 
 * `ctrl_mpc_linearized`: asynchronous execution a linearized control reference from OCP solver running in another node (crocoddyl_motion_server_node) using Ricatti gains -> very few computation, no update() skipped
 
 <!-- ## Realsense T265 demo with TSID (launch in this order in different shells)

@@ -5,7 +5,9 @@
 #include <ratio>
 #include <Eigen/Core>
 #include <ros/node_handle.h>
+#include <std_msgs/Header.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #include <pinocchio/spatial/se3.hpp>
 #include <pinocchio/spatial/motion.hpp>
@@ -210,6 +212,15 @@ namespace panda_torque_mpc {
         pose.orientation.z = q.z();
         pose.orientation.w = q.w();
         return pose;
+    }
+
+
+    inline void publish_SE3_posestamped(const ros::Publisher& publisher, const pinocchio::SE3& pose, const std_msgs::Header& header)
+    {
+        geometry_msgs::PoseStamped pose_msg;
+        pose_msg.pose = SE32posemsg(pose);
+        pose_msg.header = header;
+        publisher.publish(pose_msg);
     }
 
 } // namespace panda_torque_mpc

@@ -33,7 +33,7 @@ namespace panda_torque_mpc
         CrocoMotionServer(ros::NodeHandle &nh,
                           std::string robot_sensors_topic_sub,
                           std::string control_topic_pub,
-                          std::string motion_capture_pose_ref_t265_topic_sub,
+                          std::string motion_capture_pose_ref_topic_sub,
                           std::string pose_camera_object_topic_sub, 
                           std::string pose_object_rel_topic_sub, 
                           std::string cam_pose_viz_topic_pub,
@@ -141,18 +141,19 @@ namespace panda_torque_mpc
             croco_reaching_ = CrocoddylReaching(model_pin_, config_croco_);
             /////////////////////////////////////////////////
 
-            // Publisher/Subscriber
+            // Publishers
             control_pub_ = nh.advertise<lfc_msgs::Control>(control_topic_pub, 1);
             cam_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_viz_topic_pub, 1);
             cam_pose_ref_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub, 1);
             cam_pose_error_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_error_topic_pub, 1);
             
+            // Subscribers
             sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_robot_state, this);
-            pose_ref_t265_sub_ = nh.subscribe(motion_capture_pose_ref_t265_topic_sub, 10, &CrocoMotionServer::callback_pose_ref_t265, this);
+            pose_mocap_sub_ = nh.subscribe(motion_capture_pose_ref_topic_sub, 10, &CrocoMotionServer::callback_pose_mocap, this);
             pose_camera_object_sub_ = nh.subscribe(pose_camera_object_topic_sub, 10, &CrocoMotionServer::callback_pose_camera_object, this);
             pose_body_object_rel_sub_ = nh.subscribe(pose_object_rel_topic_sub, 10, &CrocoMotionServer::callback_pose_object0_object, this);
 
-            // Init some variables
+            // State machine variables
             first_robot_sensor_msg_received_ = false;
             first_pose_ref_msg_received_ = false;
             first_solve_ = true;
@@ -163,10 +164,10 @@ namespace panda_torque_mpc
             T_o_c_ref_ = T_c_o_ref_.inverse();
         }
 
-        void callback_pose_ref_t265(const geometry_msgs::PoseStamped &msg)
+        void callback_pose_mocap(const geometry_msgs::PoseStamped &msg)
         {
             /**
-             * Callback for t265 demo, not part of the visual servoing experiments.
+             * Callback for motion capture demo (e.g. with t265), not part of the visual servoing experiments.
              * 
              * If the first sensor state of the robot has not yet been received, no need to process the pose ref
              */
@@ -222,11 +223,6 @@ namespace panda_torque_mpc
             pin::SE3 T_b_c_ref = T_b_e * T_e_c_ * T_c_o_meas * T_o_c_ref_;
             pin::SE3 T_b_e_ref = T_b_c_ref * T_c_e_;
 
-            if (keep_original_ee_rotation_)
-            {
-                T_b_e_ref.rotation() = T_b_e0_.rotation();
-            }
-
             // RT safe setting
             T_b_e_ref_rtbox_.set(T_b_e_ref);
 
@@ -235,26 +231,18 @@ namespace panda_torque_mpc
                 first_pose_ref_msg_received_ = true;
             }
 
+            // ------- LOGS ----------- //
+
             // Send message with current camera pose from current kinematics
             pin::SE3 T_b_c = T_b_e * T_e_c_;
-            geometry_msgs::PoseStamped msg_pose_bc;
-            msg_pose_bc.pose = SE32posemsg(T_b_c);
-            msg_pose_bc.header = msg_pose_c_o.header;
-            cam_pose_pub_.publish(msg_pose_bc);
+            publish_SE3_posestamped(cam_pose_pub_, T_b_c, msg_pose_c_o.header);
 
             // Send message with reference camera pose
-            geometry_msgs::PoseStamped msg_pose_bc_ref;
-            msg_pose_bc_ref.pose = SE32posemsg(T_b_c_ref);
-            msg_pose_bc_ref.header = msg_pose_c_o.header;
-            cam_pose_ref_pub_.publish(msg_pose_bc_ref);
+            publish_SE3_posestamped(cam_pose_ref_pub_, T_b_c_ref, msg_pose_c_o.header);
 
-            pin::SE3 T_b_c_error;
-            T_b_c_error.translation() = T_b_c.translation() - T_b_c_ref.translation();
-            T_b_c_error.rotation() = T_b_c_ref.rotation().transpose() * T_b_c.rotation();
-            geometry_msgs::PoseStamped msg_pose_bc_error;
-            msg_pose_bc_error.pose = SE32posemsg(T_b_c_error);
-            msg_pose_bc_error.header = msg_pose_c_o.header;
-            cam_pose_error_pub_.publish(msg_pose_bc_error);
+            // Reference tracking error
+            pin::SE3 T_b_c_error = T_b_c_ref.inverse() * T_b_c;
+            publish_SE3_posestamped(cam_pose_error_pub_, T_b_c_error, msg_pose_c_o.header);
         }
 
         void callback_pose_object0_object(const geometry_msgs::PoseStamped &msg_pose_o0_o)
@@ -293,27 +281,17 @@ namespace panda_torque_mpc
                 first_pose_ref_msg_received_ = true;
             }
 
+            // ------- LOGS ----------- //
 
             // Send message with current camera pose from current kinematics
             pin::SE3 T_b_c = T_b_e * T_e_c_;
-            geometry_msgs::PoseStamped msg_pose_bc;
-            msg_pose_bc.pose = SE32posemsg(T_b_c);
-            msg_pose_bc.header = msg_pose_o0_o.header;
-            cam_pose_pub_.publish(msg_pose_bc);
+            publish_SE3_posestamped(cam_pose_pub_, T_b_c, msg_pose_o0_o.header);
 
             // Send message with reference camera pose
-            geometry_msgs::PoseStamped msg_pose_bc_ref;
-            msg_pose_bc_ref.pose = SE32posemsg(T_b_c_ref);
-            msg_pose_bc_ref.header = msg_pose_o0_o.header;
-            cam_pose_ref_pub_.publish(msg_pose_bc_ref);
+            publish_SE3_posestamped(cam_pose_ref_pub_, T_b_c_ref, msg_pose_o0_o.header);
 
-            pin::SE3 T_b_c_error;
-            T_b_c_error.translation() = T_b_c.translation() - T_b_c_ref.translation();
-            T_b_c_error.rotation() = T_b_c_ref.rotation().transpose() * T_b_c.rotation();
-            geometry_msgs::PoseStamped msg_pose_bc_error;
-            msg_pose_bc_error.pose = SE32posemsg(T_b_c_error);
-            msg_pose_bc_error.header = msg_pose_o0_o.header;
-            cam_pose_error_pub_.publish(msg_pose_bc_error);
+            pin::SE3 T_b_c_error = T_b_c_ref.inverse() * T_b_c;
+            publish_SE3_posestamped(cam_pose_error_pub_, T_b_c_error, msg_pose_o0_o.header);
         }
 
 
@@ -507,16 +485,9 @@ namespace panda_torque_mpc
         ros::Subscriber sensor_sub_;
 
         // Subscriber to pose reference topic
-        ros::Subscriber pose_ref_t265_sub_;
+        ros::Subscriber pose_mocap_sub_;
         ros::Subscriber pose_camera_object_sub_;
         ros::Subscriber pose_body_object_rel_sub_;
-
-        // T265 demo
-        std::string world_frame_ = "camera_odom_frame";  // static inertial "world=w" frame    
-        std::string camera_pose_frame_ = "camera_pose_frame";  // moving "camera=c" frame
-        // camera2object from icg (eye in hand case)
-        std::string camera_color_optical_frame_ = "camera_color_optical_frame";
-        std::string object_frame_ = "object_frame";
 
         // Simulated object
         pin::SE3 T_b_o_init_;
@@ -535,7 +506,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     std::string robot_sensors_topic_sub = "robot_sensors";
     std::string control_topic_pub = "motion_server_control";
-    std::string motion_capture_pose_ref_t265_topic_sub = "motion_capture_pose_ref";  // T265 DEMO -> follow movement of external pose reference
+    std::string motion_capture_pose_ref_topic_sub = "motion_capture_pose_ref";  // MOCAP DEMO
     std::string pose_camera_object_topic_sub = "pose_camera_object";  // VISUAL SERVOING DEMO 
     std::string pose_object_rel_topic_sub = "pose_object_rel";  // SIMULATION OF VIRTUAL OBJECT
     std::string cam_pose_viz_topic_pub = "cam_pose_viz";
@@ -545,7 +516,7 @@ int main(int argc, char **argv)
                             nh, 
                             robot_sensors_topic_sub,
                             control_topic_pub,
-                            motion_capture_pose_ref_t265_topic_sub,
+                            motion_capture_pose_ref_topic_sub,
                             pose_camera_object_topic_sub,
                             pose_object_rel_topic_sub,
                             cam_pose_viz_topic_pub,

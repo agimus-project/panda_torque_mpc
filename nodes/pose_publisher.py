@@ -5,8 +5,8 @@
 Sends simulated sinusoidal end effector trajectories.
 
 Topics:
-pose_publisher.py --compute_local_sinusoid -> relative pose reference
-pose_publisher.py --compute_global_sinusoid -> global pose reference
+pose_publisher.py --compute_relative_sinusoid -> relative pose reference
+pose_publisher.py --compute_absolute_sinusoid -> global pose reference
 
 """
 
@@ -73,7 +73,6 @@ def compute_sinusoid_pose_delta_reference(delta_nu, period_nu, t):
     T_ref = pin.exp(nu)
 
     return T_ref
-
 
 def compute_sinusoid_pose_reference(delta_nu, period_nu, T0: pin.SE3, t):
     return T0 * compute_sinusoid_pose_delta_reference(delta_nu, period_nu, t)

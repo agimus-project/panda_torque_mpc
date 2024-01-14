@@ -57,6 +57,7 @@ namespace panda_torque_mpc
         // Controller parameters
         Vector6d delta_nu_, period_nu_; // trajectory specification
         double Kp_jsid_, Kd_jsid_;
+        bool use_riccati_gains_;
 
         // Current update state
         pin::SE3 last_x_r_;
@@ -89,11 +90,6 @@ namespace panda_torque_mpc
         realtime_tools::RealtimeBox<Eigen::Matrix<double, 14, 1>> x0_mpc_rtbox_;
         realtime_tools::RealtimeBox<Eigen::Matrix<double, 7, 1>> u0_mpc_rtbox_;
         realtime_tools::RealtimeBox<Eigen::Matrix<double, 7, 14>> K_ricatti_rtbox_;
-
-        // Eigen::Matrix<double, 14, 1> x0_mpc_;    // updated by motion server callback
-        // Eigen::Matrix<double, 7, 1> u0_mpc_;     // updated by motion server callback
-        // Eigen::Matrix<double, 7, 14> K_ricatti_; // updated by motion server callback
-
 
         // Pinocchio objects
         pin::Model model_pin_;

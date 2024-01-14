@@ -33,6 +33,8 @@ namespace panda_torque_mpc
             return false;
         if (!get_param_error_tpl<double>(nh, dt_transition_jsid_to_mpc_, "dt_transition_jsid_to_mpc"))
             return false;
+        if (!get_param_error_tpl<bool>(nh, use_riccati_gains_, "use_riccati_gains"))
+                return false;
 
         // Panda
         std::vector<std::string> joint_names;
@@ -214,12 +216,6 @@ namespace panda_torque_mpc
 
         // std::cout << "Sent tau_d: " << tau_d.transpose() << std::endl;
         tictac_comp.print_tac("compute_desired_torque took (ms): ");
-
-        /////////////////////////////////////////////////////////////
-        // Publish robot state
-        publish_robot_state(q_m, dq_m, t);
-        /////////////////////////////////////////////////////////////
-
         /////////////////////////////////////////////////////////////
         /////////////////////////////////////////////////////////////
         /////////////////////////////////////////////////////////////
@@ -235,6 +231,12 @@ namespace panda_torque_mpc
         {
             joint_handles_[i].setCommand(tau_d_saturated[i]);
         }
+
+
+        /////////////////////////////////////////////////////////////
+        // Publish robot state
+        publish_robot_state(q_m, dq_m, t);
+        /////////////////////////////////////////////////////////////
 
         ///////////////////
         // Publish logs
@@ -305,8 +307,13 @@ namespace panda_torque_mpc
     {
         Eigen::Matrix<double, 14, 1> x_m; x_m << q_m, dq_m;
 
-        // Vector7d tau_d = u0_mpc;
-        Vector7d tau_d = u0_mpc + K_ricatti * (x0_mpc - x_m);
+        Vector7d tau_d;
+        if (use_riccati_gains_){
+            tau_d = u0_mpc + K_ricatti * (x0_mpc - x_m);
+        }
+        else {
+            tau_d = u0_mpc;
+        }
 
         return tau_d;
     }
@@ -337,11 +344,6 @@ namespace panda_torque_mpc
         u0_mpc_rtbox_.set(u0_mpc);
         K_ricatti_rtbox_.set(K_ricatti);
         //////////////////////////
-
-        // std::cout << "\n/// callback_motion_server: " << std::endl;
-        // std::cout << "x0_mpc: " << x0_mpc.transpose() << std::endl;
-        // std::cout << "u0_mpc: " << u0_mpc.transpose() << std::endl;
-        // std::cout << "K_ricatti_: \n" << K_ricatti << std::endl;
 
         if (!control_ref_from_ddp_node_received_)
         {

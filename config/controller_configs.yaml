@@ -169,10 +169,12 @@ ctrl_mpc_linearized:
     Kd_jsid: 10 
     dt_transition_jsid_to_mpc: 0.5
 
+    use_riccati_gains: true
+
     ####################
     # OCP motion server configs
-    nb_shooting_nodes: 60
-    dt_ocp: 0.01
+    nb_shooting_nodes: 10
+    dt_ocp: 0.002
     nb_iterations_max: 1
     reference_is_placement: true   # otherwise, translation
     keep_original_ee_rotation: false
@@ -181,16 +183,16 @@ ctrl_mpc_linearized:
     
     # w_frame_running:  50  # T265
     # w_frame_terminal: 50  # T265
-    w_frame_running:  10  # VS
-    w_frame_terminal: 10  # VS
-    w_frame_vel_running:  10  # VS
-    w_frame_vel_terminal: 10  # VS
+    w_frame_running:  0  # VS
+    w_frame_terminal: 0  # VS
+    w_frame_vel_running:  0  # VS
+    w_frame_vel_terminal: 0  # VS
     diag_frame_vel: [
         1.0,1.0,1.0,
         1.0,1.0,1.0,
     ]
-    w_x_reg_running:  0.001
-    w_x_reg_terminal: 0.001
+    w_x_reg_running:  1.1
+    w_x_reg_terminal: 1.1
     w_u_reg_running: 0.003
     # High penalty on first joint -> tendancy to switch to 180 deg config
     diag_q_reg_running: [100.0,

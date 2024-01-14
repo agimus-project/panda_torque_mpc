@@ -68,12 +68,6 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<double>(nh, w_x_reg_terminal, "w_x_reg_terminal") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_u_reg_running,  "w_u_reg_running") && params_success;
 
-            params_success = get_param_error_tpl<double>(nh, high_dist_, "high_dist") && params_success;
-            params_success = get_param_error_tpl<double>(nh, low_dist_,  "low_dist") && params_success;
-            params_success = get_param_error_tpl<double>(nh, min_scaling_, "min_scaling") && params_success;
-            params_success = get_param_error_tpl<double>(nh, max_scaling_, "max_scaling") && params_success;
-
-
             params_success = get_param_error_tpl<std::vector<double>>(nh, diag_frame_vel, "diag_frame_vel",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 6; }) && params_success;
@@ -387,31 +381,7 @@ namespace panda_torque_mpc
             bool reaching_task_is_active = true;
             if (config_croco_.reference_is_placement)
             {
-                // Weigth scheduling: far from the task, lower the gain to prevent aggressive motions
-                Eigen::Vector3d t_error = T_b_e_ref.translation() - T_b_e.translation();
-                double dist = t_error.norm();
-
-                /**
-                 * max_scaling _________ 
-                 *            |         \
-                 *            |          \
-                 *            |           \
-                 *            |            \_______min_scaling
-                 *            |             |
-                 *          low_dist -------high_dist
-                */
-                double weight_scaling = 0.0;
-                if (dist > high_dist_) {
-                    weight_scaling = min_scaling_;
-                }
-                else if (dist < low_dist_) {
-                    weight_scaling = max_scaling_;
-                }
-                else {
-                    weight_scaling = max_scaling_ + (dist - low_dist_) * (min_scaling_ - max_scaling_) / (high_dist_ - low_dist_);
-                }
-                std::cout << "dist, weight_scaling: " << dist << ", " << weight_scaling << std::endl;
-                croco_reaching_.set_ee_ref_placement(T_b_e_ref, reaching_task_is_active, weight_scaling);
+                croco_reaching_.set_ee_ref_placement(T_b_e_ref, reaching_task_is_active, 1.0);
             }
             else
             {

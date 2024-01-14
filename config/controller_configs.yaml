@@ -192,6 +192,7 @@ ctrl_mpc_linearized:
     w_x_reg_running:  0.001
     w_x_reg_terminal: 0.001
     w_u_reg_running: 0.003
+    # High penalty on first joint -> tendancy to switch to 180 deg config
     diag_q_reg_running: [100.0,
                          0.1,
                          0.1,
@@ -209,15 +210,12 @@ ctrl_mpc_linearized:
                          ]
     diag_u_reg_running: [1.0,1.0,1.0,1.0,1.0,1.0,1.0]
 
-    # Adaptive weight on end effector task
-    high_dist: 0.5
-    low_dist: 0.02
-    min_scaling: 1.0   # deactivated
-    # min_scaling: 0.2
-    max_scaling: 1.0
+    ################################
+    # Visual servoing mode reference
+    ################################
     
     # pose format: px, py, pz,    qx, qy, qz, qw
-    # pose_e_c: [0.137, -0.01, -0.059,  0.0869, -0.0866, -0.70365, 0.69986]  # Camera CALIBRATION d455
+    # pose_e_c: [0.137, -0.01, -0.059,  0.0869, -0.0866, -0.70365, 0.69986]  # Camera CALIBRATION d455 CIIRC
     pose_e_c: [ 0.13620487, -0.02443776, -0.08476231,   -0.09459456, -0.08732901, 0.68741999, 0.71548848]  # Camera CALIBRATION d435 LAAS 20/12
 
     # Target relative pose

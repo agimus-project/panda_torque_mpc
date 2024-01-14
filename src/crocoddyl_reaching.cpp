@@ -206,7 +206,7 @@ namespace panda_torque_mpc
         }
     }
 
-    void CrocoddylReaching::set_ee_ref_placement(pin::SE3 placement, bool is_active, double weight_scaling)
+    void CrocoddylReaching::set_ee_ref_placement(pin::SE3 placement, bool is_active, double uniform_weight_scaling)
     {
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
@@ -220,7 +220,7 @@ namespace panda_torque_mpc
                 running_DAM->get_costs()->changeCostStatus(cost_placement_name_, is_active);
             }
 
-            running_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight = weight_scaling * config_.w_frame_running;
+            running_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight = uniform_weight_scaling * config_.w_frame_running;
         }
 
         // Terminal
@@ -236,7 +236,7 @@ namespace panda_torque_mpc
             goal_placement_set_ = is_active;
         }
 
-        terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight = weight_scaling * config_.w_frame_running;
+        terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight = uniform_weight_scaling * config_.w_frame_running;
     }
 
 

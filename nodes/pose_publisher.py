@@ -31,30 +31,30 @@ if args.compute_local_sinusoid:
 elif args.compute_local_sinusoid:
     TOPIC_POSE_PUBLISHED = 'absolute_pose_ref'  # TODO
     T0  = ...  # TODO
-
+else:
+    raise ValueError('pass either -l or -g args')
 
 FREQ = 60
 DT = 1/FREQ
 VERBOSE = True
 
-# Fake T265 reference parameters
-# DELTA_NU = np.array([
+# DELTA_POSE = np.array([
 #     0.0, 0.0, 0.0, 
 #     0.0, 0.0, 0.0
 # ])
 
-DELTA_NU = np.array([
-    0.07, 0.08, 0.09, 
-    0.0, 0.0, 0.0
+DELTA_POSE = np.array([
+    0.0, 0.0, 0.1, 
+    0.2, 0.2, 0.2
 ])
  
-PERIOD_NU = np.array([
+PERIOD_POSE = np.array([
     4.0, 4.0, 4.0, 
     5.0, 5.0, 5.0
 ])
 
 
-def compute_sinusoid_pose_delta_reference(delta_nu, period_nu, t):
+def compute_sinusoid_pose_delta_reference(delta_pose, period_pose, t):
 
     """
     Compute a delta SE(3) pose reference sinusoid pose in
@@ -62,20 +62,24 @@ def compute_sinusoid_pose_delta_reference(delta_nu, period_nu, t):
 
     Ai and Ci obtained for each joint using constraints:
     T(t=0.0) = 0
-    T(t=period/2) = Exp(delta_nu)
+    T(t=period/2) = Exp(delta_pose)
     """
 
-    w = 2*np.pi/period_nu
-    a = - delta_nu
-    c = delta_nu
+    w = 2*np.pi/period_pose
+    a = - delta_pose
+    c = delta_pose
     
     nu = a * np.cos(w * t) + c
-    T_ref = pin.exp(nu)
 
-    return T_ref
+    # Adopt a R3xSO(3) representation to decouple translation and orientation
+    dp_ref = nu[:3]
+    dR_ref = pin.exp3(nu[3:])
 
-def compute_sinusoid_pose_reference(delta_nu, period_nu, T0: pin.SE3, t):
-    return T0 * compute_sinusoid_pose_delta_reference(delta_nu, period_nu, t)
+    return pin.SE3(dR_ref, dp_ref)
+
+
+def compute_sinusoid_pose_reference(delta_pose, period_pose, T0: pin.SE3, t):
+    return T0 * compute_sinusoid_pose_delta_reference(delta_pose, period_pose, t)
 
 
 if __name__ == '__main__':
@@ -93,10 +97,10 @@ if __name__ == '__main__':
 
             
             if args.compute_local_sinusoid:
-                T_ref = compute_sinusoid_pose_delta_reference(DELTA_NU, PERIOD_NU, (t - t0).to_sec())
+                T_ref = compute_sinusoid_pose_delta_reference(DELTA_POSE, PERIOD_POSE, (t - t0).to_sec())
 
             if args.compute_global_sinusoid:
-                T_ref = compute_sinusoid_pose_reference(DELTA_NU, PERIOD_NU, T0, (t - t0).to_sec())
+                T_ref = compute_sinusoid_pose_reference(DELTA_POSE, PERIOD_POSE, T0, (t - t0).to_sec())
 
             msg = PoseStamped()
             msg.header.stamp.secs = t.secs

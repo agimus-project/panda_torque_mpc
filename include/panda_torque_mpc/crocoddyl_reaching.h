@@ -66,7 +66,7 @@ namespace panda_torque_mpc
 
         void set_posture_ref(Eigen::VectorXd x0);
 
-        boost::shared_ptr<crocoddyl::SolverFDDP> ddp_;
+        boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
         CrocoddylConfig config_;
 
         std::string cost_translation_name_;

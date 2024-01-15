@@ -140,7 +140,7 @@ namespace panda_torque_mpc
 
         // Shooting problem
         auto shooting_problem = boost::make_shared<crocoddyl::ShootingProblem>(x0_dummy, running_IAMs, terminal_IAM);
-        ddp_ = boost::make_shared<crocoddyl::SolverFDDP>(shooting_problem);
+        ocp_ = boost::make_shared<crocoddyl::SolverFDDP>(shooting_problem);
 
         // Callbacks
         std::vector<boost::shared_ptr<crocoddyl::CallbackAbstract>> callbacks;
@@ -160,21 +160,20 @@ namespace panda_torque_mpc
     {
         if (!valid_pbe()) return false;
 
-        bool has_converged = ddp_->solve(xs_init, us_init, config_.nb_iterations_max, false);
+        bool has_converged = ocp_->solve(xs_init, us_init, config_.nb_iterations_max, false);
 
         // generally does not converge within 1 iteration so pointless to return it
-        // return converged;
         return true;
     }
 
     Vector7d CrocoddylReaching::get_tau_ff() const
     {
-        return ddp_->get_us()[0];
+        return ocp_->get_us()[0];
     }
 
     Eigen::MatrixXd CrocoddylReaching::get_ricatti_mat() const
     {
-        return ddp_->get_K()[0];
+        return ocp_->get_K()[0];
     }
 
     void CrocoddylReaching::set_ee_ref_translation(Eigen::Vector3d trans, bool is_active)
@@ -182,7 +181,7 @@ namespace panda_torque_mpc
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
         {
-            auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_runningModels()[node_index]);
+            auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_runningModels()[node_index]);
             auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
             auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(running_DAM->get_costs()->get_costs().at(cost_translation_name_)->cost->get_residual());
             frame_res_running->set_reference(trans);
@@ -193,7 +192,7 @@ namespace panda_torque_mpc
         }
 
         // Terminal
-        auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_terminalModel());
+        auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_terminalModel());
         auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
         auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(terminal_DAM->get_costs()->get_costs().at(cost_translation_name_)->cost->get_residual());
         frame_res_terminal->set_reference(trans);
@@ -211,7 +210,7 @@ namespace panda_torque_mpc
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
         {
-            auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_runningModels()[node_index]);
+            auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_runningModels()[node_index]);
             auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
             auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(running_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
             frame_res_running->set_reference(placement);
@@ -224,7 +223,7 @@ namespace panda_torque_mpc
         }
 
         // Terminal
-        auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_terminalModel());
+        auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_terminalModel());
         auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
         auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
         frame_res_terminal->set_reference(placement);
@@ -242,12 +241,12 @@ namespace panda_torque_mpc
 
     void CrocoddylReaching::set_posture_ref(Eigen::VectorXd x0)
     {
-        assert(x0.size() == ddp_->get_problem()->get_nx());
+        assert(x0.size() == ocp_->get_problem()->get_nx());
 
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
         {
-            auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_runningModels()[node_index]);
+            auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_runningModels()[node_index]);
             auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
             auto posture_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelState>(running_DAM->get_costs()->get_costs().at(cost_state_reg_name_)->cost->get_residual());
             posture_res_running->set_reference(x0);
@@ -258,7 +257,7 @@ namespace panda_torque_mpc
         }
 
         // Terminal
-        auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ddp_->get_problem()->get_terminalModel());
+        auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_terminalModel());
         auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
         auto posture_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelState>(terminal_DAM->get_costs()->get_costs().at(cost_state_reg_name_)->cost->get_residual());
         posture_res_terminal->set_reference(x0);

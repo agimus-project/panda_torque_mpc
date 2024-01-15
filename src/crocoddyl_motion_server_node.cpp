@@ -358,23 +358,23 @@ namespace panda_torque_mpc
             else
             {
                 // Warm start with previous solution shifted
-                xs_init = croco_reaching_.ddp_->get_xs();
-                us_init = croco_reaching_.ddp_->get_us();
+                xs_init = croco_reaching_.ocp_->get_xs();
+                us_init = croco_reaching_.ocp_->get_us();
                 
                 /**
                  * Shift trajectory by 1 node <==> config_croco_.dt_ocp
-                 * !!! HYP: config_croco_.dt_ocp == 1/freq_node
+                 * !!! HYP: config_croco_.dt_ocp == 1/freq_solve
                 */
                 // TODO: check if putting current measurement in initial guess state traj makes sense
                 // xs_init.insert(std::begin(xs_init), current_x);
-                xs_init.insert(std::begin(xs_init), xs_init[0]);
-                xs_init.erase(std::end(xs_init) - 1);
-                us_init.insert(std::begin(us_init), us_init[0]);
-                us_init.erase(std::end(us_init) - 1);
+                // xs_init.insert(std::begin(xs_init), xs_init[0]);
+                // xs_init.erase(std::end(xs_init) - 1);
+                // us_init.insert(std::begin(us_init), us_init[0]);
+                // us_init.erase(std::end(us_init) - 1);
             }
 
             // Set the fixed initial state for the OCP state trajectory using current measurements
-            croco_reaching_.ddp_->get_problem()->set_x0(current_x);
+            croco_reaching_.ocp_->get_problem()->set_x0(current_x);
 
             // Deactivating reaching task would requires to re-equilibrate the OCP weights
             // -> easier to track last known reference active
@@ -390,9 +390,10 @@ namespace panda_torque_mpc
             croco_reaching_.set_posture_ref(x_init);
 
             TicTac tt_solve;
-            croco_reaching_.solve(xs_init, us_init);
-            tt_solve.print_tac("Solve time (ms) ");
+            bool ok = croco_reaching_.solve(xs_init, us_init);
+            std::cout << std::setprecision(9) << "n_iter, dt_solve (ms): " << croco_reaching_.ocp_->get_iter() << ", " << tt_solve.tac() << std::endl;
             // if problem not ready or no good solution, don't send a solution
+            if (!ok) return;
             //////////////////////////////////////
 
             // Fill and send control message
@@ -493,9 +494,12 @@ int main(int argc, char **argv)
                             cam_pose_ref_viz_topic_pub,
                             cam_pose_error_topic_pub
                             );
-
-    int freq_node = (int) 1.0/motion_server.config_croco_.dt_ocp;
-    ros::Rate loop_rate(freq_node);
+    int freq_solve;
+    int success_read = panda_torque_mpc::get_param_error_tpl<int>(nh, freq_solve, "freq_solve");
+    if (!success_read){
+        throw std::invalid_argument("CrocoMotionServer: missing freq_solve parameter");
+    }
+    ros::Rate loop_rate(freq_solve);
 
     while (ros::ok())
     {

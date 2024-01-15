@@ -179,8 +179,9 @@ ctrl_mpc_linearized:
     nb_iterations_max: 1
     reference_is_placement: true   # otherwise, translation
     keep_original_ee_rotation: false
-    # armature: [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
-    armature: [0.,0.,0.,0.,0.,0.,0.0]
+    armature: [0.01,0.01,0.01,0.01,0.01,0.01,0.01]
+    # armature: [0.001,0.001,0.001,0.001,0.001,0.001,0.001]
+    # armature: [0.,0.,0.,0.,0.,0.,0.0]
     
 
     ####################

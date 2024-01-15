@@ -71,39 +71,26 @@ roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_lineariz
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ``` -->
 
-### Impulse test with asynchronous MPC (simu)
+### Follow absolute end effector reference with asynchronous MPC (simu)
 ```bash
 roslaunch franka_gazebo panda.launch arm_id:=panda
 roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher_simulated_object_mvt.py
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --compute_absolute_sinusoid
 ```
 
-### Impulse test with asynchronous MPC (real)
+### Follow absolute end effector reference with asynchronous MPC (real)
 ```bash
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher_simulated_object_mvt.py
-```
-
-### Follow sinusoid end-effector reference
-Same as "Impulse test with asynchronous MPC", replace last command by  
-```
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --compute_local_sinusoid
-```
-
-### Realsense VISUAL SERVOING demo with asynchronous MPC (real)
-```bash
-roslaunch realsense2_camera rs_camera.launch
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --visual_servoing
-roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP robot:=panda
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
+ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --compute_absolute_sinusoid
 ```
 
 ### Realsense VISUAL SERVOING demo with asynchronous MPC (real,apriltag)
+First, check that `pose_e_c` and `pose_c_o_ref` have sensible values in `controller_config.yaml`
 ```bash
 roslaunch realsense2_camera rs_camera.launch
-roslaunch apriltag_ros continuous_detection.launch  # check the tag id/tag size etc. -> TODO: document
+roslaunch apriltag_ros continuous_detection.launch  # check the tag id/tag size etc.
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ```
@@ -112,3 +99,4 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_serv
 * Double check if `initialized` topic is streamed when using the real controller (not likely) 
 * Check if latest franka_ros fixes inverted torque measurements in gazebo sim
 * Refactor log publishers -> LoggingExperiment class with RTpublishers?
+* stream `pose_c_o_ref` from outside source

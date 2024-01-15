@@ -33,12 +33,14 @@ namespace panda_torque_mpc
         CrocoMotionServer(ros::NodeHandle &nh,
                           std::string robot_sensors_topic_sub,
                           std::string control_topic_pub,
+                          std::string absolute_pose_ref_topic_sub,
                           std::string motion_capture_pose_ref_topic_sub,
                           std::string pose_camera_object_topic_sub, 
                           std::string pose_object_rel_topic_sub, 
                           std::string cam_pose_viz_topic_pub,
                           std::string cam_pose_ref_viz_topic_pub,
-                          std::string cam_pose_error_topic_pub
+                          std::string cam_pose_error_topic_pub,
+                          std::string ee_pose_error_topic_pub
                           )
         {
             bool params_success = true;
@@ -140,9 +142,11 @@ namespace panda_torque_mpc
             cam_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_viz_topic_pub, 1);
             cam_pose_ref_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub, 1);
             cam_pose_error_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_error_topic_pub, 1);
+            ee_pose_error_pub_ = nh.advertise<geometry_msgs::PoseStamped>(ee_pose_error_topic_pub, 1);
             
             // Subscribers
             sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_robot_state, this);
+            pose_absolute_sub_ = nh.subscribe(absolute_pose_ref_topic_sub, 10, &CrocoMotionServer::callback_pose_absolute, this);
             pose_mocap_sub_ = nh.subscribe(motion_capture_pose_ref_topic_sub, 10, &CrocoMotionServer::callback_pose_mocap, this);
             pose_camera_object_sub_ = nh.subscribe(pose_camera_object_topic_sub, 10, &CrocoMotionServer::callback_pose_camera_object, this);
             pose_body_object_rel_sub_ = nh.subscribe(pose_object_rel_topic_sub, 10, &CrocoMotionServer::callback_pose_object0_object, this);
@@ -156,6 +160,26 @@ namespace panda_torque_mpc
             T_c_e_ = T_e_c_.inverse();
             T_c_o_ref_ = XYZQUATToSE3(pose_c_o_ref);
             T_o_c_ref_ = T_c_o_ref_.inverse();
+        }
+
+        void callback_pose_absolute(const geometry_msgs::PoseStamped &msg)
+        {
+            /**
+             * Callback using the pose as a reference in robot base frame 
+             */
+            pin::SE3 T_b_e_ref = posemsg2SE3(msg.pose);
+            T_b_e_ref_rtbox_.set(T_b_e_ref);
+            if (!first_pose_ref_msg_received_)
+            {
+                first_pose_ref_msg_received_ = true;
+            }
+
+
+            // ------- LOGS ----------- //
+            // Reference tracking error
+            pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
+            pin::SE3 T_b_e_error = T_b_e_ref.inverse() * T_b_e;
+            publish_SE3_posestamped(ee_pose_error_pub_, T_b_e_error, msg.header);
         }
 
         void callback_pose_mocap(const geometry_msgs::PoseStamped &msg)
@@ -196,6 +220,11 @@ namespace panda_torque_mpc
                 first_pose_ref_msg_received_ = true;
             }
 
+            // ------- LOGS ----------- //
+            // Reference tracking error
+            pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
+            pin::SE3 T_b_e_error = T_b_e_ref.inverse() * T_b_e;
+            publish_SE3_posestamped(ee_pose_error_pub_, T_b_e_error, msg.header);
         }
 
 
@@ -451,11 +480,13 @@ namespace panda_torque_mpc
         ros::Publisher cam_pose_pub_;
         ros::Publisher cam_pose_ref_pub_;
         ros::Publisher cam_pose_error_pub_;
+        ros::Publisher ee_pose_error_pub_;
 
         // Subscriber to robot sensor from linearized ctrl
         ros::Subscriber sensor_sub_;
 
         // Subscriber to pose reference topic
+        ros::Subscriber pose_absolute_sub_;
         ros::Subscriber pose_mocap_sub_;
         ros::Subscriber pose_camera_object_sub_;
         ros::Subscriber pose_body_object_rel_sub_;
@@ -477,22 +508,27 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     std::string robot_sensors_topic_sub = "robot_sensors";
     std::string control_topic_pub = "motion_server_control";
+    
+    std::string absolute_pose_ref_topic_sub = "absolute_pose_ref";  // ABSOLUTE REFERENCE DEMO
     std::string motion_capture_pose_ref_topic_sub = "motion_capture_pose_ref";  // MOCAP DEMO
     std::string pose_camera_object_topic_sub = "pose_camera_object";  // VISUAL SERVOING DEMO 
     std::string pose_object_rel_topic_sub = "pose_object_rel";  // SIMULATION OF VIRTUAL OBJECT
     std::string cam_pose_viz_topic_pub = "cam_pose_viz";
     std::string cam_pose_ref_viz_topic_pub = "cam_pose_ref_viz";
     std::string cam_pose_error_topic_pub = "cam_pose_error";
+    std::string ee_pose_error_topic_pub = "ee_pose_error";
     auto motion_server = panda_torque_mpc::CrocoMotionServer(
                             nh, 
                             robot_sensors_topic_sub,
                             control_topic_pub,
+                            absolute_pose_ref_topic_sub,
                             motion_capture_pose_ref_topic_sub,
                             pose_camera_object_topic_sub,
                             pose_object_rel_topic_sub,
                             cam_pose_viz_topic_pub,
                             cam_pose_ref_viz_topic_pub,
-                            cam_pose_error_topic_pub
+                            cam_pose_error_topic_pub,
+                            ee_pose_error_topic_pub
                             );
     int freq_solve;
     int success_read = panda_torque_mpc::get_param_error_tpl<int>(nh, freq_solve, "freq_solve");

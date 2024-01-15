@@ -191,8 +191,8 @@ ctrl_mpc_linearized:
     w_frame_terminal: 100
 
     # frame vel regularization
-    w_frame_vel_running:  0.1
-    w_frame_vel_terminal: 0.1
+    w_frame_vel_running:  0.01
+    w_frame_vel_terminal: 0.01
     diag_frame_vel: [
         1.,1.,1.,
         1.,1.,1.,

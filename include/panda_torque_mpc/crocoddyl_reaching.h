@@ -11,6 +11,7 @@
 #include <crocoddyl/core/action-base.hpp>
 #include <crocoddyl/core/solvers/fddp.hpp>
 
+
 #include "panda_torque_mpc/common.h"
 
 namespace pin = pinocchio;
@@ -66,7 +67,7 @@ namespace panda_torque_mpc
 
         void set_posture_ref(Eigen::VectorXd x0);
 
-        boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
+        boost::shared_ptr<mim_solver::SolverSQP> ocp_;
         CrocoddylConfig config_;
 
         std::string cost_translation_name_;

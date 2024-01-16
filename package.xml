@@ -17,6 +17,7 @@
 
   <depend>controller_interface</depend>
   <depend>crocoddyl</depend>
+  <depend>mim_solvers</depend>
   <depend>dynamic_reconfigure</depend>
   <depend>eigen_conversions</depend>
   <depend>franka_hw</depend>

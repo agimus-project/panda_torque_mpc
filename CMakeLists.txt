@@ -31,6 +31,7 @@ endif()
 find_package(pinocchio REQUIRED)
 find_package(tsid REQUIRED)
 find_package(crocoddyl REQUIRED)
+find_package(mim_solvers REQUIRED)
 find_package(example-robot-data REQUIRED)
 
 
@@ -86,6 +87,7 @@ target_link_libraries(panda_torque_mpc_utils PUBLIC
   pinocchio::pinocchio
   pinocchio::pinocchio_headers
   crocoddyl::crocoddyl
+  mim_solvers::mim_solvers
   example-robot-data::example-robot-data
 )
 
@@ -142,3 +144,46 @@ target_include_directories(crocoddyl_motion_server_node SYSTEM PUBLIC
 
 # Make sure that the messages are built before this target
 add_dependencies(crocoddyl_motion_server_node panda_torque_mpc_generate_messages_cpp)
+
+# Install launch files
+install(FILES
+  launch/franka_control.launch
+  launch/move_to_start.launch
+  launch/real_controllers.launch
+  launch/record_joint_ctrl.launch
+  launch/record_task_ctrl.launch
+  launch/sim_controllers.launch
+  DESTINATION
+  ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/launch
+  )
+
+# Install config files
+install(FILES
+  config/controller_configs.yaml
+  config/franka_control_node.yaml
+  config/start_joint_pose.yaml
+  DESTINATION
+  ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/config
+  )
+
+# Install python nodes
+install(PROGRAMS
+  nodes/move_to_start.py
+  nodes/pose_publisher.py
+  DESTINATION
+  ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/scripts
+  )
+
+# Install C++ nodes
+install(TARGETS
+  crocoddyl_motion_server_node
+  DESTINATION
+  ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}
+  )
+  
+# Install plugin description
+install(FILES
+  panda_torque_mpc_plugins.xml
+  DESTINATION
+  ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}
+  )

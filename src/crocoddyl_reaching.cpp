@@ -22,7 +22,6 @@
 #include <crocoddyl/multibody/states/multibody.hpp>
 #include <crocoddyl/multibody/actions/free-fwddyn.hpp>
 #include <crocoddyl/multibody/actuations/full.hpp>
-#include <crocoddyl/multibody/frames.hpp>
 #include <crocoddyl/multibody/residuals/state.hpp>
 #include <crocoddyl/multibody/residuals/frame-translation.hpp>
 #include <crocoddyl/multibody/residuals/frame-placement.hpp>

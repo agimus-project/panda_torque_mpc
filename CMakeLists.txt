@@ -32,6 +32,8 @@ find_package(pinocchio REQUIRED)
 find_package(tsid REQUIRED)
 find_package(crocoddyl REQUIRED)
 find_package(mim_solvers REQUIRED)
+find_package(colmpc REQUIRED)
+
 find_package(example-robot-data REQUIRED)
 
 
@@ -88,6 +90,7 @@ target_link_libraries(panda_torque_mpc_utils PUBLIC
   pinocchio::pinocchio_headers
   crocoddyl::crocoddyl
   mim_solvers::mim_solvers
+  colmpc::colmpc
   example-robot-data::example-robot-data
 )
 

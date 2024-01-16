@@ -9,8 +9,10 @@
 
 #include <crocoddyl/core/fwd.hpp>
 #include <crocoddyl/core/action-base.hpp>
-#include <crocoddyl/core/solvers/fddp.hpp>
+// #include <crocoddyl/core/solvers/fddp.hpp>
 
+
+#include <mim_solvers/sqp.hpp>
 
 #include "panda_torque_mpc/common.h"
 

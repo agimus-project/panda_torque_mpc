@@ -27,7 +27,7 @@
 #include <crocoddyl/multibody/residuals/frame-translation.hpp>
 #include <crocoddyl/multibody/residuals/frame-placement.hpp>
 #include <crocoddyl/multibody/residuals/frame-velocity.hpp>
-#include <crocoddyl/multibody/costs/control-gravity.hpp>
+#include <crocoddyl/multibody/residuals/control-gravity.hpp>
 
 #include "panda_torque_mpc/crocoddyl_reaching.h"
 

@@ -162,6 +162,7 @@ install(FILES
 
 # Install config files
 install(FILES
+  config/calibrated-params.yaml
   config/controller_configs.yaml
   config/franka_control_node.yaml
   config/start_joint_pose.yaml
@@ -193,6 +194,7 @@ install(FILES
 
 # Install URDF files
 install(FILES
+  urdf/_d435.gazebo.xacro
   urdf/big_box.urdf
   urdf/demo.urdf.xacro
   urdf/franka_arm.xacro
@@ -203,3 +205,10 @@ install(FILES
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/urdf
   )
+
+# Install meshes
+install(FILES
+  meshes/camera-support.stl
+  DESTINATION
+  ${CATKIN_PACKAGE_SHARE_DESTINATION}/meshes
+)

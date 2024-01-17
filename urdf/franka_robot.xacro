@@ -27,7 +27,7 @@
 
     <!-- D435 camera -->
     <xacro:property name="camera_pose_file"
-                    value="$(find panda_torque_mpc)/franka/manipulation/config/calibrated-params.yaml" />
+                    value="$(find panda_torque_mpc)/config/calibrated-params.yaml" />
     <xacro:property name="camera_pose" value="${load_yaml(camera_pose_file)}"/>
 
     <link name="${arm_id}_ref_camera_link"/>
@@ -57,13 +57,13 @@
       <visual>
         <origin xyz="0.022 0 -0.012" rpy="3.141592653589793 0 -1.5707963267948966"/>
         <geometry>
-          <mesh filename="package://agimus_demos/franka/manipulation/meshes/camera-support.stl" scale="1 1 1"/>
+          <mesh filename="package://panda_torque_mpc/meshes/camera-support.stl" scale="1 1 1"/>
         </geometry>
       </visual>
       <collision>
         <origin xyz="0.022 0 -0.012" rpy="3.141592653589793 0 -1.5707963267948966"/>
         <geometry>
-          <mesh filename="package://agimus_demos/franka/manipulation/meshes/camera-support.stl" scale="1 1 1"/>
+          <mesh filename="package://panda_torque_mpc/meshes/camera-support.stl" scale="1 1 1"/>
         </geometry>
       </collision>
     </link>

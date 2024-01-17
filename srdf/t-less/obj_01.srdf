@@ -1,0 +1,386 @@
+<robot name="obj_01">
+
+  <handle name="lateral_top_000" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="1.0 0.0 0.0 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_001" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.9807852804032304 0.0 0.0 0.19509032201612828"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_002" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.9238795325112867 0.0 0.0 0.38268343236508984"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_003" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.8314696123025452 0.0 0.0 0.5555702330196022"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_004" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.7071067811865475 0.0 0.0 0.7071067811865476"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_005" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.5555702330196022 0.0 0.0 0.8314696123025453"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_006" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.38268343236508967 0.0 0.0 0.9238795325112868"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_007" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.19509032201612814 0.0 0.0 0.9807852804032305"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_008" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="-8.326672684688674e-17 0.0 0.0 1.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_009" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="-0.19509032201612836 0.0 0.0 0.9807852804032304"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_010" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="-0.3826834323650899 0.0 0.0 0.9238795325112867"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_011" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.5555702330196024 0.0 0.0 -0.8314696123025451"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_012" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.7071067811865476 0.0 0.0 -0.7071067811865475"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_013" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.8314696123025453 0.0 0.0 -0.5555702330196021"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_014" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.9238795325112868 0.0 0.0 -0.38268343236508956"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_top_015" clearance="0.2">
+    <position xyz="0.0 0.0 0.012" wxyz="0.9807852804032304 0.0 0.0 -0.19509032201612808"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_000" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 1.0 0.0 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_001" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 0.9807852804032304 -0.19509032201612828 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_002" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 0.9238795325112867 -0.38268343236508984 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_003" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 0.8314696123025452 -0.5555702330196022 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_004" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 -0.7071067811865475 0.7071067811865476 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_005" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 -0.5555702330196022 0.8314696123025452 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_006" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 -0.38268343236508967 0.9238795325112868 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_007" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 -0.19509032201612814 0.9807852804032305 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_008" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 8.326672684688674e-17 1.0 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_009" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 0.19509032201612836 0.9807852804032304 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_010" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 0.3826834323650899 0.9238795325112867 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_011" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 0.5555702330196023 0.8314696123025452 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_012" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 0.7071067811865476 0.7071067811865475 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_013" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 0.8314696123025453 0.5555702330196021 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_014" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 0.9238795325112868 0.38268343236508956 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="lateral_bottom_015" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 0.9807852804032304 0.19509032201612808 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_000" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.7071067811865475 0.0 0.7071067811865477 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_001" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.6935199226610737 0.13794968964147147 0.693519922661074 -0.13794968964147156"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_002" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.6532814824381882 0.2705980500730985 0.6532814824381885 -0.2705980500730986"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_003" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.5879378012096793 0.392847479193551 0.5879378012096795 -0.39284747919355123"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_004" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="-0.5 -0.5 -0.5 0.5000000000000001"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_005" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="-0.3928474791935512 -0.5879378012096794 -0.3928474791935512 0.5879378012096794"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_006" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="-0.27059805007309856 -0.6532814824381884 -0.2705980500730985 0.6532814824381883"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_007" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="-0.1379496896414715 -0.6935199226610738 -0.13794968964147145 0.6935199226610739"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_008" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.0 -0.7071067811865476 5.887846720064157e-17 0.7071067811865476"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_009" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.13794968964147153 -0.6935199226610739 0.1379496896414716 0.6935199226610738"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_010" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.27059805007309856 -0.6532814824381884 0.2705980500730986 0.6532814824381883"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_011" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.3928474791935512 -0.5879378012096794 0.3928474791935512 0.5879378012096794"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_012" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.5 -0.4999999999999999 0.5000000000000001 0.5000000000000001"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_013" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.5879378012096793 -0.39284747919355095 0.5879378012096795 0.39284747919355123"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_014" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.6532814824381883 -0.27059805007309834 0.6532814824381884 0.27059805007309856"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_015" clearance="0.2">
+    <position xyz="0.0 0.0 0.025" wxyz="0.6935199226610737 -0.13794968964147133 0.693519922661074 0.13794968964147153"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_000" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.7071067811865475 0.0 -0.7071067811865477 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_001" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.6935199226610737 0.13794968964147147 -0.693519922661074 0.13794968964147156"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_002" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.6532814824381882 0.2705980500730985 -0.6532814824381885 0.2705980500730986"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_003" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.5879378012096793 0.392847479193551 -0.5879378012096795 0.39284747919355123"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_004" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.5 0.5 -0.5 0.5000000000000001"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_005" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.3928474791935512 0.5879378012096794 -0.3928474791935512 0.5879378012096794"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_006" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.27059805007309856 0.6532814824381884 -0.2705980500730985 0.6532814824381883"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_007" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.1379496896414715 0.6935199226610738 -0.13794968964147145 0.6935199226610739"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_008" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.0 0.7071067811865476 5.887846720064157e-17 0.7071067811865476"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_009" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="-0.13794968964147153 0.6935199226610739 0.1379496896414716 0.6935199226610738"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_010" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="-0.27059805007309856 0.6532814824381884 0.2705980500730986 0.6532814824381883"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_011" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="-0.3928474791935512 0.5879378012096794 0.3928474791935512 0.5879378012096794"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_012" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.5 -0.4999999999999999 -0.5000000000000001 -0.5000000000000001"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_013" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.5879378012096793 -0.39284747919355095 -0.5879378012096795 -0.39284747919355123"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_014" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.6532814824381883 -0.27059805007309834 -0.6532814824381884 -0.27059805007309856"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="bottom_015" clearance="0.2">
+    <position xyz="0.0 0.0 -0.025" wxyz="0.6935199226610737 -0.13794968964147133 -0.693519922661074 -0.13794968964147153"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+</robot>

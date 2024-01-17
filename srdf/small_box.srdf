@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<robot name="box">
+  <handle name="handle" clearance="0.025">
+    <position xyz="-0.0175 0 0" wxyz="1 0 0 0" />
+    <link name="base_link"/>
+  </handle>
+  <handle name="handle2" clearance="0.025">
+    <position xyz="0.0175 0 0"
+      wxyz="0 0 0.7071067811865476 0.7071067811865476" />
+    <link name="base_link"/>
+  </handle>
+  <contact name="box_surface">
+    <link name="base_link"/>
+    <point>-0.0275 -0.0275 -0.055   -0.0275 0.0275 -0.055   -0.0275 -0.0275 0.055   -0.0275 0.0275 0.055
+           +0.0275 -0.0275 -0.055   +0.0275 0.0275 -0.055   +0.0275 -0.0275 0.055   +0.0275 0.0275 0.055 </point>
+    <shape> 4 0 2 3 1 4 4 5 7 6</shape>
+  </contact>
+</robot>

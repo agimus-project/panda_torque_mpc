@@ -157,7 +157,7 @@ install(FILES
   launch/record_task_ctrl.launch
   launch/sim_controllers.launch
   DESTINATION
-  ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/launch
+  ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
   )
 
 # Install config files
@@ -166,7 +166,7 @@ install(FILES
   config/franka_control_node.yaml
   config/start_joint_pose.yaml
   DESTINATION
-  ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/config
+  ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
   )
 
 # Install python nodes
@@ -174,19 +174,32 @@ install(PROGRAMS
   nodes/move_to_start.py
   nodes/pose_publisher.py
   DESTINATION
-  ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/scripts
+  ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts
   )
 
 # Install C++ nodes
 install(TARGETS
   crocoddyl_motion_server_node
   DESTINATION
-  ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}
+ ${CATKIN_PACKAGE_SHARE_DESTINATION} 
   )
   
 # Install plugin description
 install(FILES
   panda_torque_mpc_plugins.xml
   DESTINATION
-  ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}
+  ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  )
+
+# Install URDF files
+install(FILES
+  urdf/big_box.urdf
+  urdf/demo.urdf.xacro
+  urdf/franka_arm.xacro
+  urdf/franka_hand.xacro
+  urdf/franka_robot.xacro
+  urdf/support.urdf.xacro
+  urdf/utils.xacro
+  DESTINATION
+  ${CATKIN_PACKAGE_SHARE_DESTINATION}/urdf
   )

@@ -90,7 +90,7 @@ target_link_libraries(panda_torque_mpc_utils PUBLIC
   pinocchio::pinocchio_headers
   crocoddyl::crocoddyl
   mim_solvers::mim_solvers
-  colmpc::colmpc
+  colmpc::colmpc_cpp
   example-robot-data::example-robot-data
 )
 

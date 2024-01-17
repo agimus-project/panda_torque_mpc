@@ -1,0 +1,27 @@
+<robot name="obj_23">
+
+  <handle name="top_000" clearance="0.035">
+    <position xyz="0.045 -0.02 0.0" wxyz="0.7071067811865476 0.0 0.7071067811865476 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_001" clearance="0.035">
+    <position xyz="-0.045 -0.02 0.0" wxyz="0.7071067811865476 0.0 0.7071067811865476 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_002" clearance="0.035">
+    <position xyz="0.045 -0.02 0.0" wxyz="0.7071067811865476 0.0 -0.7071067811865476 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+  <handle name="top_003" clearance="0.035">
+    <position xyz="-0.045 -0.02 0.0" wxyz="0.7071067811865476 0.0 -0.7071067811865476 0.0"/>
+    <link name="base_link"/>
+    <mask>1 1 1 1 1 1</mask>
+  </handle>
+
+</robot>

@@ -158,7 +158,7 @@
       <joint name="support_joint" type="fixed">
         <origin xyz="0.563 -0.1655 .78" rpy="0 0 ${pi}" />
         <parent link="support_link" />
-        <child  link="panda2_link0" />
+        <child  link="panda_link0" />
       </joint>
       <joint name="wall_joint_1" type="fixed">
         <origin xyz="0 1.07 0" />

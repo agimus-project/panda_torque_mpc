@@ -112,7 +112,7 @@ namespace panda_torque_mpc
 
             // Define corresponding frame id for pinocchio and Franka (see ctrl_model_pinocchio_vs_franka)
             ee_frame_id_ = model_pin_.getFrameId(ee_frame_name_);
-
+            
             /////////////////////////////////////////////////
             //                MPC CONFIG                   //
             /////////////////////////////////////////////////

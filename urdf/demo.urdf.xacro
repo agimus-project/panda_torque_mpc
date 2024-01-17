@@ -4,7 +4,7 @@
   <xacro:include filename="$(find panda_torque_mpc)/urdf/support.urdf.xacro"/>
 
   <xacro:support/>
-  <xacro:franka_robot arm_id="panda2"
+  <xacro:franka_robot arm_id="panda"
                       joint_limits="${xacro.load_yaml('$(find franka_description)/robots/panda/joint_limits.yaml')}">
   </xacro:franka_robot>
 

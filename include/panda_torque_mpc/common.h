@@ -50,23 +50,9 @@ namespace panda_torque_mpc {
         Eigen::VectorXd q0_full = model_pin_full.referenceConfigurations["default"];
         std::vector<unsigned long> locked_joints_id {model_pin_full.getJointId("panda_finger_joint1"), 
                                                      model_pin_full.getJointId("panda_finger_joint2"),
-                                                     model_pin_full.getJointId("universe")
-                                                     };
-        // std::cout << "model name: " << model_pin_full.name << std::endl;
-
-        // std::cout << "model_pin_full.getJointId(panda_finger_joint1): " << model_pin_full.getJointId("panda_finger_joint1") << std::endl;
-        // std::cout << "model_pin_full.getJointId(panda_finger_joint2): " << model_pin_full.getJointId("panda_finger_joint2") << std::endl;                
-
-        for(pinocchio::JointIndex joint_id = 0; joint_id < (pinocchio::JointIndex)model_pin_full.njoints; ++joint_id)
-            std::cout << std::setw(24) << std::left << model_pin_full.names[joint_id] << std::endl;
-        
-        pinocchio::Model model_pin_red =  pinocchio::buildReducedModel(model_pin_full, locked_joints_id, q0_full);
-        for(pinocchio::JointIndex joint_id = 0; joint_id < (pinocchio::JointIndex)model_pin_red.njoints; ++joint_id)
-            std::cout << std::setw(24) << std::left << model_pin_red.names[joint_id] << "joint_id : " << joint_id <<std::endl;
-        
+                                                     };        
         return pinocchio::buildReducedModel(model_pin_full, locked_joints_id, q0_full);
     }
-
 
     inline Vector7d saturateTorqueRate(const Vector7d &tau_d, const Vector7d &tau_d_prev, double delta_max)
     {

@@ -28,12 +28,14 @@
 #include <crocoddyl/multibody/residuals/frame-velocity.hpp>
 #include <crocoddyl/multibody/residuals/control-gravity.hpp>
 
+
+
 #include "panda_torque_mpc/crocoddyl_reaching.h"
 
 namespace panda_torque_mpc
 {
 
-    CrocoddylReaching::CrocoddylReaching(pin::Model _model_pin, CrocoddylConfig _config) :
+    CrocoddylReaching::CrocoddylReaching(pin::Model _model_pin, pin::GeometryModel _collision_model ,CrocoddylConfig _config) :
     config_(_config)
     {
 
@@ -60,6 +62,33 @@ namespace panda_torque_mpc
         cost_velocity_name_ = "velocity_cost";
         cost_state_reg_name_ = "state_reg";
         cost_ctrl_reg_name_ = "ctrl_reg";
+
+        // Collision constraints
+
+        // auto runningConstraintModelManager =  boost::make_shared<crocoddyl::ConstraintModelManager(state, actuation, actuation->get_nu())
+        // auto terminalConstraintModelManager =  boost::make_shared<crocoddyl::ConstraintModelManager(state, actuation, actuation->get_nu())
+        // Eigen::VectorXd:: lower_bound(1);
+        // Eigen::VectorXd:: upper_bound(1);
+
+        // lower_bound << 1e-2;
+        // upper_bound << std::numeric_limits<double>::infinity();
+
+        // for (int col_idx = 0; i < collision_model.CollisionPairs.size(); i++)
+        // {
+
+        //     auto obstacle_distance_residual = colmpc::ResidualDistanceCollision(state, 7, collision_model, col_idx, 6);
+        //     auto constraint = boost::make_shared<crocoddyl::ConstraintModelResidual(
+        //         state,
+        //         obstacle_distance_residual,
+        //         lower_bound,
+        //         upper_bound
+        //     )
+        //     std::string running_constraint_name = "col" + std::to_string(col_idx);
+        //     std::string terminal_constraint_name = "col_term" + std::to_string(col_idx);
+        //     runningConstraintModelManager.addConstraint(running_constraint_name, constraint);
+        //     terminalConstraintModelManager.addConstraint(terminal_constraint_name, constraint);
+
+        // }
 
         // Frame translation
         auto frame_translation_cost = boost::make_shared<crocoddyl::CostModelResidual>(
@@ -101,7 +130,8 @@ namespace panda_torque_mpc
             runningCostModel.get()->addCost(cost_translation_name_, frame_translation_cost, _config.w_frame_running); // TODO: weight schedule
             runningCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost, _config.w_frame_running); // TODO: weight schedule
             runningCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost, _config.w_frame_vel_running); // TODO: weight schedule
-
+            
+            // auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel, runningConstraintModelManager);
             auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel);
             running_DAM->set_armature(_config.armature);
 
@@ -126,7 +156,7 @@ namespace panda_torque_mpc
         terminalCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost,   _config.w_frame_terminal*_config.dt_ocp);
         terminalCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost,    _config.w_frame_vel_terminal*_config.dt_ocp);
 
-
+        // auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel, terminalConstraintModelManager);
         auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel);
         terminal_DAM->set_armature(_config.armature);
 
@@ -139,7 +169,7 @@ namespace panda_torque_mpc
 
         // Shooting problem
         auto shooting_problem = boost::make_shared<crocoddyl::ShootingProblem>(x0_dummy, running_IAMs, terminal_IAM);
-        ocp_ = boost::make_shared<mim_solvers::SolverSQP>(shooting_problem);
+        ocp_ = boost::make_shared<mim_solvers::SolverCSQP>(shooting_problem);
 
         // Callbacks
         std::vector<boost::shared_ptr<crocoddyl::CallbackAbstract>> callbacks;

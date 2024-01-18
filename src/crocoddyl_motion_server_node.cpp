@@ -5,6 +5,12 @@
 #include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/rnea.hpp>
+#include <pinocchio/multibody/geometry.hpp>
+#include <pinocchio/multibody/fcl.hpp>
+
+#include <hpp/fcl/collision_object.h>
+#include <hpp/fcl/shape/geometric_shapes.h>
+
 
 #include <linear_feedback_controller_msgs/Sensor.h>
 #include <linear_feedback_controller_msgs/Control.h>
@@ -104,6 +110,26 @@ namespace panda_torque_mpc
             model_pin_ = loadPandaPinocchio();
             data_pin_ = pin::Data(model_pin_);
 
+            // Creating the collision model
+            // Path to the urdf, srdf & mesh
+            std::string urdf_path = "/local/users/mfourmy/ws_control/src/panda_torque_mpc/urdf/robot.urdf";
+            std::string srdf_path =  "/local/users/mfourmy/ws_control/src/panda_torque_mpc/srdf/demo.srdf";
+            std::string mesh_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/meshes";
+            
+            // Building the GeometryModel
+            pinocchio::GeometryModel collision_model;
+            pinocchio::urdf::buildGeom(model_pin_, urdf_path, pinocchio::COLLISION, collision_model, mesh_path);
+            double radius = 0.5;
+            hpp::fcl::Sphere obstacle(radius);
+            auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(Ptr(new hpp::fcl::Sphere(radius)));
+
+            pinocchio::SE3 obstacle_pose;
+            obstacle_pose.setIdentity();
+            pinocchio::GeometryObject obstacle("obstacle", 0,0, obstacle, obstacle_pose);
+            collision_model.addGeometryObject(pinocchio::GeometryObject("obstacle", 0,0 ,obstacle, obstacle_pose));
+
+            // collision_model.addCollisionPair(pinocchio::CollisionPair(collision_model.GeometryObject[collision_model.getGeometryId("obstacle")], collision_model.GeometryObject[collision_model.getGeometryId("panda_link7_sc_1")]));
+
             if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
             {
                 ROS_ERROR_STREAM("Problem when loading the robot urdf");
@@ -134,7 +160,7 @@ namespace panda_torque_mpc
             config_croco_.diag_u_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_u_reg_running.data());
             config_croco_.armature = Eigen::Map<Eigen::Matrix<double, 7, 1>>(armature.data());
 
-            croco_reaching_ = CrocoddylReaching(model_pin_, config_croco_);
+            croco_reaching_ = CrocoddylReaching(model_pin_, collision_model ,config_croco_);
             /////////////////////////////////////////////////
 
             // Publishers

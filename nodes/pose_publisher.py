@@ -68,6 +68,9 @@ PERIOD_POSE = np.array([
     4.0, 4.0, 4.0, 
 ])
 
+Tsupportlink0 = pin.SE3(pin.utils.rotate("z", np.pi), np.array([0.563 ,-0.1655, .78]))
+T_start = pin.SE3(pin.utils.rotate("y", np.pi), np.array([0.0, 0.25, 1.0]))
+T_end = pin.SE3(pin.utils.rotate("y", np.pi), np.array([0.0, -0.25, 1.0]))
 
 def compute_sinusoid_pose_delta_reference(delta_pose, period_pose, t):
 
@@ -92,9 +95,16 @@ def compute_sinusoid_pose_delta_reference(delta_pose, period_pose, t):
 
     return pin.SE3(dR_ref, dp_ref)
 
+def compute_alternating_pose(t):
+    timing = [k for k in range(6)]
+    if int(t) % 10 in timing:
+        return T_start
+    else:
+        return T_end
 
 def compute_sinusoid_pose_reference(delta_pose, period_pose, T0: pin.SE3, t):
     dT_ref = compute_sinusoid_pose_delta_reference(delta_pose, period_pose, t)
+    T0 = Tsupportlink0 * T0
     return pin.SE3(
         dT_ref.rotation @ T0.rotation,
         T0.translation + dT_ref.translation
@@ -115,12 +125,12 @@ if __name__ == '__main__':
 
             print('t-t0', (t-t0).to_sec())
 
-            
-            if args.compute_local_sinusoid:
-                T_ref = compute_sinusoid_pose_delta_reference(DELTA_POSE, PERIOD_POSE, (t - t0).to_sec())
+            T_ref = compute_alternating_pose((t - t0).to_sec())
+            # if args.compute_local_sinusoid:
+            #     T_ref = compute_sinusoid_pose_delta_reference(DELTA_POSE, PERIOD_POSE, (t - t0).to_sec())
 
-            if args.compute_absolute_sinusoid:
-                T_ref = compute_sinusoid_pose_reference(DELTA_POSE, PERIOD_POSE, T0, (t - t0).to_sec())
+            # if args.compute_absolute_sinusoid:
+            #     T_ref = compute_sinusoid_pose_reference(DELTA_POSE, PERIOD_POSE, T0, (t - t0).to_sec())
 
             msg = PoseStamped()
             msg.header.stamp.secs = t.secs

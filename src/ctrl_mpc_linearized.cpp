@@ -54,6 +54,11 @@ namespace panda_torque_mpc
 
         model_pin_ = loadPandaPinocchio();
         data_pin_ = pin::Data(model_pin_);
+
+        std::cout << " ee_frame_name_ : " << ee_frame_name_ << std::endl;
+        std::cout << " model_pin_.getFrameId(ee_frame_name_) : " << model_pin_.getFrameId(ee_frame_name_) << std::endl;
+        std::cout <<  " model_pin_.getFrameId(do not exist) : " << model_pin_.getFrameId("do not exist") << std::endl;
+
         if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
         {
             ROS_ERROR_STREAM("Problem when loading the robot urdf");
@@ -62,6 +67,7 @@ namespace panda_torque_mpc
 
         // Define corresponding frame id for pinocchio and Franka (see ctrl_model_pinocchio_vs_franka)
         ee_frame_id_ = model_pin_.getFrameId(ee_frame_name_);
+        
 
         ///////////////////
         // Claim interfaces

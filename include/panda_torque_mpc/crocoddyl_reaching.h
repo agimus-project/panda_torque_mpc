@@ -11,8 +11,8 @@
 #include <crocoddyl/core/action-base.hpp>
 // #include <crocoddyl/core/solvers/fddp.hpp>
 
-// #include <colmpc/fwd.hpp>
-// #include <colmpc/residual-distance-collision.hpp>
+#include <colmpc/fwd.hpp>
+#include <colmpc/residual-distance-collision.hpp>
 
 #include <mim_solvers/csqp.hpp>
 

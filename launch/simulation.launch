@@ -25,7 +25,7 @@
     <arg name="paused" value="true"/>
     <arg name="gui" value="$(eval not arg('headless'))"/>
     <arg name="use_sim_time" value="true"/>
-    <arg name="debug" value="true"/>
+    <arg name="debug" value="false"/>
   </include>
 
   <param name="robot_description"

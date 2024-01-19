@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 ## Class heavily inspired by the work of Sebastien Kleff : https://github.com/machines-in-motion/minimal_examples_crocoddyl
 import sys
 from os.path import *
@@ -6,14 +8,15 @@ import numpy as np
 import crocoddyl
 import pinocchio as pin
 import mim_solvers
+from typing import Any
 
 import rospy
 
-from time import time
+import time
 
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import PoseStamped
-from linear_feedback_msgs import Sensor
+from linear_feedback_controller_msgs.msg import Sensor
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 class OCPPandaReaching:
@@ -88,7 +91,7 @@ class OCPPandaReaching:
         # End effector frame cost
         framePlacementResidual = crocoddyl.ResidualModelFrameTranslation(
             self._state,
-            self._rmodel.getFrameId("panda2_leftfinger"),
+            self._rmodel.getFrameId("panda_hand"),
             self._TARGET_POSE.translation,
         )
         goalTrackingCost = crocoddyl.CostModelResidual(
@@ -135,13 +138,14 @@ class OCPPandaReaching:
         ddp.use_filter_line_search = False
         ddp.termination_tolerance = 1e-3
         ddp.max_qp_iters = 1000
-        ddp.with_callbacks = False 
+        ddp.with_callbacks = True 
 
         return ddp
 
 class WarmstartOCPNode:
     def __init__(self, name: str) -> None:
-        rospy.init_node(name, anonymous=False)
+        self._name = name
+        rospy.init_node(self._name, anonymous=False)
 
         # Building the model
         urdf_path = join(dirname(dirname(str(abspath(__file__)))), "urdf/robot.urdf")
@@ -149,55 +153,73 @@ class WarmstartOCPNode:
 
         q0 = pin.neutral(rmodel_full)
 
-        self._rmodel = pin.buildReducedModel(rmodel_full, np.array([8,9], q0))
+        self._rmodel = pin.buildReducedModel(rmodel_full, [8,9], q0)
         self._T = 10 # Shooting nodes
         self._dt = 0.05 # dt_ocp
 
         self._state = None
+        self._last_pose_ref = None
 
         # Subscribers
-        self._goal_sub = rospy.Subscriber('absolute_pose_ref', PoseStamped, self._goal_cb, 5)
-        self._state_sub = rospy.Subscriber('robot_sensors', Sensor, self._state_cb, 1)
+        self._goal_sub = rospy.Subscriber('absolute_pose_ref', PoseStamped, self._goal_cb, queue_size=5)
+        self._state_sub = rospy.Subscriber('robot_sensors', Sensor, self._state_cb, queue_size=1)
 
         # Publishers
-        self._warm_pub = rospy.Publisher("ocp_warmstart", JointTrajectory)
+        self._warm_pub = rospy.Publisher("ocp_warmstart", JointTrajectory, queue_size=5)
 
-        while not self._state:
+        while not self._state and not rospy.is_shutdown():
+            rospy.loginfo(f"[{self._name}] Waiting for state message to arrive...")
             rospy.spin()
-            rospy.loginfo(f"[{name}] Waiting for state message to arrive...")
             time.sleep(0.5)
 
+        rospy.loginfo(f"[{self._name}] OCP warmstart node started!")
+
     def _goal_cb(self, pose_ref: PoseStamped) -> None:
-        x0 = np.array([self._state.position, self._state.velocity])
-        x0.reshape(-1)
+        p = np.array([
+            pose_ref.pose.position.x,
+            pose_ref.pose.position.y,
+            pose_ref.pose.position.z
+        ])
 
-        ddp = OCPPandaReaching(
-            self._rmodel,
-            pin.SE3(np.eye(3), np.array(pose_ref.pose.position)),
-            self._T, 
-            self._dt,
-            x0
-        )()
+        if self._last_pose_ref is None or np.linalg.norm(self._last_pose_ref - p) > 1e-15:
+            x0 = np.concatenate([self._state.position, self._state.velocity])
 
-        xs_init = [x0 for i in range(self._T+1)]
-        us_init = ddp.problem.quasiStatic(xs_init[:-1])
-        # Solve
-        ddp.solve(xs_init, us_init, maxiter=100)
+            rospy.loginfo(f"[{self._name}] New goal at: {p}")
+            rospy.loginfo(f"[{self._name}] Solving for warmstart...")
+            tmp = pin.SE3.Identity()
+            tmp.translation = p
+            ddp = OCPPandaReaching(
+                self._rmodel,
+                # pin.SE3(np.eye(3), np.array(pose_ref.pose.position)),
+                tmp,
+                self._T, 
+                self._dt,
+                x0
+            )()
 
-        def get_jtp(x: np.array, u: np.array) -> JointTrajectoryPoint:
-            jtp = JointTrajectoryPoint()
-            jtp.positions = x[0:x.shape[0]/2]
-            jtp.velocities = x[x.shape[0]/2:-1]
-            jtp.effort = u
-            return jtp
+            xs_init = [x0 for i in range(self._T+1)]
+            us_init = ddp.problem.quasiStatic(xs_init[:-1])
+            # Solve
+            ddp.solve(xs_init, us_init, maxiter=100)
 
-        traj = JointTrajectory()
-        traj.header.stamp = rospy.Time.now()
-        traj.points = [
-            get_jtp(x, u) for x, u in zip(ddp.xs.tolist(), ddp.us.tolist())
-        ]
+            rospy.loginfo(f"[{self._name}] Warmstart solution found.")
 
-        self._warm_pub.pub(traj)
+            def get_jtp(x: np.array, u: np.array) -> JointTrajectoryPoint:
+                jtp = JointTrajectoryPoint()
+                jtp.positions = x[0:x.shape[0]//2]
+                jtp.velocities = x[x.shape[0]//2:-1]
+                jtp.effort = u
+                return jtp
+
+            traj = JointTrajectory()
+            traj.header.stamp = rospy.Time.now()
+            traj.points = [
+                get_jtp(x, u) for x, u in zip(ddp.xs.tolist(), ddp.us.tolist())
+            ]
+
+            self._warm_pub.publish(traj)
+
+        self._last_pose_ref = p
 
 
     def _state_cb(self, msg: Sensor) -> None:

@@ -128,7 +128,7 @@ namespace panda_torque_mpc
             boost::shared_ptr<pinocchio::GeometryModel> collision_model = boost::make_shared<pinocchio::GeometryModel>
             (pinocchio::GeometryModel());
             pinocchio::urdf::buildGeom(model_pin_, urdf_path, pinocchio::COLLISION, *collision_model, mesh_path);
-            double radius = 0.15;
+            double radius = 0.1;
             auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
 
             pinocchio::SE3 obstacle_pose(Eigen::Quaternion (1.,0.,0.,0.), Eigen::Vector3d (0,0,0.8));
@@ -150,8 +150,8 @@ namespace panda_torque_mpc
               // Print out the placement of each collision geometry object
             // std::cout << *collision_model<< std::endl;
 
-            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-                collision_model->getGeometryId("panda_leftfinger_0")));
+            // collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
+            //     collision_model->getGeometryId("panda_leftfinger_0")));
 
             collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
                 collision_model->getGeometryId("panda_rightfinger_0")));

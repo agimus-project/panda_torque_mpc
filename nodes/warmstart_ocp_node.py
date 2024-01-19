@@ -1,6 +1,7 @@
 ## Class heavily inspired by the work of Sebastien Kleff : https://github.com/machines-in-motion/minimal_examples_crocoddyl
 import sys
-from typing import Any
+from os.path import *
+
 import numpy as np
 import crocoddyl
 import pinocchio as pin
@@ -14,13 +15,12 @@ class OCPPandaReaching:
     def __init__(
         self,
         rmodel: pin.Model,
-        cmodel: pin.GeometryModel,
         TARGET_POSE: pin.SE3,
         T: int,
         dt: float,
         x0: np.ndarray,
-        WEIGHT_xREG=1e-1,
-        WEIGHT_xREG_TERM = 1e-1,
+        WEIGHT_xREG=1e-2,
+        WEIGHT_xREG_TERM = 1e-2,
         WEIGHT_uREG = 1e-4,
         WEIGHT_GRIPPER_POSE=10,
         WEIGHT_GRIPPER_POSE_TERM = 10,
@@ -30,7 +30,6 @@ class OCPPandaReaching:
 
         Args:
             rmodel (pin.Model): pinocchio Model of the robot
-            cmodel (pin.GeometryModel): Collision model of the robot
             TARGET_POSE (pin.SE3): Pose of the target in WOLRD ref
             T (int): Number of nodes in the trajectory
             dt (float): _description_
@@ -40,7 +39,6 @@ class OCPPandaReaching:
         """
 
         self._rmodel = rmodel
-        self._cmodel = cmodel
         self._TARGET_POSE = TARGET_POSE
         self._T = T
         self._dt = dt
@@ -57,7 +55,6 @@ class OCPPandaReaching:
         self._WEIGHT_LIMIT = WEIGHT_LIMIT
         # Data models
         self._rdata = rmodel.createData()
-        self._cdata = cmodel.createData()
 
     def __call__(self) -> Any:
         "Setting up croccodyl OCP"
@@ -82,7 +79,6 @@ class OCPPandaReaching:
         
 
         # End effector frame cost
-
         framePlacementResidual = crocoddyl.ResidualModelFrameTranslation(
             self._state,
             self._rmodel.getFrameId("panda2_leftfinger"),
@@ -91,38 +87,15 @@ class OCPPandaReaching:
         goalTrackingCost = crocoddyl.CostModelResidual(
             self._state, framePlacementResidual
         )
-        # Bounds costs
-        
-                # Cost for self-collision
-        maxfloat = sys.float_info.max
-        xlb = np.concatenate(
-            [
-                self._rmodel.lowerPositionLimit,
-                -maxfloat * np.ones(self._state.nv),
-            ]
-        )
-        xub = np.concatenate(
-            [
-                self._rmodel.upperPositionLimit,
-                maxfloat * np.ones(self._state.nv),
-            ]
-        )
-        bounds = crocoddyl.ActivationBounds(xlb, xub, 1.0)
-        xLimitResidual = crocoddyl.ResidualModelState(self._state, self._x0, self._actuation.nu)
-        xLimitActivation = crocoddyl.ActivationModelQuadraticBarrier(bounds)
-        limitCost = crocoddyl.CostModelResidual(self._state, xLimitActivation, xLimitResidual)
-
 
         # Adding costs to the models
         self._runningCostModel.addCost("stateReg", xRegCost, self._WEIGHT_xREG)
         self._runningCostModel.addCost("ctrlRegGrav", uRegCost, self._WEIGHT_uREG)
         self._runningCostModel.addCost("gripperPoseRM", goalTrackingCost, self._WEIGHT_GRIPPER_POSE)    
-        # self._runningCostModel.addCost("limitCostRM", limitCost, self._WEIGHT_LIMIT)    
         self._terminalCostModel.addCost("stateReg", xRegCost, self._WEIGHT_xREG)
         self._terminalCostModel.addCost(
             "gripperPose", goalTrackingCost, self._WEIGHT_GRIPPER_POSE
         )
-        # self._terminalCostModel.addCost("limitCost", limitCost, self._WEIGHT_LIMIT)    
 
 
         # Create Differential Action Model (DAM), i.e. continuous dynamics and cost functions
@@ -149,22 +122,37 @@ class OCPPandaReaching:
             self._x0, [self._runningModel] * self._T, self._terminalModel
         )
         # Create solver + callbacks
-        # ddp = crocoddyl.SolverSQP(problem)
-
-        # ddp.setCallbacks([crocoddyl.CallbackLogger(), crocoddyl.CallbackVerbose()])
 
         # Define solver
         ddp = mim_solvers.SolverSQP(problem)
         ddp.use_filter_line_search = False
         ddp.termination_tolerance = 1e-3
         ddp.max_qp_iters = 1000
-        ddp.with_callbacks = True 
+        ddp.with_callbacks = False 
 
         return ddp
 
 class WarmstartOCPNode:
     def __init__(self, name):
         rospy.init_node(name, anonymous=False)
+
+        # Building the model
+        urdf_path = join(dirname(dirname(str(abspath(__file__)))), "urdf/robot.urdf")
+        rmodel_full = pin.buildModelFromUrdf(urdf_path)
+
+        q0 = pin.neutral(rmodel_full)
+
+        rmodel = pin.buildReducedModel(rmodel_full, np.array([8,9], q0))
+        T = 10 # Shooting nodes
+        dt = 0.05 # dt_ocp
+
+        problem = OCPPandaReaching(
+            rmodel,
+            TARGET_POSE,
+            T, 
+            dt,
+            x0
+        )
 
         # Subscribers
         self._goal_sub = rospy.Subscriber('absolute_pose_ref')

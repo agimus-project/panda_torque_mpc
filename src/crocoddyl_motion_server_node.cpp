@@ -128,27 +128,35 @@ namespace panda_torque_mpc
             boost::shared_ptr<pinocchio::GeometryModel> collision_model = boost::make_shared<pinocchio::GeometryModel>
             (pinocchio::GeometryModel());
             pinocchio::urdf::buildGeom(model_pin_, urdf_path, pinocchio::COLLISION, *collision_model, mesh_path);
-            double radius = 0.5;
+            double radius = 0.15;
             auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
 
-            pinocchio::SE3 obstacle_pose;
-            obstacle_pose.setIdentity();
+            pinocchio::SE3 obstacle_pose(Eigen::Quaternion (1.,0.,0.,0.), Eigen::Vector3d (0,0,0.8));
+
+            // obstacle_pose.setIdentity();
+            // obstacle_pose.trans << 0., 0., 0.;
+
             pinocchio::GeometryObject obstacle("obstacle", 0,0, geometry, obstacle_pose);
             collision_model->addGeometryObject(obstacle);
 
 
             assertm(collision_model->getGeometryId("obstacle") < collision_model->GeometryObject.size(), "The index of the obstacle is not right.");
-            assertm(collision_model->getGeometryId("panda_link7_sc_1") < collision_model->GeometryObject.size(), "The index of the obstacle is not right.");
+            assertm(collision_model->getGeometryId("panda_leftfinger_0") < collision_model->GeometryObject.size(), "The index of the obstacle is not right.");
+            assertm(collision_model->getGeometryId("panda_rightfinger_0") < collision_model->GeometryObject.size(), "The index of the obstacle is not right.");
 
-            std::cout << "\nCollision object placements:" << std::endl;
-            for(pinocchio::GeomIndex geom_id = 0; geom_id < (pinocchio::GeomIndex)collision_model->ngeoms; ++geom_id)
-                std::cout << geom_id << ": " << collision_model->GeometryObjects[geom_id].name
-                        << std::fixed << std::setprecision(2)
-                        << std::endl;
+            std::cout << "right: "<<collision_model->getGeometryId("panda_rightfinger_0") << std::endl;
+            std::cout << "left: "<<collision_model->getGeometryId("panda_leftfinger_0") << std::endl;
+
+              // Print out the placement of each collision geometry object
+            // std::cout << *collision_model<< std::endl;
 
             collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-                collision_model->getGeometryId("panda_link7_sc_1")));
+                collision_model->getGeometryId("panda_leftfinger_0")));
 
+            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
+                collision_model->getGeometryId("panda_rightfinger_0")));
+
+                
             if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
             {
                 ROS_ERROR_STREAM("Problem when loading the robot urdf");

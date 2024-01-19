@@ -13,12 +13,12 @@
 	    <box size="1.703 0.803 0.76"/>
           </geometry>
         </visual>
-        <collision>
+        <!-- <collision>
           <origin xyz="0 0 0.38"/>
           <geometry>
 	    <box size="1.703 0.803 0.76"/>
           </geometry>
-        </collision>
+        </collision> -->
         <!--visual>
           <origin xyz="-0.61 0.2215 0.77"/>
           <geometry>
@@ -37,10 +37,33 @@
             <box size="0.3 0.3 0.02"/>
           </geometry>
         </visual>
-        <collision>
+        <!-- <collision>
           <origin xyz="0.6385 -0.1655 0.77"/>
           <geometry>
             <box size="0.3 0.3 0.02"/>
+          </geometry>
+        </collision> -->
+      </link>
+
+      <link name="the_ball">
+        <inertial>
+          <mass value="1"/>
+          <origin xyz="0 0 0"/>
+          <inertia ixx="1"  ixy="0"  ixz="0" iyy="1" iyz="0" izz="1" />
+        </inertial>
+        <visual>
+          <origin xyz="0 0 0"/>
+          <geometry>
+            <sphere radius="0.15"/>
+          </geometry>
+          <material name="green">
+            <color rgba ="0 1 0 0.8"/>
+          </material>
+        </visual>
+        <collision>
+          <origin xyz="0 0 0"/>
+          <geometry>
+            <sphere radius="0.15"/>
           </geometry>
         </collision>
       </link>
@@ -184,6 +207,11 @@
         <origin xyz="-0.6315 0 1.17" />
         <parent link="world"/>
         <child link="panda1_box"/>
+      </joint>
+      <joint name="the_ball_joint" type="fixed">
+        <origin xyz="0 0 0.8" />
+        <parent link="world"/>
+        <child link="the_ball"/>
       </joint>
   </xacro:macro>
 </robot>

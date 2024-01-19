@@ -69,8 +69,8 @@ PERIOD_POSE = np.array([
 ])
 
 Tsupportlink0 = pin.SE3(pin.utils.rotate("z", np.pi), np.array([0.563 ,-0.1655, .78]))
-T_start = pin.SE3(pin.utils.rotate("y", np.pi), np.array([0.0, 0.25, 1.0]))
-T_end = pin.SE3(pin.utils.rotate("y", np.pi), np.array([0.0, -0.25, 1.0]))
+T_start = pin.SE3(pin.utils.rotate("y", np.pi), np.array([0.0, 0.35, 1.0]))
+T_end = pin.SE3(pin.utils.rotate("y", np.pi), np.array([0.0, -0.35, 1.0]))
 
 def compute_sinusoid_pose_delta_reference(delta_pose, period_pose, t):
 

@@ -174,10 +174,10 @@ ctrl_mpc_linearized:
     ####################
     freq_solve: 100
     # OCP motion server configs
-    nb_shooting_nodes: 50
+    # nb_shooting_nodes: 20
 
     dt_ocp: 0.05
-    nb_iterations_max: 1
+    # nb_iterations_max: 1
     reference_is_placement: true   # otherwise, translation
     keep_original_ee_rotation: false
     # armature: [0.01,0.01,0.01,0.01,0.01,0.01,0.01]
@@ -185,12 +185,12 @@ ctrl_mpc_linearized:
     armature: [0.,0.,0.,0.,0.,0.,0.0]
     
     #### PARAMETERS FROM NYC 
-    # nb_shooting_nodes: 10
-    # nb_iterations_max: 4
-    # solver_termination_tolerance: 0.0001              # Tolerance on KKT residual 
-    # max_qp_iter: 50    #125 
-    # qp_termination_tol_abs: 0.00001
-    # qp_termination_tol_rel: 0.00001
+    nb_shooting_nodes: 10
+    nb_iterations_max: 4
+    solver_termination_tolerance: 0.0001              # Tolerance on KKT residual 
+    max_qp_iter: 50    #125 
+    qp_termination_tol_abs: 0.00001
+    qp_termination_tol_rel: 0.00001
 
     ####################
     # frame pose/position

@@ -176,9 +176,16 @@ namespace panda_torque_mpc
         auto shooting_problem = boost::make_shared<crocoddyl::ShootingProblem>(x0_dummy, running_IAMs, terminal_IAM);
         ocp_ = boost::make_shared<mim_solvers::SolverCSQP>(shooting_problem);
 
-        // Callbacks
+        ocp_->set_termination_tolerance(_config.solver_termination_tolerance);
+        ocp_->set_max_qp_iters(_config.max_qp_iter);
+        ocp_->set_eps_abs(_config.qp_termination_tol_abs);
+        ocp_->set_eps_rel(_config.qp_termination_tol_rel);
+        // Callbacks from crocoddyl
         std::vector<boost::shared_ptr<crocoddyl::CallbackAbstract>> callbacks;
         callbacks.push_back(boost::make_shared<crocoddyl::CallbackVerbose>());
+
+
+        // Callbacks from Mim Solvers
 
         std::cout << "ddp problem set up " << std::endl;
     }

@@ -1,4 +1,8 @@
 #include <string>
+#include <cassert>
+ 
+// Use (void) to silence unused warnings.
+#define assertm(exp, msg) assert(((void)msg, exp))
 
 #include <pinocchio/fwd.hpp>
 #include <pinocchio/multibody/data.hpp>
@@ -57,15 +61,19 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<std::string>(nh, arm_id, "arm_id") && params_success;
 
             // Croco params
-            int nb_shooting_nodes, nb_iterations_max;
-            double dt_ocp, w_frame_running, w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running;
+            int nb_shooting_nodes, nb_iterations_max, max_qp_iter;
+            double dt_ocp,solver_termination_tolerance,qp_termination_tol_abs , qp_termination_tol_rel, w_frame_running, w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running;
             std::vector<double> diag_frame_vel, diag_q_reg_running, diag_v_reg_running, diag_u_reg_running, armature;
             std::vector<double> pose_e_c, pose_c_o_ref;  // px,py,pz, qx,qy,qz,qw
             bool reference_is_placement;
 
             params_success = get_param_error_tpl<int>(nh, nb_shooting_nodes, "nb_shooting_nodes") && params_success;
             params_success = get_param_error_tpl<double>(nh, dt_ocp, "dt_ocp") && params_success;
+            params_success = get_param_error_tpl<double>(nh, solver_termination_tolerance, "solver_termination_tolerance") && params_success;
+            params_success = get_param_error_tpl<double>(nh, qp_termination_tol_abs, "qp_termination_tol_abs") && params_success;
+            params_success = get_param_error_tpl<double>(nh, qp_termination_tol_rel, "qp_termination_tol_rel") && params_success;
             params_success = get_param_error_tpl<int>(nh, nb_iterations_max, "nb_iterations_max") && params_success;
+            params_success = get_param_error_tpl<int>(nh, max_qp_iter, "max_qp_iter") && params_success;
             params_success = get_param_error_tpl<bool>(nh, reference_is_placement, "reference_is_placement") && params_success;
             params_success = get_param_error_tpl<bool>(nh, keep_original_ee_rotation_, "keep_original_ee_rotation") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_frame_running,  "w_frame_running") && params_success;
@@ -128,6 +136,16 @@ namespace panda_torque_mpc
             pinocchio::GeometryObject obstacle("obstacle", 0,0, geometry, obstacle_pose);
             collision_model->addGeometryObject(obstacle);
 
+
+            assertm(collision_model->getGeometryId("obstacle") < collision_model->GeometryObject.size(), "The index of the obstacle is not right.");
+            assertm(collision_model->getGeometryId("panda_link7_sc_1") < collision_model->GeometryObject.size(), "The index of the obstacle is not right.");
+
+            std::cout << "\nCollision object placements:" << std::endl;
+            for(pinocchio::GeomIndex geom_id = 0; geom_id < (pinocchio::GeomIndex)collision_model->ngeoms; ++geom_id)
+                std::cout << geom_id << ": " << collision_model->GeometryObjects[geom_id].name
+                        << std::fixed << std::setprecision(2)
+                        << std::endl;
+
             collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
                 collision_model->getGeometryId("panda_link7_sc_1")));
 
@@ -145,7 +163,11 @@ namespace panda_torque_mpc
             /////////////////////////////////////////////////
             config_croco_.T = nb_shooting_nodes;
             config_croco_.dt_ocp = dt_ocp;
+            config_croco_.solver_termination_tolerance= solver_termination_tolerance;
+            config_croco_.qp_termination_tol_abs= qp_termination_tol_abs;
+            config_croco_.qp_termination_tol_rel= qp_termination_tol_rel;
             config_croco_.nb_iterations_max = nb_iterations_max;
+            config_croco_.max_qp_iter = max_qp_iter;
             config_croco_.ee_frame_name = ee_frame_name_;
             config_croco_.reference_is_placement = reference_is_placement;
             config_croco_.w_frame_running =  w_frame_running;

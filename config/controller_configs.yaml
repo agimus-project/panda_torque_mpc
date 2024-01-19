@@ -172,7 +172,7 @@ ctrl_mpc_linearized:
     use_riccati_gains: true
 
     ####################
-    freq_solve: 20
+    freq_solve: 100
     # OCP motion server configs
     # nb_shooting_nodes: 20
 
@@ -185,10 +185,10 @@ ctrl_mpc_linearized:
     armature: [0.,0.,0.,0.,0.,0.,0.0]
     
     #### PARAMETERS FROM NYC 
-    nb_shooting_nodes: 10
-    nb_iterations_max: 10
-    solver_termination_tolerance: 0.001              # Tolerance on KKT residual 
-    max_qp_iter: 75    #125 
+    nb_shooting_nodes: 20
+    nb_iterations_max: 25
+    solver_termination_tolerance: 0.0001              # Tolerance on KKT residual 
+    max_qp_iter: 100    #125 
     qp_termination_tol_abs: 0.0001
     qp_termination_tol_rel: 0.0001
 

@@ -31,7 +31,7 @@ namespace panda_torque_mpc
         double qp_termination_tol_rel;
         size_t nb_iterations_max;
         size_t max_qp_iter;
-
+        bool with_collisions = false;
         std::string ee_frame_name;
         bool reference_is_placement = false;
 
@@ -74,6 +74,8 @@ namespace panda_torque_mpc
         void set_ee_ref_placement(pin::SE3 placement, bool is_active=true, double uniform_weight_scaling=1.0);
 
         void set_posture_ref(Eigen::VectorXd x0);
+
+        void set_with_collision(const bool enable) {config_.with_collisions = enable;}
 
         boost::shared_ptr<mim_solvers::SolverCSQP> ocp_;
         CrocoddylConfig config_;

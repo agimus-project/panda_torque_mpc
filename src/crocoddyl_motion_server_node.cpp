@@ -117,17 +117,19 @@ namespace panda_torque_mpc
             std::string mesh_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/meshes";
             
             // Building the GeometryModel
-            pinocchio::GeometryModel collision_model;
-            pinocchio::urdf::buildGeom(model_pin_, urdf_path, pinocchio::COLLISION, collision_model, mesh_path);
+            boost::shared_ptr<pinocchio::GeometryModel> collision_model = boost::make_shared<pinocchio::GeometryModel>
+            (pinocchio::GeometryModel());
+            pinocchio::urdf::buildGeom(model_pin_, urdf_path, pinocchio::COLLISION, *collision_model, mesh_path);
             double radius = 0.5;
             auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
 
             pinocchio::SE3 obstacle_pose;
             obstacle_pose.setIdentity();
             pinocchio::GeometryObject obstacle("obstacle", 0,0, geometry, obstacle_pose);
-            collision_model.addGeometryObject(obstacle);
+            collision_model->addGeometryObject(obstacle);
 
-            collision_model.addCollisionPair(pinocchio::CollisionPair(collision_model.getGeometryId("obstacle"), collision_model.getGeometryId("panda_link7_sc_1")));
+            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
+                collision_model->getGeometryId("panda_link7_sc_1")));
 
             if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
             {

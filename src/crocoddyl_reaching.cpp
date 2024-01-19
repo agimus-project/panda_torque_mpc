@@ -15,6 +15,7 @@
 #include <crocoddyl/core/utils/exception.hpp>
 #include <crocoddyl/core/utils/callbacks.hpp>
 #include <crocoddyl/core/action-base.hpp>
+#include <crocoddyl/core/constraints/residual.hpp>
 #include <crocoddyl/core/residuals/control.hpp>
 #include <crocoddyl/core/activations/quadratic.hpp>
 #include <crocoddyl/core/activations/weighted-quadratic.hpp>
@@ -37,7 +38,8 @@
 namespace panda_torque_mpc
 {
 
-    CrocoddylReaching::CrocoddylReaching(pin::Model _model_pin, pin::GeometryModel _collision_model ,CrocoddylConfig _config) :
+    CrocoddylReaching::CrocoddylReaching(pin::Model _model_pin, const boost::shared_ptr<pin::GeometryModel>& _collision_model ,
+        CrocoddylConfig _config) :
     config_(_config)
     {
 
@@ -75,10 +77,11 @@ namespace panda_torque_mpc
         lower_bound << 1e-2;
         upper_bound << std::numeric_limits<double>::infinity();
 
-        for (int col_idx = 0; col_idx < _collision_model.collisionPairs.size(); col_idx++)
+        for (int col_idx = 0; col_idx < _collision_model->collisionPairs.size(); col_idx++)
         {
 
-            auto obstacle_distance_residual = colmpc::ResidualDistanceCollision(state, 7, _collision_model, col_idx, 6);
+            auto obstacle_distance_residual = boost::make_shared<crocoddyl::ResidualModelAbstract>
+                (colmpc::ResidualDistanceCollision(state, 7, _collision_model, col_idx, 6));
             auto constraint = boost::make_shared<crocoddyl::ConstraintModelResidual>(
                 state,
                 obstacle_distance_residual,

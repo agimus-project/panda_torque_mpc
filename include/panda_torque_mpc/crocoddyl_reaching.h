@@ -59,7 +59,7 @@ namespace panda_torque_mpc
             // dummy constructor necessary to use this class as a member variable directly
         }
 
-        CrocoddylReaching(pin::Model _model_pin, pin::GeometryModel _collision_model ,CrocoddylConfig _config);
+        CrocoddylReaching(pin::Model _model_pin, const boost::shared_ptr<pin::GeometryModel>& _collision_model ,CrocoddylConfig _config);
 
         void set_ee_ref_translation(Eigen::Vector3d trans, bool is_active=true);
         /**

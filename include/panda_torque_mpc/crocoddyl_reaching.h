@@ -26,7 +26,11 @@ namespace panda_torque_mpc
     {
         size_t T; // nb of nodes - terminal one
         double dt_ocp;
+        double solver_termination_tolerance;
+        double qp_termination_tol_abs;
+        double qp_termination_tol_rel;
         size_t nb_iterations_max;
+        size_t max_qp_iter;
 
         std::string ee_frame_name;
         bool reference_is_placement = false;

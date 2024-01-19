@@ -9,6 +9,13 @@ import mim_solvers
 
 import rospy
 
+from time import time
+
+from sensor_msgs.msg import JointState
+from geometry_msgs.msg import PoseStamped
+from linear_feedback_msgs import Sensor
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+
 class OCPPandaReaching:
     """This class is creating a optimal control problem of a panda robot reaching for a target while taking auto collisions into consideration"""
 
@@ -133,7 +140,7 @@ class OCPPandaReaching:
         return ddp
 
 class WarmstartOCPNode:
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         rospy.init_node(name, anonymous=False)
 
         # Building the model
@@ -142,27 +149,61 @@ class WarmstartOCPNode:
 
         q0 = pin.neutral(rmodel_full)
 
-        rmodel = pin.buildReducedModel(rmodel_full, np.array([8,9], q0))
-        T = 10 # Shooting nodes
-        dt = 0.05 # dt_ocp
+        self._rmodel = pin.buildReducedModel(rmodel_full, np.array([8,9], q0))
+        self._T = 10 # Shooting nodes
+        self._dt = 0.05 # dt_ocp
 
-        problem = OCPPandaReaching(
-            rmodel,
-            TARGET_POSE,
-            T, 
-            dt,
-            x0
-        )
+        self._state = None
 
         # Subscribers
-        self._goal_sub = rospy.Subscriber('absolute_pose_ref')
+        self._goal_sub = rospy.Subscriber('absolute_pose_ref', PoseStamped, self._goal_cb, 5)
+        self._state_sub = rospy.Subscriber('robot_sensors', Sensor, self._state_cb, 1)
 
         # Publishers
-        self._warm_pub = sor
+        self._warm_pub = rospy.Publisher("ocp_warmstart", JointTrajectory)
+
+        while not self._state:
+            rospy.spin()
+            rospy.loginfo(f"[{name}] Waiting for state message to arrive...")
+            time.sleep(0.5)
+
+    def _goal_cb(self, pose_ref: PoseStamped) -> None:
+        x0 = np.array([self._state.position, self._state.velocity])
+        x0.reshape(-1)
+
+        ddp = OCPPandaReaching(
+            self._rmodel,
+            pin.SE3(np.eye(3), np.array(pose_ref.pose.position)),
+            self._T, 
+            self._dt,
+            x0
+        )()
+
+        xs_init = [x0 for i in range(self._T+1)]
+        us_init = ddp.problem.quasiStatic(xs_init[:-1])
+        # Solve
+        ddp.solve(xs_init, us_init, maxiter=100)
+
+        def get_jtp(x: np.array, u: np.array) -> JointTrajectoryPoint:
+            jtp = JointTrajectoryPoint()
+            jtp.positions = x[0:x.shape[0]/2]
+            jtp.velocities = x[x.shape[0]/2:-1]
+            jtp.effort = u
+            return jtp
+
+        traj = JointTrajectory()
+        traj.header.stamp = rospy.Time.now()
+        traj.points = [
+            get_jtp(x, u) for x, u in zip(ddp.xs.tolist(), ddp.us.tolist())
+        ]
+
+        self._warm_pub.pub(traj)
 
 
+    def _state_cb(self, msg: Sensor) -> None:
+        self._state = msg.joint_state
 
-def main():
+def main() -> None:
     warmstart_ocp_node = WarmstartOCPNode('warmstart_ocp_node')
     rospy.spin()
 

@@ -196,12 +196,12 @@ ctrl_mpc_linearized:
     # frame pose/position
     # w_frame_running:  50
     # w_frame_terminal: 50
-    w_frame_running:  10
-    w_frame_terminal: 400
+    w_frame_running:  10.0
+    w_frame_terminal: 100.0
 
     # frame vel regularization
-    w_frame_vel_running:  0.01
-    w_frame_vel_terminal: 0.01
+    w_frame_vel_running:  0.0
+    w_frame_vel_terminal: 0.0
     diag_frame_vel: [
         1.,1.,1.,
         1.,1.,1.,

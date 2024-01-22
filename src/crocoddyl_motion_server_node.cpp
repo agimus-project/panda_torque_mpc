@@ -30,6 +30,7 @@
 #include "panda_torque_mpc/crocoddyl_reaching.h"
 
 #include "geometry_msgs/PoseStamped.h"
+#include "std_msgs/Duration.h"
 
 
 
@@ -50,7 +51,8 @@ namespace panda_torque_mpc
                           std::string cam_pose_viz_topic_pub,
                           std::string cam_pose_ref_viz_topic_pub,
                           std::string cam_pose_error_topic_pub,
-                          std::string ee_pose_error_topic_pub
+                          std::string ee_pose_error_topic_pub,
+                          std::string ocp_solve_time_topic_pub
                           )
         {
             bool params_success = true;
@@ -128,10 +130,10 @@ namespace panda_torque_mpc
             boost::shared_ptr<pinocchio::GeometryModel> collision_model = boost::make_shared<pinocchio::GeometryModel>
             (pinocchio::GeometryModel());
             pinocchio::urdf::buildGeom(model_pin_, urdf_path, pinocchio::COLLISION, *collision_model, mesh_path);
-            double radius = 0.1;
+            double radius = 0.35/2.0;
             auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
 
-            pinocchio::SE3 obstacle_pose(Eigen::Quaternion (1.,0.,0.,0.), Eigen::Vector3d (0,0,0.8));
+            pinocchio::SE3 obstacle_pose(Eigen::Quaternion (1.,0.,0.,0.), Eigen::Vector3d (0,0,0.825));
 
             // obstacle_pose.setIdentity();
             // obstacle_pose.trans << 0., 0., 0.;
@@ -156,7 +158,15 @@ namespace panda_torque_mpc
             collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
                 collision_model->getGeometryId("panda_rightfinger_0")));
 
-                
+            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
+                collision_model->getGeometryId("panda_link7_sc_1")));
+
+            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
+                collision_model->getGeometryId("panda_link7_sc_4")));
+
+            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
+                collision_model->getGeometryId("panda_link7_sc_4")));
+                        
             if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
             {
                 ROS_ERROR_STREAM("Problem when loading the robot urdf");
@@ -200,6 +210,7 @@ namespace panda_torque_mpc
             cam_pose_ref_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub, 1);
             cam_pose_error_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_error_topic_pub, 1);
             ee_pose_error_pub_ = nh.advertise<geometry_msgs::PoseStamped>(ee_pose_error_topic_pub, 1);
+            ocp_solve_time_pub_ = nh.advertise<std_msgs::Duration>(ocp_solve_time_topic_pub, 1);
             
             // Subscribers
             sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_robot_state, this);
@@ -494,7 +505,11 @@ namespace panda_torque_mpc
 
             TicTac tt_solve;
             bool ok = croco_reaching_.solve(xs_init, us_init);
-            std::cout << std::setprecision(9) << "n_iter, dt_solve (ms): " << croco_reaching_.ocp_->get_iter() << ", " << tt_solve.tac() << std::endl;
+            const auto duration = tt_solve.tac();
+            std::cout << std::setprecision(9) << "n_iter, dt_solve (ms): " << croco_reaching_.ocp_->get_iter() << ", " << duration << std::endl;
+            std_msgs::Duration time;
+            time.data = ros::Duration(duration * 0.001);
+            ocp_solve_time_pub_.publish(time);
             // if problem not ready or no good solution, don't send a solution
             if (!ok) return;
             //////////////////////////////////////
@@ -555,6 +570,7 @@ namespace panda_torque_mpc
         ros::Publisher cam_pose_ref_pub_;
         ros::Publisher cam_pose_error_pub_;
         ros::Publisher ee_pose_error_pub_;
+        ros::Publisher ocp_solve_time_pub_;
 
         // Subscriber to robot sensor from linearized ctrl
         ros::Subscriber sensor_sub_;
@@ -594,6 +610,7 @@ int main(int argc, char **argv)
     std::string cam_pose_ref_viz_topic_pub = "cam_pose_ref_viz";
     std::string cam_pose_error_topic_pub = "cam_pose_error";
     std::string ee_pose_error_topic_pub = "ee_pose_error";
+    std::string ocp_solve_time_topic_pub = "ocp_solve_time";
     auto motion_server = panda_torque_mpc::CrocoMotionServer(
                             nh, 
                             robot_sensors_topic_sub,
@@ -605,7 +622,8 @@ int main(int argc, char **argv)
                             cam_pose_viz_topic_pub,
                             cam_pose_ref_viz_topic_pub,
                             cam_pose_error_topic_pub,
-                            ee_pose_error_topic_pub
+                            ee_pose_error_topic_pub,
+                            ocp_solve_time_topic_pub
                             );
     int freq_solve;
     int success_read = panda_torque_mpc::get_param_error_tpl<int>(nh, freq_solve, "freq_solve");

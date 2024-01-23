@@ -12,9 +12,7 @@ def load_panda():
         """
 
         ### LOADING THE ROBOT
-        pinocchio_model_dir = join
-            (dirname(str(abspath(__file__))), "models"
-        )
+        pinocchio_model_dir = join(dirname(str(abspath(__file__))), "models")
         model_path = join(pinocchio_model_dir, "franka_description/robots")
         mesh_dir = pinocchio_model_dir
         urdf_filename = "franka2.urdf"
@@ -31,16 +29,46 @@ def load_panda():
         )
 
         ### CREATING THE SPHERE ON THE UNIVERSE
-        CAPSULE_POSE = pin.SE3.Identity()
-        CAPSULE_POSE.translation = np.array([0.0, 0.0, 0.825])
-        CAPSULE = hppfcl.Sphere(0.35/2.0)
-        CAPSULE_GEOM_OBJECT = pin.GeometryObject(
-            "CAPSULE",
+        OBSTACLE_POSE = pin.SE3.Identity()
+        OBSTACLE_POSE.translation = np.array([0.0, 0.0, 0.825])
+        OBSTACLE = hppfcl.Sphere(0.35/2.0)
+        OBSTACLE_GEOM_OBJECT = pin.GeometryObject(
+            "obstacle",
             rmodel.getFrameId("universe"),
-            rmodel.frames[rmodel.getFrameId("universe")].parentJoint,
-            CAPSULE,
-            CAPSULE_POSE,
+            rmodel.frames[rmodel.getFrameId("universe")].parent,
+            OBSTACLE,
+            OBSTACLE_POSE,
         )
-        ID_CAPSULE_PA = cmodel.addGeometryObject(CAPSULE_GEOM_OBJECT)
+        ID_OBSTACLE_PA = cmodel.addGeometryObject(OBSTACLE_GEOM_OBJECT)
+        
+        cmodel.addCollisionPair(
+            pin.CollisionPair(
+                cmodel.getGeometryId("panda2_rightfinger_0"),
+                cmodel.getGeometryId("obstacle"),
+            )
+        )
+        cmodel.addCollisionPair(
+            pin.CollisionPair(
+                cmodel.getGeometryId("panda2_leftfinger_0"),
+                cmodel.getGeometryId("obstacle"),
+            )
+        )
+        cmodel.addCollisionPair(
+            pin.CollisionPair(
+                cmodel.getGeometryId("panda2_link7_sc_1"),
+                cmodel.getGeometryId("obstacle"),
+            )
+        )
+        cmodel.addCollisionPair(
+            pin.CollisionPair(
+                cmodel.getGeometryId("panda2_link7_sc_4"),
+                cmodel.getGeometryId("obstacle"),
+            )
+        )
+
 
         return rmodel, cmodel
+    
+    
+if __name__=="__main__":
+    rmodel, cmodel = load_panda()

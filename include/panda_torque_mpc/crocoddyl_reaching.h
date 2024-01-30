@@ -78,9 +78,9 @@ namespace panda_torque_mpc
 
         void set_with_collision(const bool enable) {config_.with_collisions = enable;}
 
-        boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
+        // boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
         // boost::shared_ptr<mim_solvers::SolverSQP> ocp_;
-        // boost::shared_ptr<mim_solvers::SolverCSQP> ocp_;
+        boost::shared_ptr<mim_solvers::SolverCSQP> ocp_;
         CrocoddylConfig config_;
 
         std::string cost_translation_name_;

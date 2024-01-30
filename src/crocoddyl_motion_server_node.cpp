@@ -122,19 +122,20 @@ namespace panda_torque_mpc
 
             // Creating the collision model
             // Path to the urdf, srdf & mesh
-            std::string urdf_path = "/local/users/mfourmy/ws_control/src/panda_torque_mpc/urdf/robot.urdf";
-            std::string srdf_path =  "/local/users/mfourmy/ws_control/src/panda_torque_mpc/srdf/demo.srdf";
+            std::string urdf_path = "/home/gepetto/ros_ws/src/panda_torque_mpc/urdf/robot.urdf";
+            std::string srdf_path =  "/home/gepetto/ros_ws/src/panda_torque_mpc/srdf/demo.srdf";
             std::string mesh_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/meshes";
             
             // Building the GeometryModel
             boost::shared_ptr<pinocchio::GeometryModel> collision_model = boost::make_shared<pinocchio::GeometryModel>
             (pinocchio::GeometryModel());
             pinocchio::urdf::buildGeom(model_pin_, urdf_path, pinocchio::COLLISION, *collision_model, mesh_path);
+            std::cout << collision_model << std::endl;
             double radius = 0.35/2.0;
             auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
 
-            pinocchio::SE3 obstacle_pose(Eigen::Quaternion (1.,0.,0.,0.), Eigen::Vector3d (0,0,0.825));
-
+            pinocchio::SE3 obstacle_pose(Eigen::Quaterniond (1.,0.,0.,0.), Eigen::Vector3d (0,0,0.825));
+            // pinocchio::SE3 obstacle_pose;
             // obstacle_pose.setIdentity();
             // obstacle_pose.trans << 0., 0., 0.;
 
@@ -142,9 +143,9 @@ namespace panda_torque_mpc
             collision_model->addGeometryObject(obstacle);
 
 
-            assertm(collision_model->getGeometryId("obstacle") < collision_model->GeometryObject.size(), "The index of the obstacle is not right.");
-            assertm(collision_model->getGeometryId("panda_leftfinger_0") < collision_model->GeometryObject.size(), "The index of the obstacle is not right.");
-            assertm(collision_model->getGeometryId("panda_rightfinger_0") < collision_model->GeometryObject.size(), "The index of the obstacle is not right.");
+            assertm(collision_model->getGeometryId("obstacle") < collision_model->geometryObjects.size(), "The index of the obstacle is not right.");
+            assertm(collision_model->getGeometryId("panda_leftfinger_0") < collision_model->geometryObjects.size(), "The index of the panda_leftfinger_0 is not right.");
+            assertm(collision_model->getGeometryId("panda_rightfinger_0") < collision_model->geometryObjects.size(), "The index of the panda_rightfinger_0 is not right.");
 
             std::cout << "right: "<<collision_model->getGeometryId("panda_rightfinger_0") << std::endl;
             std::cout << "left: "<<collision_model->getGeometryId("panda_leftfinger_0") << std::endl;

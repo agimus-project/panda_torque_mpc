@@ -11,12 +11,25 @@ conda activate panda_control
 mamba env update --file environment.yaml
 ```
 
-## Other dependencies
-In your catkin workspace `src` folder:  
-`git clone git@github.com:loco-3d/linear-feedback-controller-msgs.git`
+## Build with ROS
 
-## Build catkin package
-`CMAKE_BUILD_PARALLEL_LEVEL=4 catkin build panda_torque_mpc -DCMAKE_BUILD_TYPE=RELEASE`
+This process assumes you have installed `python3-rosdep`, `python3-vcstool` and `python3-catkin-tools`.
+
+> [!WARNING]  
+> Building Pinocchio, HPP-FCL and Crocoddyl is very resource consuming!
+>
+> In case of 32 Gb of RAM it is suggested not to exceed 12 cores.
+> If you have less memory, please change value in `-j` parameter of `catkin build`. 
+
+```bash
+# Inside ROS workspace
+vcs import --recursive < src/panda_torque_mpc/panda_torque_mpc.repos src
+rosdep update --rosdistro $ROS_DISTRO
+rosdep install -y -i --from-paths src --rosdistro $ROS_DISTRO
+catkin build -j12 --cmake-args \
+    -DBUILD_PYTHON_INTERFACE=OFF \
+    -DBUILD_WITH_COLLISION_SUPPORT=ON
+```
 
 # Launch
 ## Simulation (gazebo)

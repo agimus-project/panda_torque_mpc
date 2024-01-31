@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(panda_torque_mpc)
+set(CMAKE_CXX_STANDARD 14)
 
 
 find_package(catkin REQUIRED COMPONENTS
@@ -29,7 +30,6 @@ if(NOT Franka_FOUND)
   find_package(Franka 0.8.0 REQUIRED)
 endif()
 find_package(pinocchio REQUIRED)
-find_package(tsid REQUIRED)
 find_package(crocoddyl REQUIRED)
 find_package(mim_solvers REQUIRED)
 find_package(colmpc REQUIRED)
@@ -66,7 +66,8 @@ catkin_package(
     linear_feedback_controller_msgs
     tf
     tf_conversions
-  DEPENDS Franka pinocchio tsid crocoddyl
+    DEPENDS Franka pinocchio crocoddyl
+  # DEPENDS Franka pinocchio tsid crocoddyl
 )
 
 ###############
@@ -103,7 +104,7 @@ add_library(panda_torque_mpc
   src/ctrl_log_update_dt.cpp
   src/ctrl_playback_pd_plus.cpp
   src/ctrl_joint_space_ID.cpp
-  src/ctrl_task_space_ID.cpp
+  # src/ctrl_task_space_ID.cpp
   src/ctrl_mpc_linearized.cpp
 )
 
@@ -121,7 +122,7 @@ target_link_libraries(panda_torque_mpc PUBLIC
   Eigen3::Eigen
   pinocchio::pinocchio 
   pinocchio::pinocchio_headers
-  tsid::tsid
+  # tsid::tsid
   example-robot-data::example-robot-data
 )
 

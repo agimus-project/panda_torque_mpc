@@ -150,8 +150,8 @@ namespace panda_torque_mpc
             std::cout << "right: "<<collision_model->getGeometryId("panda_rightfinger_0") << std::endl;
             std::cout << "left: "<<collision_model->getGeometryId("panda_leftfinger_0") << std::endl;
 
-              // Print out the placement of each collision geometry object
-            // std::cout << *collision_model<< std::endl;
+            //   Print out the placement of each collision geometry object
+            std::cout << *collision_model<< std::endl;
 
             collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
                 collision_model->getGeometryId("panda_leftfinger_0")));
@@ -202,6 +202,7 @@ namespace panda_torque_mpc
             config_croco_.diag_u_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_u_reg_running.data());
             config_croco_.armature = Eigen::Map<Eigen::Matrix<double, 7, 1>>(armature.data());
 
+            // croco_reaching_ = CrocoddylReaching(model_pin_ ,config_croco_);
             croco_reaching_ = CrocoddylReaching(model_pin_, collision_model ,config_croco_);
             /////////////////////////////////////////////////
 
@@ -237,7 +238,7 @@ namespace panda_torque_mpc
              * Callback using the pose as a reference in robot base frame 
              */
             pin::SE3 T_b_e_ref = posemsg2SE3(msg.pose);
-            T_b_e_ref_rtbox_.set(T_b_e_ref);
+            T_b_e_ref_rtbox_ = T_b_e_ref;
             if (!first_pose_ref_msg_received_)
             {
                 first_pose_ref_msg_received_ = true;
@@ -246,7 +247,7 @@ namespace panda_torque_mpc
 
             // ------- LOGS ----------- //
             // Reference tracking error
-            pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
+            pin::SE3 T_b_e; T_b_e_rtbox_ = T_b_e;
             pin::SE3 T_b_e_error = T_b_e_ref.inverse() * T_b_e;
             publish_SE3_posestamped(ee_pose_error_pub_, T_b_e_error, msg.header);
         }
@@ -281,7 +282,7 @@ namespace panda_torque_mpc
             // Set reference pose
             // compose initial pose with relative/local transform
             pin::SE3 T_b_e_ref = T_b_e0_ * T_e0_e;
-            T_b_e_ref_rtbox_.set(T_b_e_ref);
+            T_b_e_ref_rtbox_ = T_b_e_ref;
 
             if (!first_pose_ref_msg_received_)
             {
@@ -291,7 +292,7 @@ namespace panda_torque_mpc
 
             // ------- LOGS ----------- //
             // Reference tracking error
-            pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
+            pin::SE3 T_b_e; T_b_e_rtbox_  = T_b_e;
             pin::SE3 T_b_e_error = T_b_e_ref.inverse() * T_b_e;
             publish_SE3_posestamped(ee_pose_error_pub_, T_b_e_error, msg.header);
         }
@@ -310,13 +311,13 @@ namespace panda_torque_mpc
             pin::SE3 T_c_o_meas = posemsg2SE3(msg_pose_c_o.pose);
             pin::SE3 T_o_c_meas = T_c_o_meas.inverse();
 
-            pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
+            pin::SE3 T_b_e; T_b_e_rtbox_ = T_b_e;
 
             pin::SE3 T_b_c_ref = T_b_e * T_e_c_ * T_c_o_meas * T_o_c_ref_;
             pin::SE3 T_b_e_ref = T_b_c_ref * T_c_e_;
 
             // RT safe setting
-            T_b_e_ref_rtbox_.set(T_b_e_ref);
+            T_b_e_ref_rtbox_ = T_b_e_ref;
 
             if (!first_pose_ref_msg_received_)
             {
@@ -349,7 +350,7 @@ namespace panda_torque_mpc
              * 
             */
 
-            pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
+            pin::SE3 T_b_e; T_b_e_rtbox_ = T_b_e;
 
             if (!first_pose_ref_msg_received_)
             {
@@ -366,7 +367,7 @@ namespace panda_torque_mpc
             pin::SE3 T_b_e_ref = T_b_c_ref * T_c_e_;
             
             // RT safe setting
-            T_b_e_ref_rtbox_.set(T_b_e_ref);
+            T_b_e_ref_rtbox_ = T_b_e_ref;
 
             if (!first_pose_ref_msg_received_)
             {
@@ -395,19 +396,19 @@ namespace panda_torque_mpc
             lfc_msgs::sensorMsgToEigen(sensor_msg, sensor_eig);
             Eigen::Matrix<double, 14, 1> current_x;
             current_x << sensor_eig.joint_state.position, sensor_eig.joint_state.velocity;
-            current_x_rtbox_.set(current_x);
+            current_x_rtbox_ = current_x;
 
             pin::forwardKinematics(model_pin_, data_pin_, sensor_eig.joint_state.position);
             pin::updateFramePlacements(model_pin_, data_pin_);
 
             pin::SE3 T_b_e = data_pin_.oMf[ee_frame_id_];
-            T_b_e_rtbox_.set(T_b_e);
+            T_b_e_rtbox_ = T_b_e;
 
             if (!first_robot_sensor_msg_received_)
             {
                 T_b_e0_ = T_b_e;
 
-                q_init_rtbox_.set(sensor_eig.joint_state.position);
+                q_init_rtbox_ = sensor_eig.joint_state.position;
                 first_robot_sensor_msg_received_ = true;
             }
         }
@@ -421,15 +422,15 @@ namespace panda_torque_mpc
             }
 
             // Retrieve end effector reference/current in thread-safe way
-            pin::SE3 T_b_e_ref; T_b_e_ref_rtbox_.get(T_b_e_ref);
-            pin::SE3 T_b_e; T_b_e_rtbox_.get(T_b_e);
+            pin::SE3 T_b_e_ref; T_b_e_ref_rtbox_ = T_b_e_ref;
+            pin::SE3 T_b_e; T_b_e_rtbox_ = T_b_e;
 
             // Retrieve initial configuration in thread-safe way
-            Vector7d q_init; q_init_rtbox_.get(q_init);
+            Vector7d q_init; q_init_rtbox_= q_init;
             Eigen::Matrix<double,14,1> x_init; x_init << q_init, Vector7d::Zero();  // Fix zero velocity as reference
 
             // Retrieve current state in a thread-safe way
-            Eigen::Matrix<double, 14, 1> current_x; current_x_rtbox_.get(current_x);
+            Eigen::Matrix<double, 14, 1> current_x; current_x_rtbox_ = current_x;
             Vector7d q = current_x.head(model_pin_.nq);
             Vector7d v = current_x.tail(model_pin_.nv);
 
@@ -511,10 +512,10 @@ namespace panda_torque_mpc
 
         // sensor callback
         ros::Time t_sensor_;
-        realtime_tools::RealtimeBox<Vector7d> q_init_rtbox_;
-        realtime_tools::RealtimeBox<Eigen::Matrix<double, 14, 1>> current_x_rtbox_;
+        Vector7d q_init_rtbox_;
+        Eigen::Matrix<double, 14, 1> current_x_rtbox_;
         pin::SE3 T_b_e0_;
-        realtime_tools::RealtimeBox<pin::SE3> T_b_e_rtbox_;
+        pin::SE3 T_b_e_rtbox_;
 
         // Visual servoing
         // Camera calibration
@@ -527,7 +528,7 @@ namespace panda_torque_mpc
 
         // pose ref callback
         pin::SE3 T_w_t0_;
-        realtime_tools::RealtimeBox<pin::SE3> T_b_e_ref_rtbox_;
+        pin::SE3 T_b_e_ref_rtbox_;
 
         // Solve state machine
         bool first_solve_;

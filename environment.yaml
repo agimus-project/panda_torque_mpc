@@ -15,6 +15,6 @@ dependencies:
   - ros-noetic-franka-ros
   - ros-noetic-realsense2-camera
   - pinocchio
-  - tsid 
+  # - tsid 
   - crocoddyl>=2.0.0
   - example-robot-data>=4.0.7

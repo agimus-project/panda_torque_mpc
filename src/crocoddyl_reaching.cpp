@@ -37,7 +37,6 @@
 
 namespace panda_torque_mpc
 {
-
     CrocoddylReaching::CrocoddylReaching(pin::Model _model_pin, const boost::shared_ptr<pin::GeometryModel>& _collision_model ,
         CrocoddylConfig _config) :
     config_(_config)

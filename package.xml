@@ -35,7 +35,8 @@
   <depend>geometry_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>linear_feedback_controller_msgs</depend>
-  
+  <depend>realsense2_description</depend>
+
 
   <exec_depend>franka_control</exec_depend>
   <exec_depend>franka_description</exec_depend>

@@ -1,153 +1,94 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
-
-"""
-Sends simulated sinusoidal end effector trajectories.
-
-Topics:
-pose_publisher.py --compute_relative_sinusoid -> relative pose reference
-pose_publisher.py --compute_absolute_sinusoid -> global pose reference
-
-"""
-
-import yaml
-from pathlib import Path
-import argparse
-import numpy as np
-import pinocchio as pin
-from example_robot_data import load
+import itertools
+from typing import List, Dict
 
 import rospy
-import rospkg
-from geometry_msgs.msg import PoseStamped
+
+from tf.transformations import quaternion_from_euler
+
+from std_msgs.msg import Header
+from geometry_msgs.msg import PoseStamped, Pose
+from geometry_msgs.msg import Point, Quaternion
 
 
-parser = argparse.ArgumentParser(
-                    prog='pose_publisher',
-                    description='publishes sinusoidal pose reference ros msgs for quick tests',
-                    epilog='...')
-parser.add_argument('-l', '--compute_local_sinusoid', action='store_true', default=False)
-parser.add_argument('-a', '--compute_absolute_sinusoid', action='store_true', default=False)
-args = parser.parse_args()
+class PosePublisher:
+    def __init__(self, name: str) -> None:
+        self._node_name = name
+        rospy.init_node(self._node_name, anonymous=False)
 
-if args.compute_local_sinusoid:
-    TOPIC_POSE_PUBLISHED = 'motion_capture_pose_ref'
+        if not rospy.has_param("~poses"):
+            rospy.logerr(
+                f"[{rospy.get_name()}] Param ~poses not fount, but required. Shutting down!"
+            )
+            rospy.signal_shutdown("Missing ~poses param")
 
-elif args.compute_absolute_sinusoid:
-    TOPIC_POSE_PUBLISHED = 'absolute_pose_ref'  
+        self._poses_list = rospy.get_param("~poses")
+        self._publish_frequency = rospy.get_param("~publish_frequency", 0.25)
 
-    # use rospack to find start config 
-    rospack = rospkg.RosPack()
-    start_pose_path = Path(rospack.get_path('panda_torque_mpc')) / 'config' / 'start_joint_pose.yaml'
-    with start_pose_path.open() as fp:
-        joint_pose_dic = yaml.safe_load(fp)['joint_pose']
-    
-    r = load('panda')
-    # erd model contains fingers by default, does not matter for us
-    q = [joint_pose_dic[jname] for jname in sorted(joint_pose_dic.keys())] + [0., 0.]
-    T0 = r.framePlacement(np.array(q), r.model.getFrameId('panda_hand'))
-else:
-    raise ValueError('pass either -l or -a args')
+        if not self._poses_list:
+            rospy.logerr(
+                f"[{rospy.get_name()}] No poses to publish passed to the node. Shutting down!"
+            )
+            rospy.signal_shutdown("Param ~poses not populated")
 
-FREQ = 60
-DT = 1/FREQ
-VERBOSE = True
+        self._goal_poses = [
+            self._parse_poses(idx, pose) for idx, pose in enumerate(self._poses_list)
+        ]
 
-# DELTA_POSE = np.array([
-#     0.0, 0.0, 0.0, 
-#     0.0, 0.0, 0.0
-# ])
+        self._goal_cycle = itertools.cycle(self._goal_poses)
 
-DELTA_POSE = np.array([
-    0.1, 0.1, 0.1, 
-    -0.3, -0.3, -0.3,
-])
- 
-PERIOD_POSE = np.array([
-    4.0, 4.0, 4.0, 
-    4.0, 4.0, 4.0, 
-])
+        # -------------------------------
+        #   Publishers
+        # -------------------------------
 
-Tsupportlink0 = pin.SE3(pin.utils.rotate("z", np.pi), np.array([0.563 ,-0.1655, .78]))
-T_start = pin.SE3(pin.utils.rotate("y", np.pi), np.array([0.0, -0.35, 1.0]))
-T_end = pin.SE3(pin.utils.rotate("y", np.pi), np.array([0.0, 0.35, 1.0]))
+        self._pose_pub = rospy.Publisher(
+            "absolute_pose_ref", PoseStamped, queue_size=10
+        )
 
-def compute_sinusoid_pose_delta_reference(delta_pose, period_pose, t):
+        # -------------------------------
+        #   Timers
+        # -------------------------------
 
-    """
-    Compute a delta SE(3) pose reference sinusoid pose in
-    The subscriber needs to compose this local pose with a reference initial pose.
+        self._control_loop = rospy.Timer(
+            rospy.Duration(1.0 / self._publish_frequency), self._pose_publishing_loop_cb
+        )
 
-    Ai and Ci obtained for each joint using constraints:
-    T(t=0.0) = 0
-    T(t=period/2) = Exp(delta_pose)
-    """
+        rospy.loginfo(
+            f"[{rospy.get_name()}] Cycling through {len(self._poses_list)} poses at {self._publish_frequency} Hz."
+        )
+        rospy.loginfo(f"[{rospy.get_name()}] Node started")
 
-    w = 2*np.pi/period_pose
-    a = - delta_pose
-    c = delta_pose
-    
-    nu = a * np.cos(w * t) + c
+    def _parse_poses(self, idx: int, pose: Dict[str, List[float]]) -> Pose:
+        try:
+            q = pose["q"] if "q" in pose else quaternion_from_euler(*pose["rpy"])
+            return Pose(
+                # dark magic association of message objects' parameters
+                position=Point(**dict(zip("xyz", pose["xyz"]))),
+                orientation=Quaternion(**dict(zip("xyzw", q))),
+            )
+        except KeyError as e:
+            msgs = {"xyz": "position", "q": "rotation", "rpy": "rotation"}
+            rospy.logerr(
+                f"[{rospy.get_name()}] No {msgs[e.args[0]]} specyfied for pose number {idx}!"
+            )
 
-    # Adopt a R3xSO(3) representation to decouple translation and orientation
-    dp_ref = nu[:3]
-    dR_ref = pin.exp3(nu[3:])
-
-    return pin.SE3(dR_ref, dp_ref)
-
-def compute_alternating_pose(t):
-    timing = [k for k in range(3)]
-    if int(t) % 5 in timing:
-        return T_start
-    else:
-        return T_end
-
-def compute_sinusoid_pose_reference(delta_pose, period_pose, T0: pin.SE3, t):
-    dT_ref = compute_sinusoid_pose_delta_reference(delta_pose, period_pose, t)
-    T0 = Tsupportlink0 * T0
-    return pin.SE3(
-        dT_ref.rotation @ T0.rotation,
-        T0.translation + dT_ref.translation
-    )
-    # return  T0 * compute_sinusoid_pose_delta_reference(delta_pose, period_pose, t)
+    def _pose_publishing_loop_cb(self, event: rospy.timer.TimerEvent) -> None:
+        ps = PoseStamped(
+            header=Header(frame_id="panda_hand", stamp=rospy.Time.now()),
+            pose=next(self._goal_cycle),
+        )
+        self._pose_pub.publish(ps)
+        rospy.loginfo(f"[{rospy.get_name()}] New pose published.")
 
 
-if __name__ == '__main__':
+def main():
+    pose_publisher = PosePublisher("pose_publisher")
+    rospy.spin()
+
+
+if __name__ == "__main__":
     try:
-        pub = rospy.Publisher(TOPIC_POSE_PUBLISHED, PoseStamped, queue_size=10)
-    
-        rospy.init_node('pose_publisher', anonymous=False)
-        rate = rospy.Rate(FREQ)
-
-        t0 = rospy.Time.now()
-        while not rospy.is_shutdown():
-            t = rospy.Time.now()
-
-            print('t-t0', (t-t0).to_sec())
-
-            T_ref = compute_alternating_pose((t - t0).to_sec())
-            # if args.compute_local_sinusoid:
-            #     T_ref = compute_sinusoid_pose_delta_reference(DELTA_POSE, PERIOD_POSE, (t - t0).to_sec())
-
-            # if args.compute_absolute_sinusoid:
-            #     T_ref = compute_sinusoid_pose_reference(DELTA_POSE, PERIOD_POSE, T0, (t - t0).to_sec())
-
-            msg = PoseStamped()
-            msg.header.stamp.secs = t.secs
-            msg.header.stamp.nsecs = t.nsecs
-
-            msg.pose.position.x = T_ref.translation[0]
-            msg.pose.position.y = T_ref.translation[1]
-            msg.pose.position.z = T_ref.translation[2]
-            q = pin.Quaternion(T_ref.rotation)
-            msg.pose.orientation.x = q.x
-            msg.pose.orientation.y = q.y
-            msg.pose.orientation.z = q.z
-            msg.pose.orientation.w = q.w
-
-            pub.publish(msg)
-
-            rate.sleep()
-
-    except rospy.ROSInterruptException as e:
-        print(e)
+        main()
+    except rospy.ROSInterruptException:
+        pass

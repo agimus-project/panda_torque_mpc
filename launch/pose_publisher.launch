@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="panda_torque_mpc" type="pose_publisher.py" name="pose_publisher_node"
+        required="true" output="screen">
+        <rosparam command="load" file="$(find panda_torque_mpc)/config/pose_publisher_params.yaml" />
+    </node>
+</launch>

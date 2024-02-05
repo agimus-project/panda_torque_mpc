@@ -153,6 +153,7 @@ add_dependencies(crocoddyl_motion_server_node panda_torque_mpc_generate_messages
 install(FILES
   launch/franka_control.launch
   launch/move_to_start.launch
+  launch/pose_publisher.launch
   launch/real_controllers.launch
   launch/record_joint_ctrl.launch
   launch/record_task_ctrl.launch
@@ -166,6 +167,7 @@ install(FILES
   config/calibrated-params.yaml
   config/controller_configs.yaml
   config/franka_control_node.yaml
+  config/pose_publisher_params.yaml
   config/start_joint_pose.yaml
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/config

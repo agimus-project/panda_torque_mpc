@@ -12,7 +12,7 @@ repositories:
   vcs_repos/hpp_fcl:
     type: git
     url: https://github.com/humanoid-path-planner/hpp-fcl
-    version: hppfcl3x
+    version: 65fb435b44a1bbd5059347d7a311cc7c7aa1349e
 
   vcs_repos/pinocchio:
     type: git
@@ -22,7 +22,7 @@ repositories:
   vcs_repos/colmpc:
     type: git
     url: https://github.com/arthurH91/colmpc
-    version: main
+    version: v0.1.0
 
   vcs_repos/mim_solvers:
     type: git

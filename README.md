@@ -3,7 +3,7 @@
 Torque control MPC of a Panda manipulator with ROS 1 and roscontrol. 
 
 # Build
-## conda/mamba env fast setup
+## conda/mamba env fast setup (Unsupported for now)
 `mamba` is faster but you can use conda interchangeably.  
 ```
 conda create -n panda_control
@@ -86,17 +86,17 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_serv
 
 ### Follow absolute end effector reference with asynchronous MPC (simu)
 ```bash
-roslaunch franka_gazebo panda.launch arm_id:=panda
+roslaunch panda_torque_mpc simulation.launch arm_id:=panda
 roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --compute_absolute_sinusoid
+ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc pose_publisher.launch
 ```
 
 ### Follow absolute end effector reference with asynchronous MPC (real)
 ```bash
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --compute_absolute_sinusoid
+ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc pose_publisher.launch
 ```
 
 ### Realsense VISUAL SERVOING demo with asynchronous MPC (real,apriltag)

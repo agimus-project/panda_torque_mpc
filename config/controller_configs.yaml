@@ -188,20 +188,26 @@ ctrl_mpc_linearized:
     nb_shooting_nodes: 20
     nb_iterations_max: 25
     solver_termination_tolerance: 0.0001              # Tolerance on KKT residual 
+<<<<<<< HEAD
     max_qp_iter: 100    #125 
     qp_termination_tol_abs: 0.0001
     qp_termination_tol_rel: 0.0001
+=======
+    max_qp_iter: 25    #125 
+    qp_termination_tol_abs: 0.00001
+    qp_termination_tol_rel: 0.00001
+>>>>>>> container_debug
 
     ####################
     # frame pose/position
     # w_frame_running:  50
     # w_frame_terminal: 50
-    w_frame_running:  10
-    w_frame_terminal: 100
+    w_frame_running:  10.0
+    w_frame_terminal: 100.0
 
     # frame vel regularization
-    w_frame_vel_running:  0.01
-    w_frame_vel_terminal: 0.01
+    w_frame_vel_running:  0.0
+    w_frame_vel_terminal: 0.0
     diag_frame_vel: [
         1.,1.,1.,
         1.,1.,1.,

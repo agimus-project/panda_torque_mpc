@@ -39,10 +39,8 @@ namespace panda_torque_mpc {
         // Load panda model with pinocchio and example-robot-data
         // std::string urdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/urdf/panda.urdf";
         // std::string srdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/srdf/panda.srdf";
-
-        std::string urdf_path = "/local/users/mfourmy/ws_control/src/panda_torque_mpc/urdf/robot.urdf";
-        std::string srdf_path =  "/local/users/mfourmy/ws_control/src/panda_torque_mpc/srdf/demo.srdf";
-
+        std::string urdf_path = "/home/gepetto/ros_ws/src/panda_torque_mpc/urdf/robot.urdf";
+        std::string srdf_path =  "/home/gepetto/ros_ws/src/panda_torque_mpc/srdf/demo.srdf";
         pinocchio::Model model_pin_full;
         pinocchio::urdf::buildModel(urdf_path, model_pin_full);
         pinocchio::srdf::loadReferenceConfigurations(model_pin_full, srdf_path, false);

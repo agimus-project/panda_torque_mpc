@@ -9,12 +9,13 @@
 
 #include <crocoddyl/core/fwd.hpp>
 #include <crocoddyl/core/action-base.hpp>
-// #include <crocoddyl/core/solvers/fddp.hpp>
+#include <crocoddyl/core/solvers/fddp.hpp>
 
 #include <colmpc/fwd.hpp>
 #include <colmpc/residual-distance-collision.hpp>
 
 #include <mim_solvers/csqp.hpp>
+#include <mim_solvers/sqp.hpp>
 
 #include "panda_torque_mpc/common.h"
 
@@ -64,6 +65,7 @@ namespace panda_torque_mpc
         }
 
         CrocoddylReaching(pin::Model _model_pin, const boost::shared_ptr<pin::GeometryModel>& _collision_model ,CrocoddylConfig _config);
+        // CrocoddylReaching(pin::Model _model_pin, CrocoddylConfig _config);
 
         void set_ee_ref_translation(Eigen::Vector3d trans, bool is_active=true);
         /**
@@ -75,8 +77,8 @@ namespace panda_torque_mpc
 
         void set_posture_ref(Eigen::VectorXd x0);
 
-        void set_with_collision(const bool enable) {config_.with_collisions = enable;}
-
+        // boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
+        // boost::shared_ptr<mim_solvers::SolverSQP> ocp_;
         boost::shared_ptr<mim_solvers::SolverCSQP> ocp_;
         CrocoddylConfig config_;
 

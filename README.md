@@ -3,7 +3,7 @@
 Torque control MPC of a Panda manipulator with ROS 1 and roscontrol. 
 
 # Build
-## conda/mamba env fast setup
+## conda/mamba env fast setup (Unsupported for now)
 `mamba` is faster but you can use conda interchangeably.  
 ```
 conda create -n panda_control
@@ -11,12 +11,25 @@ conda activate panda_control
 mamba env update --file environment.yaml
 ```
 
-## Other dependencies
-In your catkin workspace `src` folder:  
-`git clone git@github.com:loco-3d/linear-feedback-controller-msgs.git`
+## Build with ROS
 
-## Build catkin package
-`CMAKE_BUILD_PARALLEL_LEVEL=4 catkin build panda_torque_mpc -DCMAKE_BUILD_TYPE=RELEASE`
+This process assumes you have installed `python3-rosdep`, `python3-vcstool` and `python3-catkin-tools`.
+
+> [!WARNING]  
+> Building Pinocchio, HPP-FCL and Crocoddyl is very resource consuming!
+>
+> In case of 32 Gb of RAM it is suggested not to exceed 12 cores.
+> If you have less memory, please change value in `-j` parameter of `catkin build`. 
+
+```bash
+# Inside ROS workspace
+vcs import --recursive < src/panda_torque_mpc/panda_torque_mpc.repos src
+rosdep update --rosdistro $ROS_DISTRO
+rosdep install -y -i --from-paths src --rosdistro $ROS_DISTRO
+catkin build -j12 --cmake-args \
+    -DBUILD_PYTHON_INTERFACE=OFF \
+    -DBUILD_WITH_COLLISION_SUPPORT=ON
+```
 
 # Launch
 ## Simulation (gazebo)
@@ -73,17 +86,17 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_serv
 
 ### Follow absolute end effector reference with asynchronous MPC (simu)
 ```bash
-roslaunch franka_gazebo panda.launch arm_id:=panda
+roslaunch panda_torque_mpc simulation.launch arm_id:=panda
 roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --compute_absolute_sinusoid
+ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc pose_publisher.launch
 ```
 
 ### Follow absolute end effector reference with asynchronous MPC (real)
 ```bash
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py --compute_absolute_sinusoid
+ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc pose_publisher.launch
 ```
 
 ### Realsense VISUAL SERVOING demo with asynchronous MPC (real,apriltag)

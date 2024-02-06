@@ -37,7 +37,6 @@
 
 namespace panda_torque_mpc
 {
-
     CrocoddylReaching::CrocoddylReaching(pin::Model _model_pin, const boost::shared_ptr<pin::GeometryModel>& _collision_model ,
         CrocoddylConfig _config) :
     config_(_config)
@@ -77,7 +76,7 @@ namespace panda_torque_mpc
 
         std::cout << " after constraint manager " << std::endl;
 
-        lower_bound << 1e0;
+        lower_bound << 1e-1;
         upper_bound << std::numeric_limits<double>::infinity();
 
         std::cout << " bounds" << std::endl;
@@ -87,8 +86,8 @@ namespace panda_torque_mpc
 
             std::cout << " constraint" << std::endl;
 
-            auto obstacle_distance_residual = boost::make_shared<crocoddyl::ResidualModelAbstract>
-                (colmpc::ResidualDistanceCollision(state, 7, _collision_model, col_idx, 7));
+            auto obstacle_distance_residual = boost::make_shared<colmpc::ResidualDistanceCollision>
+                (colmpc::ResidualDistanceCollision(state, 7, _collision_model, col_idx));
             auto constraint = boost::make_shared<crocoddyl::ConstraintModelResidual>(
                 state,
                 obstacle_distance_residual,
@@ -188,18 +187,23 @@ namespace panda_torque_mpc
         // Shooting problem
         auto shooting_problem = boost::make_shared<crocoddyl::ShootingProblem>(x0_dummy, running_IAMs, terminal_IAM);
         ocp_ = boost::make_shared<mim_solvers::SolverCSQP>(shooting_problem);
-
-        ocp_->setCallbacks(true);
+        // ocp_ = boost::make_shared<mim_solvers::SolverSQP>(shooting_problem);
+        // ocp_ = boost::make_shared<crocoddyl::SolverFDDP>(shooting_problem);
         ocp_->set_termination_tolerance(_config.solver_termination_tolerance);
         ocp_->set_max_qp_iters(_config.max_qp_iter);
         ocp_->set_eps_abs(_config.qp_termination_tol_abs);
         ocp_->set_eps_rel(_config.qp_termination_tol_rel);
+        ocp_->setCallbacks(false);
+        
         // Callbacks from crocoddyl
         std::vector<boost::shared_ptr<crocoddyl::CallbackAbstract>> callbacks;
         callbacks.push_back(boost::make_shared<crocoddyl::CallbackVerbose>());
 
 
         // Callbacks from Mim Solvers
+        std::cout << "costs term:   " << *terminalCostModel << std::endl;
+        std::cout << "constraint term:   " << *terminalConstraintModelManager << std::endl;
+        std::cout << "shooting pronlem:   " << *shooting_problem<< std::endl;
 
         std::cout << "ddp problem set up " << std::endl;
     }

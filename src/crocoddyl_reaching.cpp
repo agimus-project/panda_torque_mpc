@@ -87,7 +87,7 @@ namespace panda_torque_mpc
             std::cout << " constraint" << std::endl;
 
             auto obstacle_distance_residual = boost::make_shared<colmpc::ResidualDistanceCollision>
-                (colmpc::ResidualDistanceCollision(state, 7, _collision_model, col_idx, 6));
+                (colmpc::ResidualDistanceCollision(state, 7, _collision_model, col_idx));
             auto constraint = boost::make_shared<crocoddyl::ConstraintModelResidual>(
                 state,
                 obstacle_distance_residual,

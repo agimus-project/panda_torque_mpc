@@ -17,7 +17,7 @@ repositories:
   vcs_repos/pinocchio:
     type: git
     url: https://github.com/stack-of-tasks/pinocchio
-    version: v2.6.21
+    version: v2.7.0
 
   vcs_repos/colmpc:
     type: git
@@ -34,7 +34,7 @@ repositories:
     url: https://github.com/frankaemika/franka_ros
     version: develop
 
-  vcs_repos/example_robot_data:
+  vcs_repos/example-robot-data:
     type: git
     url: https://github.com/Gepetto/example-robot-data
     version: v4.1.0

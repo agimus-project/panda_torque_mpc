@@ -84,7 +84,7 @@ namespace panda_torque_mpc
         ros::Subscriber motion_server_control_topic_sub_;
 
         // Controller State Machine
-        bool control_ref_from_ddp_node_received_;
+        bool control_ref_from_ddp_node_received_ = false;
         ros::Time t0_mpc_first_msg_;
         double dt_transition_jsid_to_mpc_;
         realtime_tools::RealtimeBox<Eigen::Matrix<double, 14, 1>> x0_mpc_rtbox_;

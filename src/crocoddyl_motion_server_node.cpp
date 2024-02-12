@@ -23,6 +23,7 @@
 
 #include <realtime_tools/realtime_box.h>
 #include <ros/ros.h>
+#include <ros/package.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -121,16 +122,11 @@ namespace panda_torque_mpc
             data_pin_ = pin::Data(model_pin_);
 
             // Creating the collision model
-            // Path to the urdf, srdf & mesh
-            std::string urdf_path = "/home/gepetto/ros_ws/src/panda_torque_mpc/urdf/robot.urdf";
-            std::string srdf_path =  "/home/gepetto/ros_ws/src/panda_torque_mpc/srdf/demo.srdf";
-            std::string mesh_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/meshes";
-            
+            std::string urdf_path = ros::package::getPath("panda_torque_mpc") + "/urdf/robot.urdf";
+
             // Building the GeometryModel
-            boost::shared_ptr<pinocchio::GeometryModel> collision_model = boost::make_shared<pinocchio::GeometryModel>
-            (pinocchio::GeometryModel());
-            pinocchio::urdf::buildGeom(model_pin_, urdf_path, pinocchio::COLLISION, *collision_model, mesh_path);
-            std::cout << collision_model << std::endl;
+            auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
+            pinocchio::urdf::buildGeom(model_pin_, urdf_path, pinocchio::COLLISION, *collision_model);
             double radius = 0.35/2.0;
             auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
 
@@ -161,9 +157,6 @@ namespace panda_torque_mpc
 
             collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
                 collision_model->getGeometryId("panda_link7_sc_1")));
-
-            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-                collision_model->getGeometryId("panda_link7_sc_4")));
 
             collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
                 collision_model->getGeometryId("panda_link7_sc_4")));
@@ -249,7 +242,7 @@ namespace panda_torque_mpc
 
             // ------- LOGS ----------- //
             // Reference tracking error
-            pin::SE3 T_b_e; T_b_e_rtbox_ = T_b_e;
+            pin::SE3 T_b_e; T_b_e = T_b_e_rtbox_;
             pin::SE3 T_b_e_error = T_b_e_ref.inverse() * T_b_e;
             publish_SE3_posestamped(ee_pose_error_pub_, T_b_e_error, msg.header);
         }
@@ -294,7 +287,7 @@ namespace panda_torque_mpc
 
             // ------- LOGS ----------- //
             // Reference tracking error
-            pin::SE3 T_b_e; T_b_e_rtbox_  = T_b_e;
+            pin::SE3 T_b_e; T_b_e = T_b_e_rtbox_;
             pin::SE3 T_b_e_error = T_b_e_ref.inverse() * T_b_e;
             publish_SE3_posestamped(ee_pose_error_pub_, T_b_e_error, msg.header);
         }
@@ -313,7 +306,7 @@ namespace panda_torque_mpc
             pin::SE3 T_c_o_meas = posemsg2SE3(msg_pose_c_o.pose);
             pin::SE3 T_o_c_meas = T_c_o_meas.inverse();
 
-            pin::SE3 T_b_e; T_b_e_rtbox_ = T_b_e;
+            pin::SE3 T_b_e; T_b_e = T_b_e_rtbox_;
 
             pin::SE3 T_b_c_ref = T_b_e * T_e_c_ * T_c_o_meas * T_o_c_ref_;
             pin::SE3 T_b_e_ref = T_b_c_ref * T_c_e_;
@@ -351,7 +344,7 @@ namespace panda_torque_mpc
              * 
             */
 
-            pin::SE3 T_b_e; T_b_e_rtbox_ = T_b_e;
+            pin::SE3 T_b_e; T_b_e = T_b_e_rtbox_;
 
             if (!first_pose_ref_msg_received_)
             {
@@ -423,15 +416,15 @@ namespace panda_torque_mpc
             }
 
             // Retrieve end effector reference/current in thread-safe way
-            pin::SE3 T_b_e_ref; T_b_e_ref_rtbox_ = T_b_e_ref;
-            pin::SE3 T_b_e; T_b_e_rtbox_ = T_b_e;
+            pin::SE3 T_b_e_ref; T_b_e_ref = T_b_e_ref_rtbox_;
+            pin::SE3 T_b_e; T_b_e = T_b_e_rtbox_;
 
             // Retrieve initial configuration in thread-safe way
-            Vector7d q_init; q_init_rtbox_= q_init;
+            Vector7d q_init; q_init = q_init_rtbox_;
             Eigen::Matrix<double,14,1> x_init; x_init << q_init, Vector7d::Zero();  // Fix zero velocity as reference
 
             // Retrieve current state in a thread-safe way
-            Eigen::Matrix<double, 14, 1> current_x; current_x_rtbox_ = current_x;
+            Eigen::Matrix<double, 14, 1> current_x; current_x = current_x_rtbox_;
             Vector7d q = current_x.head(model_pin_.nq);
             Vector7d v = current_x.tail(model_pin_.nv);
 

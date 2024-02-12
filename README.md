@@ -27,7 +27,9 @@ vcs import --recursive < src/panda_torque_mpc/panda_torque_mpc.repos src
 rosdep update --rosdistro $ROS_DISTRO
 rosdep install -y -i --from-paths src --rosdistro $ROS_DISTRO
 catkin build -j12 --cmake-args \
+    -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_PYTHON_INTERFACE=OFF \
+    -DBUILD_WITH_URDF_SUPPORT=ON \
     -DBUILD_WITH_COLLISION_SUPPORT=ON
 ```
 
@@ -86,7 +88,7 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_serv
 
 ### Follow absolute end effector reference with asynchronous MPC (simu)
 ```bash
-roslaunch panda_torque_mpc simulation.launch arm_id:=panda
+roslaunch panda_torque_mpc simulation.launch arm_id:=panda simulate_camera:=false
 roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc pose_publisher.launch

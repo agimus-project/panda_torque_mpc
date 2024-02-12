@@ -8,6 +8,7 @@
     <xacro:arg name="tcp_rpy" default="0 0 0" />
     <!-- Is the robot being simulated in gazebo?" -->
     <xacro:arg name="gazebo" default="false" />
+    <xacro:arg name="simulate_camera" default="false" />
 
     <xacro:include filename="$(find panda_torque_mpc)/urdf/utils.xacro" />
     <xacro:include filename="$(find panda_torque_mpc)/urdf/franka_arm.xacro" />
@@ -72,7 +73,9 @@
       <child link="${arm_id}_camera_support_link"/>
       <origin xyz="0 0 0" rpy="3.141592653589793 0 0"/>
     </joint>
-    <xacro:if value="$(arg gazebo)">
+    <xacro:property name="gz_on" value="$(arg gazebo)" />
+    <xacro:property name="sim_cam_on" value="$(arg simulate_camera)" />
+    <xacro:if value="${gz_on and sim_cam_on}">
       <xacro:include filename="$(find panda_torque_mpc)/urdf/_d435.gazebo.xacro"/>
       <xacro:gazebo_d435 camera_name="d435"
                          reference_link="${arm_id}_ref_camera_link"

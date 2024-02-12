@@ -2,9 +2,10 @@
 <launch>
 
   <!-- Gazebo & GUI Configuration -->
-  <arg name="headless"    default="false" doc="Should the gazebo GUI be launched?" />
-  <arg name="paused"      default="false" doc="Should the simulation directly be stopped at 0s?" />
-  <arg name="rviz"        default="false" doc="Should RVIz be launched?" />
+  <arg name="headless"        default="false" doc="Should the gazebo GUI be launched?" />
+  <arg name="paused"          default="false" doc="Should the simulation directly be stopped at 0s?" />
+  <arg name="rviz"            default="false" doc="Should RVIz be launched?" />
+  <arg name="simulate_camera" default="true" doc="Simulate the camera" />
 
   <!-- Robot Customization -->
   <arg name="initial_joint_positions"
@@ -31,6 +32,7 @@
   <param name="robot_description"
          command="xacro $(find panda_torque_mpc)/urdf/demo.urdf.xacro
                   gazebo:=true
+                  simulate_camera:=$(arg simulate_camera)
                   hand:=true">
   </param>
 

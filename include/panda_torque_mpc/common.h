@@ -4,6 +4,7 @@
 #include <chrono>
 #include <ratio>
 #include <Eigen/Core>
+#include <ros/package.h>
 #include <ros/node_handle.h>
 #include <std_msgs/Header.h>
 #include <geometry_msgs/Pose.h>
@@ -37,10 +38,8 @@ namespace panda_torque_mpc {
     inline pinocchio::Model loadPandaPinocchio()
     {
         // Load panda model with pinocchio and example-robot-data
-        // std::string urdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/urdf/panda.urdf";
-        // std::string srdf_path = EXAMPLE_ROBOT_DATA_MODEL_DIR "/panda_description/srdf/panda.srdf";
-        std::string urdf_path = "/home/gepetto/ros_ws/src/panda_torque_mpc/urdf/robot.urdf";
-        std::string srdf_path =  "/home/gepetto/ros_ws/src/panda_torque_mpc/srdf/demo.srdf";
+        std::string urdf_path = ros::package::getPath("panda_torque_mpc") + "/urdf/robot.urdf";
+        std::string srdf_path = ros::package::getPath("panda_torque_mpc") + "/srdf/demo.srdf";
         pinocchio::Model model_pin_full;
         pinocchio::urdf::buildModel(urdf_path, model_pin_full);
         pinocchio::srdf::loadReferenceConfigurations(model_pin_full, srdf_path, false);

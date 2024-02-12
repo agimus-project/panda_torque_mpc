@@ -185,12 +185,12 @@ ctrl_mpc_linearized:
     armature: [0.,0.,0.,0.,0.,0.,0.0]
     
     #### PARAMETERS FROM NYC 
-    nb_shooting_nodes: 20
-    nb_iterations_max: 25
+    nb_shooting_nodes: 10
+    nb_iterations_max: 4
     solver_termination_tolerance: 0.0001              # Tolerance on KKT residual 
-    max_qp_iter: 100    #125 
-    qp_termination_tol_abs: 0.0001
-    qp_termination_tol_rel: 0.0001
+    max_qp_iter: 25    #125 
+    qp_termination_tol_abs: 0.00001
+    qp_termination_tol_rel: 0.00001
 
     ####################
     # frame pose/position

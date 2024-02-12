@@ -32,7 +32,7 @@ namespace panda_torque_mpc
         double qp_termination_tol_rel;
         size_t nb_iterations_max;
         size_t max_qp_iter;
-        bool with_collisions = false;
+
         std::string ee_frame_name;
         bool reference_is_placement = false;
 

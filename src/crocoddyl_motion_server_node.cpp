@@ -149,8 +149,8 @@ namespace panda_torque_mpc
             //   Print out the placement of each collision geometry object
             std::cout << *collision_model<< std::endl;
 
-            // collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-            //     collision_model->getGeometryId("panda_leftfinger_0")));
+            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
+                collision_model->getGeometryId("panda_leftfinger_0")));
 
             collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
                 collision_model->getGeometryId("panda_rightfinger_0")));
@@ -234,10 +234,8 @@ namespace panda_torque_mpc
             T_b_e_ref_rtbox_ = T_b_e_ref;
             if (!first_pose_ref_msg_received_)
             {
-                last_ref_ = T_b_e_ref;
                 first_pose_ref_msg_received_ = true;
             }
-            ref_changed_ = (last_ref_.translation() - T_b_e_ref.translation()).norm() > 1e-15;
 
 
             // ------- LOGS ----------- //
@@ -335,8 +333,9 @@ namespace panda_torque_mpc
 
         void callback_pose_object0_object(const geometry_msgs::PoseStamped &msg_pose_o0_o)
         {
-            /*
-             * first_pose_ref_msg_received_al object pose computed from 
+            
+            /**
+             * Idea: simulate a visual servoing task by updating an initial object pose computed from 
              * - T_c_o_ref_
              * - T_b_e0_ (set when first robot sensor message received)
              * - T_o0_o contained in msg_pose_o0_o, should start with identity and then send relative poses
@@ -431,9 +430,6 @@ namespace panda_torque_mpc
             // State/control trajectories
             std::vector<Eigen::Matrix<double, -1, 1>> xs_init;
             std::vector<Eigen::Matrix<double, -1, 1>> us_init;
-
-            
-
             if (first_solve_)
             {
                 // Warm start with gravity compensation control term
@@ -450,19 +446,6 @@ namespace panda_torque_mpc
                 xs_init.push_back(current_x);
 
                 first_solve_ = false;
-            }
-            else if (ref_changed_)
-            {
-
-                croco_reaching_.set_with_collision(false); 
-                croco_reaching_.solve(xs_init, us_init); // WITHOUT COLLISIONS
-
-                xs_init = croco_reaching_.ocp_->get_xs(); 
-                us_init = croco_reaching_.ocp_->get_us();
-
-                croco_reaching_.set_with_collision(true); 
-                ref_changed_ = false;
-            
             }
             else
             {
@@ -582,9 +565,6 @@ namespace panda_torque_mpc
         // DEMO mode
         bool keep_original_ee_rotation_ = false;
 
-        // New reference
-        bool ref_changed_ = false;
-        pin::SE3 last_ref_;
 };
 
 } // namespace panda_torque_mpc

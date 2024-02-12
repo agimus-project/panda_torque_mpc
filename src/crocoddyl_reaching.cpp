@@ -66,11 +66,11 @@ namespace panda_torque_mpc
         cost_state_reg_name_ = "state_reg";
         cost_ctrl_reg_name_ = "ctrl_reg";
 
-        auto runningConstraintModelManager =  boost::make_shared<crocoddyl::ConstraintModelManager>(state);
-        auto terminalConstraintModelManager =  boost::make_shared<crocoddyl::ConstraintModelManager>(state);
         // Collision constraints
         std::cout << " before constraint manager " << std::endl;
 
+        auto runningConstraintModelManager =  boost::make_shared<crocoddyl::ConstraintModelManager>(state);
+        auto terminalConstraintModelManager =  boost::make_shared<crocoddyl::ConstraintModelManager>(state);
         Eigen::VectorXd lower_bound(1);
         Eigen::VectorXd upper_bound(1);
 
@@ -98,10 +98,8 @@ namespace panda_torque_mpc
             std::string terminal_constraint_name = "col_term" + std::to_string(col_idx);
             runningConstraintModelManager->addConstraint(running_constraint_name, constraint);
             terminalConstraintModelManager->addConstraint(terminal_constraint_name, constraint);
-            
+
         }
-        
- 
         std::cout << "end constraint" << std::endl;
 
         // Frame translation
@@ -145,10 +143,8 @@ namespace panda_torque_mpc
             runningCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost, _config.w_frame_running); // TODO: weight schedule
             runningCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost, _config.w_frame_vel_running); // TODO: weight schedule
             
-            
-            boost::shared_ptr<crocoddyl::DifferentialActionModelFreeFwdDynamics> running_DAM;
-            running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel, runningConstraintModelManager);
-    
+            auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel, runningConstraintModelManager);
+            // auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel);
             running_DAM->set_armature(_config.armature);
 
             // Deactivate goal cost by default until a proper reference is set
@@ -172,9 +168,8 @@ namespace panda_torque_mpc
         terminalCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost,   _config.w_frame_terminal*_config.dt_ocp);
         terminalCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost,    _config.w_frame_vel_terminal*_config.dt_ocp);
 
-        boost::shared_ptr<crocoddyl::DifferentialActionModelFreeFwdDynamics> terminal_DAM;
-        terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel, terminalConstraintModelManager);
-
+        auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel, terminalConstraintModelManager);
+        // auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel);
         terminal_DAM->set_armature(_config.armature);
 
         // Deactivate goal cost by default until a proper reference is set

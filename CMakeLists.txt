@@ -180,7 +180,6 @@ install(FILES
 install(PROGRAMS
   nodes/move_to_start.py
   nodes/pose_publisher.py
-  nodes/warmstart_ocp_node.py
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts
   )

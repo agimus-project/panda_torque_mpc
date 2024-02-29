@@ -68,7 +68,6 @@ catkin_package(
     linear_feedback_controller_msgs
     tf
     tf_conversions
-    # DEPENDS Franka pinocchio crocoddyl
   DEPENDS Franka pinocchio tsid crocoddyl
 )
 

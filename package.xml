@@ -36,6 +36,7 @@
   <depend>visualization_msgs</depend>
   <depend>linear_feedback_controller_msgs</depend>
   <depend>realsense2_description</depend>
+  <depend>tsid</depend>
 
 
   <exec_depend>franka_control</exec_depend>

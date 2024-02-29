@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   tf
   tf_conversions
+
   )
 
 find_package(Eigen3 REQUIRED)
@@ -33,6 +34,7 @@ find_package(pinocchio REQUIRED)
 find_package(crocoddyl REQUIRED)
 find_package(mim_solvers REQUIRED)
 find_package(colmpc REQUIRED)
+find_package(tsid REQUIRED)
 
 find_package(example-robot-data REQUIRED)
 
@@ -66,8 +68,7 @@ catkin_package(
     linear_feedback_controller_msgs
     tf
     tf_conversions
-    DEPENDS Franka pinocchio crocoddyl
-  # DEPENDS Franka pinocchio tsid crocoddyl
+  DEPENDS Franka pinocchio tsid crocoddyl
 )
 
 ###############
@@ -93,6 +94,7 @@ target_link_libraries(panda_torque_mpc_utils PUBLIC
   mim_solvers::mim_solvers
   colmpc::colmpc_cpp
   example-robot-data::example-robot-data
+  tsid::tsid  
 )
 
 #######################
@@ -104,7 +106,7 @@ add_library(panda_torque_mpc
   src/ctrl_log_update_dt.cpp
   src/ctrl_playback_pd_plus.cpp
   src/ctrl_joint_space_ID.cpp
-  # src/ctrl_task_space_ID.cpp
+  src/ctrl_task_space_ID.cpp
   src/ctrl_mpc_linearized.cpp
 )
 
@@ -122,7 +124,7 @@ target_link_libraries(panda_torque_mpc PUBLIC
   Eigen3::Eigen
   pinocchio::pinocchio 
   pinocchio::pinocchio_headers
-  # tsid::tsid
+  tsid::tsid
   example-robot-data::example-robot-data
 )
 
@@ -178,7 +180,6 @@ install(FILES
 install(PROGRAMS
   nodes/move_to_start.py
   nodes/pose_publisher.py
-  nodes/warmstart_ocp_node.py
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts
   )

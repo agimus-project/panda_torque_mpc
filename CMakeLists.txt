@@ -22,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   tf
   tf_conversions
-  tsid
+
   )
 
 find_package(Eigen3 REQUIRED)
@@ -34,6 +34,7 @@ find_package(pinocchio REQUIRED)
 find_package(crocoddyl REQUIRED)
 find_package(mim_solvers REQUIRED)
 find_package(colmpc REQUIRED)
+find_package(tsid REQUIRED)
 
 find_package(example-robot-data REQUIRED)
 

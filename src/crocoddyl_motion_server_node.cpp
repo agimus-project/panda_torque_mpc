@@ -125,8 +125,8 @@ namespace panda_torque_mpc
             std::string urdf_path = ros::package::getPath("panda_torque_mpc") + "/urdf/robot.urdf";
 
             // Building the GeometryModel
-            auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
-            collision_model = loadPandaGeometryModel(model_pin_);
+            auto collision_model_ = boost::make_shared<pinocchio::GeometryModel>();
+            collision_model_ = loadPandaGeometryModel(model_pin_);
 
             double radius = 0.35/2.0;
 
@@ -138,26 +138,26 @@ namespace panda_torque_mpc
             // obstacle_pose.trans << 0., 0., 0.;
 
             pinocchio::GeometryObject obstacle("obstacle", 0,0, geometry, obstacle_pose);
-            collision_model->addGeometryObject(obstacle);
+            collision_model_->addGeometryObject(obstacle);
 
 
-            assertm(collision_model->getGeometryId("obstacle") < collision_model->geometryObjects.size(), "The index of the obstacle is not right.");
-            assertm(collision_model->getGeometryId("panda_leftfinger_0") < collision_model->geometryObjects.size(), "The index of the panda_leftfinger_0 is not right.");
-            assertm(collision_model->getGeometryId("panda_rightfinger_0") < collision_model->geometryObjects.size(), "The index of the panda_rightfinger_0 is not right.");
+            assertm(collision_model_->getGeometryId("obstacle") < collision_model_->geometryObjects.size(), "The index of the obstacle is not right.");
+            assertm(collision_model_->getGeometryId("panda_leftfinger_0") < collision_model_->geometryObjects.size(), "The index of the panda_leftfinger_0 is not right.");
+            assertm(collision_model_->getGeometryId("panda_rightfinger_0") < collision_model_->geometryObjects.size(), "The index of the panda_rightfinger_0 is not right.");
 
             //   Print out the placement of each collision geometry object
 
-            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-                collision_model->getGeometryId("panda_leftfinger_0")));
+            collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
+                collision_model_->getGeometryId("panda_leftfinger_0")));
 
-            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-                collision_model->getGeometryId("panda_rightfinger_0")));
+            collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
+                collision_model_->getGeometryId("panda_rightfinger_0")));
 
-            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-                collision_model->getGeometryId("panda_link7_sc_1")));
+            collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
+                collision_model_->getGeometryId("panda_link7_sc_1")));
 
-            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-                collision_model->getGeometryId("panda_link7_sc_4")));
+            collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
+                collision_model_->getGeometryId("panda_link7_sc_4")));
                         
             if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
             {
@@ -194,7 +194,7 @@ namespace panda_torque_mpc
             config_croco_.armature = Eigen::Map<Eigen::Matrix<double, 7, 1>>(armature.data());
 
             // croco_reaching_ = CrocoddylReaching(model_pin_ ,config_croco_);
-            croco_reaching_ = CrocoddylReaching(model_pin_, collision_model ,config_croco_);
+            croco_reaching_ = CrocoddylReaching(model_pin_, collision_model_ ,config_croco_);
             /////////////////////////////////////////////////
 
             // Publishers

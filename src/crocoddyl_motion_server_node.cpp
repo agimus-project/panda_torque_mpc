@@ -30,6 +30,7 @@
 
 #include "panda_torque_mpc/common.h"
 #include "panda_torque_mpc/crocoddyl_reaching.h"
+#include "panda_torque_mpc/obstacle_infos_publisher.h"
 
 #include "geometry_msgs/PoseStamped.h"
 #include "std_msgs/Duration.h"
@@ -128,36 +129,36 @@ namespace panda_torque_mpc
             auto collision_model_ = boost::make_shared<pinocchio::GeometryModel>();
             collision_model_ = loadPandaGeometryModel(model_pin_);
 
-            double radius = 0.35/2.0;
+            ObstacleInfosPublisher collisionAddingProcess = ObstacleInfosPublisher(&ph,boost::make_shared<pinocchio::Model>(model_pin_), collision_model_);
+            collisionAddingProcess.addCollisions();
+            // double radius = 0.35/2.0;
 
-            auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
+            // auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
 
-            pinocchio::SE3 obstacle_pose(Eigen::Quaterniond (1.,0.,0.,0.), Eigen::Vector3d (0,0,0.825));
+            // pinocchio::SE3 obstacle_pose(Eigen::Quaterniond (1.,0.,0.,0.), Eigen::Vector3d (0,0,0.825));
             // pinocchio::SE3 obstacle_pose;
             // obstacle_pose.setIdentity();
             // obstacle_pose.trans << 0., 0., 0.;
 
-            pinocchio::GeometryObject obstacle("obstacle", 0,0, geometry, obstacle_pose);
-            collision_model_->addGeometryObject(obstacle);
+            // pinocchio::GeometryObject obstacle("obstacle", 0,0, geometry, obstacle_pose);
+            // collision_model_->addGeometryObject(obstacle);
 
 
-            assertm(collision_model_->getGeometryId("obstacle") < collision_model_->geometryObjects.size(), "The index of the obstacle is not right.");
-            assertm(collision_model_->getGeometryId("panda_leftfinger_0") < collision_model_->geometryObjects.size(), "The index of the panda_leftfinger_0 is not right.");
-            assertm(collision_model_->getGeometryId("panda_rightfinger_0") < collision_model_->geometryObjects.size(), "The index of the panda_rightfinger_0 is not right.");
+            // assertm(collision_model_->getGeometryId("obstacle") < collision_model_->geometryObjects.size(), "The index of the obstacle is not right.");
+            // assertm(collision_model_->getGeometryId("panda_leftfinger_0") < collision_model_->geometryObjects.size(), "The index of the panda_leftfinger_0 is not right.");
+            // assertm(collision_model_->getGeometryId("panda_rightfinger_0") < collision_model_->geometryObjects.size(), "The index of the panda_rightfinger_0 is not right.");
 
-            //   Print out the placement of each collision geometry object
+            // collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
+            //     collision_model_->getGeometryId("panda_leftfinger_0")));
 
-            collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
-                collision_model_->getGeometryId("panda_leftfinger_0")));
+            // collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
+            //     collision_model_->getGeometryId("panda_rightfinger_0")));
 
-            collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
-                collision_model_->getGeometryId("panda_rightfinger_0")));
+            // collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
+            //     collision_model_->getGeometryId("panda_link7_sc_1")));
 
-            collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
-                collision_model_->getGeometryId("panda_link7_sc_1")));
-
-            collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
-                collision_model_->getGeometryId("panda_link7_sc_4")));
+            // collision_model_->addCollisionPair(pinocchio::CollisionPair(collision_model_->getGeometryId("obstacle"),
+            //     collision_model_->getGeometryId("panda_link7_sc_4")));
                         
             if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
             {

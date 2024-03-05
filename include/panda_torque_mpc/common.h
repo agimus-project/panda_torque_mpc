@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/smart_ptr/shared_ptr.hpp>
 #include <vector>
 #include <chrono>
 #include <ratio>
@@ -51,6 +52,13 @@ namespace panda_torque_mpc {
         return pinocchio::buildReducedModel(model_pin_full, locked_joints_id, q0_full);
     }
 
+    inline boost::shared_ptr<pinocchio::GeometryModel> loadPandaGeometryModel(const pinocchio::Model& model_pin)
+        {
+        const std::string urdf_path = ros::package::getPath("panda_torque_mpc") + "/urdf/robot.urdf";
+        auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
+        pinocchio::urdf::buildGeom(model_pin, urdf_path, pinocchio::COLLISION, *collision_model);
+        return collision_model;
+    }
     inline Vector7d saturateTorqueRate(const Vector7d &tau_d, const Vector7d &tau_d_prev, double delta_max)
     {
 

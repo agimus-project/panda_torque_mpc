@@ -108,6 +108,7 @@ add_library(panda_torque_mpc
   src/ctrl_joint_space_ID.cpp
   src/ctrl_task_space_ID.cpp
   src/ctrl_mpc_linearized.cpp
+  src/obstacle_infos_publisher.cpp
 )
 
 #message(FATAL_ERROR "dbg: ${catkin_INCLUDE_DIRS}")
@@ -172,6 +173,7 @@ install(FILES
   config/franka_control_node.yaml
   config/pose_publisher_params.yaml
   config/start_joint_pose.yaml
+  config/obstacle_infos.yaml
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
   )

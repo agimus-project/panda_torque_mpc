@@ -38,3 +38,8 @@ repositories:
     type: git
     url: https://github.com/Gepetto/example-robot-data
     version: v4.1.0
+
+  vcs_repos/tsid:
+    type: git
+    url: https://github.com/stack-of-tasks/tsid
+    version: v1.7.0

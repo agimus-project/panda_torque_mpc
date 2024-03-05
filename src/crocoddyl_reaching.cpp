@@ -67,24 +67,16 @@ namespace panda_torque_mpc
         cost_ctrl_reg_name_ = "ctrl_reg";
 
         // Collision constraints
-        std::cout << " before constraint manager " << std::endl;
-
         auto runningConstraintModelManager =  boost::make_shared<crocoddyl::ConstraintModelManager>(state);
         auto terminalConstraintModelManager =  boost::make_shared<crocoddyl::ConstraintModelManager>(state);
         Eigen::VectorXd lower_bound(1);
         Eigen::VectorXd upper_bound(1);
 
-        std::cout << " after constraint manager " << std::endl;
-
         lower_bound << 1e-1;
         upper_bound << std::numeric_limits<double>::infinity();
 
-        std::cout << " bounds" << std::endl;
-
         for (int col_idx = 0; col_idx < _collision_model->collisionPairs.size(); col_idx++)
         {
-
-            std::cout << " constraint" << std::endl;
 
             auto obstacle_distance_residual = boost::make_shared<colmpc::ResidualDistanceCollision>
                 (colmpc::ResidualDistanceCollision(state, 7, _collision_model, col_idx));
@@ -100,7 +92,6 @@ namespace panda_torque_mpc
             terminalConstraintModelManager->addConstraint(terminal_constraint_name, constraint);
 
         }
-        std::cout << "end constraint" << std::endl;
 
         // Frame translation
         auto frame_translation_cost = boost::make_shared<crocoddyl::CostModelResidual>(

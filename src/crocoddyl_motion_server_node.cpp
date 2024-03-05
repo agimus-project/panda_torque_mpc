@@ -1,3 +1,4 @@
+#include <boost/smart_ptr/shared_ptr.hpp>
 #include <string>
 #include <cassert>
  
@@ -112,12 +113,11 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name") && params_success;
 
             
-
             if (!params_success)
             {
                 throw std::invalid_argument("CrocoMotionServer: check the your ROS parameters");
             }
-            
+
             model_pin_ = loadPandaPinocchio();
             data_pin_ = pin::Data(model_pin_);
 
@@ -126,8 +126,10 @@ namespace panda_torque_mpc
 
             // Building the GeometryModel
             auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
-            pinocchio::urdf::buildGeom(model_pin_, urdf_path, pinocchio::COLLISION, *collision_model);
+            collision_model = loadPandaGeometryModel(model_pin_);
+
             double radius = 0.35/2.0;
+
             auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
 
             pinocchio::SE3 obstacle_pose(Eigen::Quaterniond (1.,0.,0.,0.), Eigen::Vector3d (0,0,0.825));
@@ -143,11 +145,7 @@ namespace panda_torque_mpc
             assertm(collision_model->getGeometryId("panda_leftfinger_0") < collision_model->geometryObjects.size(), "The index of the panda_leftfinger_0 is not right.");
             assertm(collision_model->getGeometryId("panda_rightfinger_0") < collision_model->geometryObjects.size(), "The index of the panda_rightfinger_0 is not right.");
 
-            std::cout << "right: "<<collision_model->getGeometryId("panda_rightfinger_0") << std::endl;
-            std::cout << "left: "<<collision_model->getGeometryId("panda_leftfinger_0") << std::endl;
-
             //   Print out the placement of each collision geometry object
-            std::cout << *collision_model<< std::endl;
 
             collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
                 collision_model->getGeometryId("panda_leftfinger_0")));
@@ -573,10 +571,12 @@ int main(int argc, char **argv)
 {
 
     ros::init(argc, argv, "crocoddyl_motion_server_node");
+
     ros::NodeHandle nh;
+
     std::string robot_sensors_topic_sub = "robot_sensors";
     std::string control_topic_pub = "motion_server_control";
-    
+
     std::string absolute_pose_ref_topic_sub = "absolute_pose_ref";  // ABSOLUTE REFERENCE DEMO
     std::string motion_capture_pose_ref_topic_sub = "motion_capture_pose_ref";  // MOCAP DEMO
     std::string pose_camera_object_topic_sub = "pose_camera_object";  // VISUAL SERVOING DEMO 
@@ -586,6 +586,7 @@ int main(int argc, char **argv)
     std::string cam_pose_error_topic_pub = "cam_pose_error";
     std::string ee_pose_error_topic_pub = "ee_pose_error";
     std::string ocp_solve_time_topic_pub = "ocp_solve_time";
+
     auto motion_server = panda_torque_mpc::CrocoMotionServer(
                             nh, 
                             robot_sensors_topic_sub,
@@ -600,6 +601,7 @@ int main(int argc, char **argv)
                             ee_pose_error_topic_pub,
                             ocp_solve_time_topic_pub
                             );
+
     int freq_solve;
     int success_read = panda_torque_mpc::get_param_error_tpl<int>(nh, freq_solve, "freq_solve");
     if (!success_read){

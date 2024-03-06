@@ -24,6 +24,7 @@ class ObstacleParamsParser {
 
 void ObstacleParamsParser::addCollisions();
 {
+  // First adding the obstacles to the geometry model
  int obs_idx = 0;
  while (nh_->hasParam("obstacle_" + std::to_string(obs_idx))) {
   std::string type;
@@ -50,7 +51,16 @@ void ObstacleParamsParser::addCollisions();
       addCapsule(name, radius, halfLength, pose);
       break;
     }
+  obs_idx += 1;
  }
+  // Adding the collision pairs to the geometry model
+
+  std::vector<std::vector<std::string>> collision_pairs;
+  nh_->getParam("collision_pairs", collision_pairs);
+  
+  for (std::vector<std::string> collision_pair : collision_pairs) {
+    addCollisionPair(collision_pair[0], collision_pair[1])
+  }
 
 }
 

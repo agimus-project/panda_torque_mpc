@@ -30,18 +30,6 @@ public:
 
 private:
   /**
-   * @brief Add an obstacle to the geometry model.
-   *
-   * @param name The name of the obstacle.
-   * @param type The type of the obstacle (e.g., "sphere").
-   * @param dim The dimensions of the obstacle (e.g., radius for a sphere).
-   * @param pose The pose of the obstacle specified as [tx, ty, tz, qx, qy, qz,
-   * qw].
-   */
-  void addObstacle(const std::string &name, const std::string &type,
-                   const Eigen::VectorXd &dim, const Eigen::VectorXd &pose);
-
-  /**
    * @brief Add a sphere to the geometry model.
    *
    * @param name The name of the obstacle.

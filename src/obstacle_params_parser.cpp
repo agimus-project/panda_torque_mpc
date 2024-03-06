@@ -37,7 +37,18 @@ class ObstacleParamsParser {
   switch (type) {
   case "sphere":
     double radius = dim[0];
-    addSphere(name, radius, pose)
+    addSphere(name, radius, pose);
+
+  case "box":
+    double x = dim[0];
+    double y = dim[1];
+    double z = dim[2];
+    addBox(name, x, y, z, pose);
+
+  case "capsule":
+    double radius = dim[0];
+    double halfLength = dim[1];
+    addCapsule(name, radius, halfLength, pose);
   }
 }
 
@@ -61,14 +72,15 @@ void ObstacleParamsParser::addBox(const std::string &name, const double &x,
   Eigen::Quaterniond rotation(pose[3], pose[4], pose[5], pose[6]);
 
   auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
-      new hpp::fcl::Box(x,y,z));
+      new hpp::fcl::Box(x, y, z));
   pinocchio::SE3 obstacle_pose(rotation, translation);
   pinocchio::GeometryObject obstacle(name, 0, 0, geometry, obstacle_pose);
   collision_model_->addGeometryObject(obstacle);
 }
 
 void ObstacleParamsParser::addCapsule(const std::string &name,
-                                      const double &radius, const double &halfLength,
+                                      const double &radius,
+                                      const double &halfLength,
                                       const Eigen::VectorXd &pose);
 {
   Eigen::Vector3d translation(pose[0], pose[1], pose[2]);
@@ -89,7 +101,6 @@ void ObstacleParamsParser::addCollisionPair(const std::string &name_object1,
       !collision_model_->existGeometryName(name_object2)) {
     std::cerr << "Object ID not found for collision pair: " << object1Id
               << " and " << object2Id << std::endl;
-    return;
   }
 
   collision_model_->addCollisionPair(

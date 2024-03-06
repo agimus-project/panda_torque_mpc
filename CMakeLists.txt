@@ -108,7 +108,7 @@ add_library(panda_torque_mpc
   src/ctrl_joint_space_ID.cpp
   src/ctrl_task_space_ID.cpp
   src/ctrl_mpc_linearized.cpp
-  src/obstacle_infos_publisher.cpp
+  src/obstacle_params_parser.cpp
 )
 
 #message(FATAL_ERROR "dbg: ${catkin_INCLUDE_DIRS}")

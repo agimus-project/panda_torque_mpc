@@ -20,31 +20,38 @@ class ObstacleParamsParser {
       const boost::shared_ptr<pinocchio::GeometryModel> &collision_model)
       : nh_(nh), pin_model_(pin_model), collision_model_(collision_model){};
 
-  ~ObstacleParamsParser() {}
+  ~ObstacleParamsParser() {};
 
-  void ObstacleParamsParser::addObstacle(const std::string &name, const std::string &type,
-                   const Eigen::VectorXd &dim, const Eigen::VectorXd &pose);
+void ObstacleParamsParser::addCollisions();
 {
+ int obs_idx = 0;
+ while (nh_->hasParam("obstacle_" + std::to_string(obs_idx))) {
+  std::string type;
+  nh_->getParam(obstacle_name + "/type", type);
   switch (type) {
-  case "sphere":
-    double radius = dim[0];
-    addSphere(name, radius, pose);
-    break;
+    case "sphere":
+      double radius;
+      nh_->getParam(obstacle_name + "/radius", radius);
+      addSphere(name, radius, pose);
+      break;
 
-  case "box":
-    double x = dim[0];
-    double y = dim[1];
-    double z = dim[2];
-    addBox(name, x, y, z, pose);
-    break;
+    case "box":
+      double x; double y; double z;
+      nh_->getParam(obstacle_name + "/x", x);
+      nh_->getParam(obstacle_name + "/y", y);
+      nh_->getParam(obstacle_name + "/z", z);
+      addBox(name, x, y, z, pose);
+      break;
 
-  case "capsule":
-    double radius = dim[0];
-    double halfLength = dim[1];
-    addCapsule(name, radius, halfLength, pose);
-    break;
+    case "capsule":
+      double radius; double halfLength
+      nh_->getParam(obstacle_name + "/radius", radius);
+      nh_->getParam(obstacle_name + "/halfLength", halfLength);
+      addCapsule(name, radius, halfLength, pose);
+      break;
+    }
+ }
 
-  }
 }
 
 void ObstacleParamsParser::addSphere(const std::string &name,

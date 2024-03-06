@@ -22,6 +22,12 @@ public:
   ~ObstacleParamsParser();
 
 public:
+  /**
+   * @brief The collisions from the YAML file to the geometry model.
+  */
+
+  void addCollisions();
+
 private:
   /**
    * @brief Add an obstacle to the geometry model.

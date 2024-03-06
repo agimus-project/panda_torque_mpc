@@ -22,15 +22,6 @@ class ObstacleParamsParser {
 
   ~ObstacleParamsParser() {}
 
-  // Loading the Yaml file
-  YAML::Node config = YAML::LoadFile("config.yaml");
-
-  const YAML::Node &obstacles = config["obstacles"];
-  // Going through all the obstacles and adding them to the geom model
-  for (const auto &obstacle : obstacles) {
-  }
-}
-
   void ObstacleParamsParser::addObstacle(const std::string &name, const std::string &type,
                    const Eigen::VectorXd &dim, const Eigen::VectorXd &pose);
 {
@@ -38,17 +29,21 @@ class ObstacleParamsParser {
   case "sphere":
     double radius = dim[0];
     addSphere(name, radius, pose);
+    break;
 
   case "box":
     double x = dim[0];
     double y = dim[1];
     double z = dim[2];
     addBox(name, x, y, z, pose);
+    break;
 
   case "capsule":
     double radius = dim[0];
     double halfLength = dim[1];
     addCapsule(name, radius, halfLength, pose);
+    break;
+
   }
 }
 
@@ -105,5 +100,6 @@ void ObstacleParamsParser::addCollisionPair(const std::string &name_object1,
 
   collision_model_->addCollisionPair(
       pinocchio::CollisionPair(object1Id, object2Id));
+}
 };
 } // namespace panda_torque_mpc

@@ -37,15 +37,15 @@
 
 namespace panda_torque_mpc
 {
-    CrocoddylReaching::CrocoddylReaching(pin::Model model_pin_, const boost::shared_ptr<pin::GeometryModel>& collision_model_ ,
+    CrocoddylReaching::CrocoddylReaching(pin::Model model_pin, const boost::shared_ptr<pin::GeometryModel>& collision_model ,
         CrocoddylConfig _config) :
     config_(_config)
     {
 
-        auto end_effector_frame_id = model_pin_.getFrameId(_config.ee_frame_name);
+        const std::size_t end_effector_frame_id = model_pin.getFrameId(_config.ee_frame_name);
 
         std::cout << "Creating state, actuation and IAMs... " << std::endl;
-        auto state = boost::make_shared<crocoddyl::StateMultibody>(boost::make_shared<pinocchio::Model>(model_pin_));
+        auto state = boost::make_shared<crocoddyl::StateMultibody>(boost::make_shared<pinocchio::Model>(model_pin));
         auto actuation = boost::make_shared<crocoddyl::ActuationModelFull>(state);
 
         Eigen::Matrix<double, 14, 1> diag_x_reg_running; diag_x_reg_running << _config.diag_q_reg_running, _config.diag_v_reg_running;
@@ -75,11 +75,11 @@ namespace panda_torque_mpc
         lower_bound << 1e-1;
         upper_bound << std::numeric_limits<double>::infinity();
 
-        for (int col_idx = 0; col_idx < collision_model_->collisionPairs.size(); col_idx++)
+        for (int col_idx = 0; col_idx < collision_model->collisionPairs.size(); col_idx++)
         {
 
             auto obstacle_distance_residual = boost::make_shared<colmpc::ResidualDistanceCollision>
-                (colmpc::ResidualDistanceCollision(state, 7, collision_model_, col_idx));
+                (colmpc::ResidualDistanceCollision(state, 7, collision_model, col_idx));
             auto constraint = boost::make_shared<crocoddyl::ConstraintModelResidual>(
                 state,
                 obstacle_distance_residual,

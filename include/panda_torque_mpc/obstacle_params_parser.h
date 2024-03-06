@@ -8,6 +8,11 @@
 
 #include <pinocchio/fwd.hpp>
 #include <pinocchio/multibody/model.hpp>
+#include "pinocchio/algorithm/joint-configuration.hpp"
+#include "pinocchio/algorithm/geometry.hpp"
+#include <hpp/fcl/collision_object.h>
+#include <hpp/fcl/shape/geometric_shapes.h>
+
 
 #include <ros/ros.h>
 
@@ -17,11 +22,10 @@ class ObstacleParamsParser {
 public:
   ObstacleParamsParser(
       const std::shared_ptr<ros::NodeHandle> &nh,
-      const boost::shared_ptr<pinocchio::Model> &pin_model_,
-      const boost::shared_ptr<pinocchio::GeometryModel> &collision_model_);
+      const boost::shared_ptr<pinocchio::Model> &pin_model,
+      const boost::shared_ptr<pinocchio::GeometryModel> &collision_model);
   ~ObstacleParamsParser();
 
-public:
   /**
    * @brief The collisions from the YAML file to the geometry model.
   */
@@ -51,7 +55,7 @@ private:
    * qw].
    */
   void addBox(const std::string &name, const double &x, const double &y,
-              const double &z, const Eigen::VectorXd &pose)
+              const double &z, const Eigen::VectorXd &pose);
 
   /**
     * @brief Add a capsule to the geometry model.
@@ -63,7 +67,7 @@ private:
     * qz, qw].
     */
   void addCapsule(const std::string &name, const double &radius,
-                  const double &halfLength, const Eigen::VectorXd &pose)
+                  const double &halfLength, const Eigen::VectorXd &pose);
 
   /**
     * @brief Add a collision pair between two objects.

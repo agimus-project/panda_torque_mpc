@@ -2,9 +2,6 @@
 #include <string>
 #include <cassert>
  
-// Use (void) to silence unused warnings.
-#define assertm(exp, msg) assert(((void)msg, exp))
-
 #include <pinocchio/fwd.hpp>
 #include <pinocchio/multibody/data.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
@@ -129,7 +126,7 @@ namespace panda_torque_mpc
             auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
             collision_model = loadPandaGeometryModel(model_pin_);
 
-            ObstacleParamsParser collisionAddingProcess = ObstacleParamsParser(&ph,boost::make_shared<pinocchio::Model>(model_pin_), collision_model);
+            ObstacleParamsParser collisionAddingProcess = ObstacleParamsParser(nh,boost::make_shared<pinocchio::Model>(model_pin_), collision_model);
             collisionAddingProcess.addCollisions();
             // double radius = 0.35/2.0;
 

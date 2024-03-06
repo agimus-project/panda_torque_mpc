@@ -16,15 +16,15 @@ namespace panda_torque_mpc {
 class ObstacleParamsParser {
 public:
   ObstacleParamsParser(
-      const std::shared_ptr<ros::NodeHandle> &ph,
+      const std::shared_ptr<ros::NodeHandle> &nh,
       const boost::shared_ptr<pinocchio::Model> &pin_model_,
       const boost::shared_ptr<pinocchio::GeometryModel> &collision_model_);
   ~ObstacleParamsParser();
 
 public:
-  void addCollisions();
 
 private:
+
   /**
    * @brief Add an obstacle to the geometry model.
    *
@@ -38,6 +38,40 @@ private:
                    const Eigen::VectorXd &dim, const Eigen::VectorXd &pose);
 
   /**
+   * @brief Add a sphere to the geometry model.
+   *
+   * @param name The name of the obstacle.
+   * @param radius The radius of the sphere.
+   * @param pose The pose of the obstacle specified as [tx, ty, tz, qx, qy, qz,
+   * qw].
+   */
+  void addSphere(const std::string &name, const double &radius,
+                 const Eigen::VectorXd &pose);
+  
+  /**
+   * @brief Add a box to the geometry model.
+   *
+   * @param name The name of the obstacle.
+   * @param dim The dimensions of the box.
+   * @param pose The pose of the obstacle specified as [tx, ty, tz, qx, qy, qz,
+   * qw].
+   */
+  void addBox(const std::string &name, const double Eigen::VectorXd &dim
+                 const Eigen::VectorXd &pose)
+ 
+  /**
+   * @brief Add a capsule to the geometry model.
+   *
+   * @param name The name of the obstacle.
+   * @param dim The dimensions of the capsule (radius then halfLength).
+   * @param pose The pose of the obstacle specified as [tx, ty, tz, qx, qy, qz,
+   * qw].
+   */
+  void addCapsule(const std::string &name, const double Eigen::VectorXd &dim
+                 const Eigen::VectorXd &pose)
+ 
+ 
+  /**
    * @brief Add a collision pair between two objects.
    *
    * @param name_object1 The name of the first object in the collision pair.
@@ -46,7 +80,8 @@ private:
   void addCollisionPair(const std::string &name_object1,
                         const std::string &name_object2);
 
-  std::shared_ptr<ros::NodeHandle> ph_;
+  std::shared_ptr<ros::NodeHandle> nh_;
+  const boost::shared_ptr<pinocchio::Model> pin_model_;
   const boost::shared_ptr<pinocchio::GeometryModel> &collision_model_;
 };
 

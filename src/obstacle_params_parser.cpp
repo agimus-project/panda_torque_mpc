@@ -13,12 +13,12 @@
 
 namespace panda_torque_mpc {
 
-class ObstacleInfosPublisher {
-  ObstacleInfosPublisher(
+class ObstacleParamsParser {
+  ObstacleParamsParser(
       const std::shared_ptr<ros::NodeHandle> &ph,
       const boost::shared_ptr<pinocchio::Model> &pin_model_,
       const boost::shared_ptr<pinocchio::GeometryModel> &collision_model_);
-  ~ObstacleInfosPublisher();
+  ~ObstacleParamsParser();
   {
     // Loading the Yaml file
     YAML::Node config = YAML::LoadFile("config.yaml");

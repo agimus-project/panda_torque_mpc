@@ -30,7 +30,7 @@
 
 #include "panda_torque_mpc/common.h"
 #include "panda_torque_mpc/crocoddyl_reaching.h"
-#include "panda_torque_mpc/obstacle_infos_publisher.h"
+#include "panda_torque_mpc/obstacle_params_parser.h"
 
 #include "geometry_msgs/PoseStamped.h"
 #include "std_msgs/Duration.h"
@@ -129,7 +129,7 @@ namespace panda_torque_mpc
             auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
             collision_model = loadPandaGeometryModel(model_pin_);
 
-            ObstacleInfosPublisher collisionAddingProcess = ObstacleInfosPublisher(&ph,boost::make_shared<pinocchio::Model>(model_pin_), collision_model);
+            ObstacleParamsParser collisionAddingProcess = ObstacleParamsParser(&ph,boost::make_shared<pinocchio::Model>(model_pin_), collision_model);
             collisionAddingProcess.addCollisions();
             // double radius = 0.35/2.0;
 

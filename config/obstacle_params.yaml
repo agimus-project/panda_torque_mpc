@@ -1,6 +1,6 @@
 - obstacle1:
     - type: "sphere"
-    - dim: 0.175
+    - radius: 0.175
     - pose_base_obs: [0,0,0.825,  0,0,0,1]  # tx,ty,tz,qx,qy,qz,qw 
 - collision_pairs: 
     - ["panda_leftfinger_0", "obstacle1"]

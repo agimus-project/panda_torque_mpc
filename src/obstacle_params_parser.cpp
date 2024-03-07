@@ -31,38 +31,50 @@ void ObstacleParamsParser::addCollisions()
  while (nh_->hasParam("obstacle_" + std::to_string(obs_idx))) {
 
   std::string obstacle_name;
-
   obstacle_name = "obstacle_" + std::to_string(obs_idx);
+  
   std::string type;
-
+  if (!nh_->hasParam(obstacle_name + "/type"))
+{
+    std::cerr << "No obstacle type declared." << std::endl;
+}
   nh_->getParam(obstacle_name + "/type", type);
+  
 
-  Eigen::VectorXd pose;
-  nh_->getParam(obstacle_name + "/pose", pose);
+  std::vector<double> translation_vect;
+  nh_->getParam(obstacle_name + "/translation", translation_vect);
+  const auto translation = Eigen::Map<Eigen::Vector3d>(translation_vect.data()) ;
 
-  switch (type) {
-    case "sphere":
-      double radius;
-      nh_->getParam(obstacle_name + "/radius", radius);
-      addSphere(obstacle_name, radius, pose);
-      break;
+  std::vector<double> rotation_vect;
+  nh_->getParam(obstacle_name + "/rotation", rotation_vect);
+  const auto rotation = Eigen::Map<Eigen::Quaterniond>(rotation_vect.data()) ;
+  
+  pinocchio::GeometryObject::CollisionGeometryPtr geometry;
 
-    case "box":
-      double x; double y; double z;
-      nh_->getParam(obstacle_name + "/x", x);
-      nh_->getParam(obstacle_name + "/y", y);
-      nh_->getParam(obstacle_name + "/z", z);
-      addBox(obstacle_name, x, y, z, pose);
-      break;
-
-    case "capsule":
-      double radius; 
-      double halfLength;
-      nh_->getParam(obstacle_name + "/radius", radius);
-      nh_->getParam(obstacle_name + "/halfLength", halfLength);
-      addCapsule(obstacle_name, radius, halfLength, pose);
-      break;
-    }
+  if (type == "sphere") {
+    double radius;
+    nh_->getParam(obstacle_name + "/radius", radius);
+    geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
+}  else if (type == "box") {
+    double x; double y; double z;
+    nh_->getParam(obstacle_name + "/x", x);
+    nh_->getParam(obstacle_name + "/y", y);
+    nh_->getParam(obstacle_name + "/z", z);
+    geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
+      new hpp::fcl::Box(x, y, z));
+}  else if (type == "box") {
+    double radius; 
+    double halfLength;
+    nh_->getParam(obstacle_name + "/radius", radius);
+    nh_->getParam(obstacle_name + "/halfLength", halfLength);
+    geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Caspule(radius, halfLength));
+} else 
+{
+std::cerr << "No type or wrong type in the obstacle config. Try to use the one implemented, such as 'sphere', 'box' or 'capsule'." << std::endl;
+}
+  pinocchio::SE3 obstacle_pose(rotation, translation);
+  pinocchio::GeometryObject obstacle(obstacle_name, 0, 0, geometry, obstacle_pose);
+  collision_model_->addGeometryObject(obstacle);
   obs_idx += 1;
  }
   // Adding the collision pairs to the geometry model
@@ -70,54 +82,20 @@ void ObstacleParamsParser::addCollisions()
   std::vector<std::vector<std::string>> collision_pairs;
   nh_->getParam("collision_pairs", collision_pairs);
   
-  for (std::vector<std::string> collision_pair : collision_pairs) {
-    addCollisionPair(collision_pair[0], collision_pair[1]);
+  for (const auto& collision_pair : collision_pairs) {
+      if (collision_pair.size() == 2) {
+          addCollisionPair(collision_pair[0], collision_pair[1]);
+      } else {
+          std::cerr << "Invalid collision pair number." << std::endl;
+      }
   }
 
 }
 
-void ObstacleParamsParser::addSphere(const std::string &name,
-                                     const double &radius,
-                                     const Eigen::VectorXd &pose)
-{
-  Eigen::Vector3d translation(pose[0], pose[1], pose[2]);
-  auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
-      new hpp::fcl::Sphere(radius));
-  pinocchio::SE3 obstacle_pose(Eigen::Quaterniond(1., 0., 0., 0.), translation);
-  pinocchio::GeometryObject obstacle(name, 0, 0, geometry, obstacle_pose);
-  collision_model_->addGeometryObject(obstacle);
-}
-
-void ObstacleParamsParser::addBox(const std::string &name, const double &x,
-                                  const double &y, const double &z,
-                                  const Eigen::VectorXd &pose)
-{
-  Eigen::Vector3d translation(pose[0], pose[1], pose[2]);
-  Eigen::Quaterniond rotation(pose[3], pose[4], pose[5], pose[6]);
-
-  auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
-      new hpp::fcl::Box(x, y, z));
-  pinocchio::SE3 obstacle_pose(rotation, translation);
-  pinocchio::GeometryObject obstacle(name, 0, 0, geometry, obstacle_pose);
-  collision_model_->addGeometryObject(obstacle);
-}
-
-void ObstacleParamsParser::addCapsule(const std::string &name,
-                                      const double &radius,
-                                      const double &halfLength,
-                                      const Eigen::VectorXd &pose)
-{
-  Eigen::Vector3d translation(pose[0], pose[1], pose[2]);
-  Eigen::Quaterniond rotation(pose[3], pose[4], pose[5], pose[6]);
-  auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Caspule(radius, halfLength));
-  pinocchio::SE3 obstacle_pose(rotation, translation);
-  pinocchio::GeometryObject obstacle(name, 0, 0, geometry, obstacle_pose);
-  collision_model_->addGeometryObject(obstacle);
-}
 
 void ObstacleParamsParser::addCollisionPair(const std::string &name_object1,
                                             const std::string &name_object2)
-{
+{  
   std::size_t object1Id = collision_model_->getGeometryId(name_object1);
   std::size_t object2Id = collision_model_->getGeometryId(name_object2);
   if (!collision_model_->existGeometryName(name_object1) ||

@@ -34,42 +34,6 @@ public:
 
 private:
   /**
-   * @brief Add a sphere to the geometry model.
-   *
-   * @param name The name of the obstacle.
-   * @param radius The radius of the sphere.
-   * @param pose The pose of the obstacle specified as [tx, ty, tz, qx, qy, qz,
-   * qw].
-   */
-  void addSphere(const std::string &name, const double &radius,
-                 const Eigen::VectorXd &pose);
-
-  /**
-   * @brief Add a box to the geometry model.
-   *
-   * @param name The name of the obstacle.
-   * @param x The dimensions of the box along the x axis.
-   * @param y The dimensions of the box along the y axis.
-   * @param z The dimensions of the box along the z axis.
-   * @param pose The pose of the obstacle specified as [tx, ty, tz, qx, qy, qz,
-   * qw].
-   */
-  void addBox(const std::string &name, const double &x, const double &y,
-              const double &z, const Eigen::VectorXd &pose);
-
-  /**
-    * @brief Add a capsule to the geometry model.
-    *
-    * @param name The name of the obstacle.
-    * @param radius The radius of the spheres of the capsule.
-    * @param halfLength The half length of cylinder describing the capsule.
-    * @param pose The pose of the obstacle specified as [tx, ty, tz, qx, qy,
-    * qz, qw].
-    */
-  void addCapsule(const std::string &name, const double &radius,
-                  const double &halfLength, const Eigen::VectorXd &pose);
-
-  /**
     * @brief Add a collision pair between two objects.
     *
     * @param name_object1 The name of the first object in the collision pair.

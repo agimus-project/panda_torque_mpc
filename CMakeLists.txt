@@ -135,7 +135,7 @@ add_dependencies(panda_torque_mpc panda_torque_mpc_generate_messages_cpp)
 ##############################
 # Motion server crocoddyl node
 ##############################
-add_executable(crocoddyl_motion_server_node src/crocoddyl_motion_server_node.cpp)
+add_executable(crocoddyl_motion_server_node src/crocoddyl_motion_server_node.cpp src/obstacle_params_parser.cpp)
 
 target_link_libraries(crocoddyl_motion_server_node PUBLIC
   ${catkin_LIBRARIES}

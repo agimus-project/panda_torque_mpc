@@ -17,10 +17,9 @@
 namespace panda_torque_mpc {
 
 ObstacleParamsParser::ObstacleParamsParser(
-    const std::shared_ptr<ros::NodeHandle> &nh,
-    const boost::shared_ptr<pinocchio::Model> &pin_model,
+    const boost::shared_ptr<ros::NodeHandle> &nh,
     const boost::shared_ptr<pinocchio::GeometryModel> &collision_model)
-    : nh_(nh), pin_model_(pin_model), collision_model_(collision_model){};
+    : nh_(nh), collision_model_(collision_model){};
 
 ObstacleParamsParser::~ObstacleParamsParser(){};
 

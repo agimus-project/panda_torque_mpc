@@ -126,8 +126,8 @@ namespace panda_torque_mpc
             auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
             collision_model = loadPandaGeometryModel(model_pin_);
 
-            ObstacleParamsParser collisionAddingProcess = ObstacleParamsParser(nh,boost::make_shared<pinocchio::Model>(model_pin_), collision_model);
-            collisionAddingProcess.addCollisions();
+            ObstacleParamsParser obstacle_parser(boost::make_shared<ros::NodeHandle>(nh), collision_model);
+            obstacle_parser.addCollisions();
             // double radius = 0.35/2.0;
 
             // auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));

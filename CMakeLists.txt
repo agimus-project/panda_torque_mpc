@@ -161,6 +161,7 @@ install(FILES
   launch/record_joint_ctrl.launch
   launch/record_task_ctrl.launch
   launch/sim_controllers.launch
+  launch/obstacle_params.launch
   launch/simulation.launch
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch

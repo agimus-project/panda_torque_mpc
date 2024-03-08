@@ -90,8 +90,10 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_serv
 ```bash
 roslaunch panda_torque_mpc simulation.launch arm_id:=panda simulate_camera:=false
 roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized
+roslaunch panda_torque_mpc obstacle_params.launch
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc pose_publisher.launch
+
 ```
 
 ### Follow absolute end effector reference with asynchronous MPC (real)

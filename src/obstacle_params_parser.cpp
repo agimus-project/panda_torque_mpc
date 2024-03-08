@@ -62,12 +62,12 @@ void ObstacleParamsParser::addCollisions()
     nh_->getParam(obstacle_name + "/z", z);
     geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
       new hpp::fcl::Box(x, y, z));
-}  else if (type == "box") {
+}  else if (type == "capsule") {
     double radius; 
     double halfLength;
     nh_->getParam(obstacle_name + "/radius", radius);
     nh_->getParam(obstacle_name + "/halfLength", halfLength);
-    geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Caspule(radius, halfLength));
+    geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Capsule(radius, halfLength));
 } else 
 {
 std::cerr << "No type or wrong type in the obstacle config. Try to use the one implemented, such as 'sphere', 'box' or 'capsule'." << std::endl;

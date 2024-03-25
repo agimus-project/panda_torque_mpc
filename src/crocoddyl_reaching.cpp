@@ -187,6 +187,7 @@ namespace panda_torque_mpc
 
 
         // Callbacks from Mim Solvers
+        // std::cout << *collision_model << std::endl;
         std::cout << "costs term:   " << *terminalCostModel << std::endl;
         std::cout << "constraint term:   " << *terminalConstraintModelManager << std::endl;
         std::cout << "shooting pronlem:   " << *shooting_problem<< std::endl;

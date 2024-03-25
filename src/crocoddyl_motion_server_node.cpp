@@ -42,6 +42,7 @@ namespace panda_torque_mpc
     {
     public:
         CrocoMotionServer(ros::NodeHandle &nh,
+                          ros::NodeHandle &pnh,
                           std::string robot_sensors_topic_sub,
                           std::string control_topic_pub,
                           std::string absolute_pose_ref_topic_sub,
@@ -55,6 +56,7 @@ namespace panda_torque_mpc
                           std::string ocp_solve_time_topic_pub
                           )
         {
+
             bool params_success = true;
             ///////////////////
             // Load parameters
@@ -126,8 +128,12 @@ namespace panda_torque_mpc
             auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
             collision_model = loadPandaGeometryModel(model_pin_);
 
-            ObstacleParamsParser obstacle_parser(boost::make_shared<ros::NodeHandle>(nh), collision_model);
+            std::cout << "parser in motion" << std::endl;
+            ObstacleParamsParser obstacle_parser(boost::make_shared<ros::NodeHandle>(pnh), collision_model);
             obstacle_parser.addCollisions();
+
+            std::cout << "parser done" << std::endl;
+            std::cout << *collision_model << std::endl;
             // double radius = 0.35/2.0;
 
             // auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
@@ -571,6 +577,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "crocoddyl_motion_server_node");
 
     ros::NodeHandle nh;
+    ros::NodeHandle pnh("~");
 
     std::string robot_sensors_topic_sub = "robot_sensors";
     std::string control_topic_pub = "motion_server_control";
@@ -587,6 +594,7 @@ int main(int argc, char **argv)
 
     auto motion_server = panda_torque_mpc::CrocoMotionServer(
                             nh, 
+                            pnh,
                             robot_sensors_topic_sub,
                             control_topic_pub,
                             absolute_pose_ref_topic_sub,

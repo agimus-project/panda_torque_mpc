@@ -25,31 +25,36 @@ ObstacleParamsParser::~ObstacleParamsParser(){};
 
 void ObstacleParamsParser::addCollisions() {
   // First adding the obstacles to the geometry model
-  
+
   std::cout << "in the parser" << std::endl;
 
   int obs_idx = 1;
 
-  std::cout << "has param: " << "obstacle" + std::to_string(obs_idx) + "/type" << " 0 for no, 1 for yes: " << pnh_->hasParam("obstacle" + std::to_string(obs_idx) + "/type") << std::endl;
   while (pnh_->hasParam("obstacle" + std::to_string(obs_idx) + "/type")) {
 
     std::string obstacle_name;
     obstacle_name = "obstacle" + std::to_string(obs_idx);
 
-
-    std::cout << "Obstacle_name: " << obstacle_name << std::endl;
     std::string type;
     if (!pnh_->hasParam(obstacle_name + "/type")) {
       std::cerr << "No obstacle type declared." << std::endl;
+      return;
     }
     pnh_->getParam(obstacle_name + "/type", type);
-    std::cout << "type : " << type << std::endl;
     std::vector<double> translation_vect;
+    if (!pnh_->hasParam(obstacle_name + "/translation")) {
+      std::cerr << "No obstacle translation declared." << std::endl;
+      return;
+    }
     pnh_->getParam(obstacle_name + "/translation", translation_vect);
     const auto translation =
         Eigen::Map<Eigen::Vector3d>(translation_vect.data());
 
     std::vector<double> rotation_vect;
+    if (!pnh_->hasParam(obstacle_name + "/rotation")) {
+      std::cerr << "No obstacle rotation declared." << std::endl;
+      return;
+    }
     pnh_->getParam(obstacle_name + "/rotation", rotation_vect);
     const auto rotation = Eigen::Map<Eigen::Quaterniond>(rotation_vect.data());
 
@@ -57,25 +62,51 @@ void ObstacleParamsParser::addCollisions() {
 
     if (type == "sphere") {
       double radius;
-      pnh_->getParam(obstacle_name + "/radius", radius);
-      geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
-          new hpp::fcl::Sphere(radius));
+      if (pnh_->hasParam(obstacle_name + "/radius")) {
+        pnh_->getParam(obstacle_name + "/radius", radius);
+        geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
+            new hpp::fcl::Sphere(radius));
+      } else {
+        std::cerr << "No dimension or wrong dimensions in the obstacle "
+                     "config. Try to use "
+                     "the ones for the shapes desired, such as 'radius' for "
+                     "'sphere','x', 'y', 'z' for 'box' or 'halfLength' and "
+                     "'radius' for 'capsule'."
+                  << std::endl;
+        return;
+      }
     } else if (type == "box") {
       double x;
       double y;
       double z;
-      pnh_->getParam(obstacle_name + "/x", x);
-      pnh_->getParam(obstacle_name + "/y", y);
-      pnh_->getParam(obstacle_name + "/z", z);
-      geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
-          new hpp::fcl::Box(x, y, z));
+      if (pnh_->hasParam(obstacle_name + "/x") &&
+          pnh_->hasParam(obstacle_name + "/y") &&
+          pnh_->hasParam(obstacle_name + "/z") ) {
+        pnh_->getParam(obstacle_name + "/x", x);
+        pnh_->getParam(obstacle_name + "/y", y);
+        pnh_->getParam(obstacle_name + "/z", z);
+        geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
+            new hpp::fcl::Box(x, y, z));
+      } else {
+        std::cerr << "No dimension or wrong dimensions in the obstacle "
+                     "config. Try to use "
+                     "the ones for the shapes desired, such as 'radius' for "
+                     "'sphere','x', 'y', 'z' for 'box' or 'halfLength' and "
+                     "'radius' for 'capsule'."
+                  << std::endl;
+        return;
+      }
+
     } else if (type == "capsule") {
       double radius;
       double halfLength;
-      pnh_->getParam(obstacle_name + "/radius", radius);
-      pnh_->getParam(obstacle_name + "/halfLength", halfLength);
-      geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
-          new hpp::fcl::Capsule(radius, halfLength));
+      if (pnh_->hasParam(obstacle_name + "/radius") &&
+          pnh_->hasParam(obstacle_name + "/halfLength")) {
+        pnh_->getParam(obstacle_name + "/radius", radius);
+        pnh_->getParam(obstacle_name + "/halfLength", halfLength);
+        geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
+            new hpp::fcl::Capsule(radius, halfLength));
+      }
     } else {
       std::cerr << "No type or wrong type in the obstacle config. Try to use "
                    "the one implemented, such as 'sphere', 'box' or 'capsule'."
@@ -90,36 +121,39 @@ void ObstacleParamsParser::addCollisions() {
   }
   // Adding the collision pairs to the geometry model
 
-XmlRpc::XmlRpcValue collision_pairs;
+  XmlRpc::XmlRpcValue collision_pairs;
 
-if (pnh_->getParam("collision_pairs", collision_pairs)) {
-    if (collision_pairs.getType() == XmlRpc::XmlRpcValue::TypeArray && collision_pairs.size() > 0) {
-        for (int i = 0; i < collision_pairs.size(); ++i) {
-            if (collision_pairs[i].getType() == XmlRpc::XmlRpcValue::TypeArray && collision_pairs[i].size() == 2) {
-                if (collision_pairs[i][0].getType() == XmlRpc::XmlRpcValue::TypeString &&
-                    collision_pairs[i][1].getType() == XmlRpc::XmlRpcValue::TypeString) {
-                    std::string object1 = static_cast<std::string>(collision_pairs[i][0]);
-                    std::string object2 = static_cast<std::string>(collision_pairs[i][1]);
-                    std::cout << "object1: " << object1 << std::endl; 
-                    std::cout << "object2: " << object2 << std::endl; 
+  if (pnh_->getParam("collision_pairs", collision_pairs)) {
+    if (collision_pairs.getType() == XmlRpc::XmlRpcValue::TypeArray &&
+        collision_pairs.size() > 0) {
+      for (int i = 0; i < collision_pairs.size(); ++i) {
+        if (collision_pairs[i].getType() == XmlRpc::XmlRpcValue::TypeArray &&
+            collision_pairs[i].size() == 2) {
+          if (collision_pairs[i][0].getType() ==
+                  XmlRpc::XmlRpcValue::TypeString &&
+              collision_pairs[i][1].getType() ==
+                  XmlRpc::XmlRpcValue::TypeString) {
+            std::string object1 =
+                static_cast<std::string>(collision_pairs[i][0]);
+            std::string object2 =
+                static_cast<std::string>(collision_pairs[i][1]);
 
-                    addCollisionPair(object1, object2);
-                } else {
-                    std::cerr << "Invalid collision pair type." << std::endl;
-                    return;
-                }
-            } else {
-                std::cerr << "Invalid collision pair number." << std::endl;
-                return;
-            }
+            addCollisionPair(object1, object2);
+          } else {
+            std::cerr << "Invalid collision pair type." << std::endl;
+            return;
+          }
+        } else {
+          std::cerr << "Invalid collision pair number." << std::endl;
+          return;
         }
+      }
     } else {
-        std::cerr << "No collision pair." << std::endl;
-        return;
+      std::cerr << "No collision pair." << std::endl;
+      return;
     }
+  }
 }
-}
-
 
 void ObstacleParamsParser::addCollisionPair(const std::string &name_object1,
                                             const std::string &name_object2) {

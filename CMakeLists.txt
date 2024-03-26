@@ -174,7 +174,7 @@ install(FILES
   config/franka_control_node.yaml
   config/pose_publisher_params.yaml
   config/start_joint_pose.yaml
-  config/obstacle_infos.yaml
+  config/obstacle_params.yaml
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
   )

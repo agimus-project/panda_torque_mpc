@@ -37,18 +37,18 @@
 
 namespace panda_torque_mpc
 {
-    CrocoddylReaching::CrocoddylReaching(pin::Model model_pin, const boost::shared_ptr<pin::GeometryModel>& collision_model ,
-        CrocoddylConfig _config) :
-    config_(_config)
+    CrocoddylReaching::CrocoddylReaching(const pin::Model model_pin, const boost::shared_ptr<pin::GeometryModel>& collision_model ,
+        CrocoddylConfig config) :
+    config_(config)
     {
 
-        const std::size_t end_effector_frame_id = model_pin.getFrameId(_config.ee_frame_name);
+        const std::size_t end_effector_frame_id = model_pin.getFrameId(config.ee_frame_name);
 
         std::cout << "Creating state, actuation and IAMs... " << std::endl;
         auto state = boost::make_shared<crocoddyl::StateMultibody>(boost::make_shared<pinocchio::Model>(model_pin));
         auto actuation = boost::make_shared<crocoddyl::ActuationModelFull>(state);
 
-        Eigen::Matrix<double, 14, 1> diag_x_reg_running; diag_x_reg_running << _config.diag_q_reg_running, _config.diag_v_reg_running;
+        Eigen::Matrix<double, 14, 1> diag_x_reg_running; diag_x_reg_running << config.diag_q_reg_running, config.diag_v_reg_running;
         Eigen::Matrix<double, 14, 1> diag_x_reg_terminal = diag_x_reg_running;
 
         // !! Send an error if not enough tasks set?
@@ -107,13 +107,13 @@ namespace panda_torque_mpc
         Eigen::Matrix<double, 6, 1> frame_velocity_reference = Eigen::Matrix<double, 6, 1>::Zero();
         auto frame_velocity_cost = boost::make_shared<crocoddyl::CostModelResidual>(
             state,
-            boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(_config.diag_frame_vel),
+            boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(config.diag_frame_vel),
             boost::make_shared<crocoddyl::ResidualModelFrameVelocity>(state, end_effector_frame_id, pin::Motion(frame_velocity_reference), pin::ReferenceFrame::LOCAL_WORLD_ALIGNED, actuation->get_nu()));
 
-        auto running_IAMs = std::vector<boost::shared_ptr<crocoddyl::ActionModelAbstract>>(_config.T);
+        auto running_IAMs = std::vector<boost::shared_ptr<crocoddyl::ActionModelAbstract>>(config.T);
 
 
-        for (int i = 0; i < _config.T; i++)
+        for (int i = 0; i < config.T; i++)
         {
             // State reg
             auto state_reg_cost = boost::make_shared<crocoddyl::CostModelResidual>(
@@ -124,26 +124,26 @@ namespace panda_torque_mpc
             // Ctrl reg
             auto ctrl_reg_cost = boost::make_shared<crocoddyl::CostModelResidual>(
                 state,
-                boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(_config.diag_u_reg_running),
+                boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(config.diag_u_reg_running),
                 boost::make_shared<crocoddyl::ResidualModelControlGrav>(state, actuation->get_nu()));
 
             auto runningCostModel = boost::make_shared<crocoddyl::CostModelSum>(state);
-            runningCostModel.get()->addCost(cost_state_reg_name_,   state_reg_cost, _config.w_x_reg_running);
-            runningCostModel.get()->addCost(cost_ctrl_reg_name_,    ctrl_reg_cost, _config.w_u_reg_running);
-            runningCostModel.get()->addCost(cost_translation_name_, frame_translation_cost, _config.w_frame_running); // TODO: weight schedule
-            runningCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost, _config.w_frame_running); // TODO: weight schedule
-            runningCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost, _config.w_frame_vel_running); // TODO: weight schedule
+            runningCostModel.get()->addCost(cost_state_reg_name_,   state_reg_cost, config.w_x_reg_running);
+            runningCostModel.get()->addCost(cost_ctrl_reg_name_,    ctrl_reg_cost, config.w_u_reg_running);
+            runningCostModel.get()->addCost(cost_translation_name_, frame_translation_cost, config.w_frame_running); // TODO: weight schedule
+            runningCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost, config.w_frame_running); // TODO: weight schedule
+            runningCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost, config.w_frame_vel_running); // TODO: weight schedule
             
             auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel, runningConstraintModelManager);
             // auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel);
-            running_DAM->set_armature(_config.armature);
+            running_DAM->set_armature(config.armature);
 
             // Deactivate goal cost by default until a proper reference is set
             running_DAM->get_costs()->changeCostStatus(cost_state_reg_name_, false);
             running_DAM->get_costs()->changeCostStatus(cost_translation_name_, false);
             running_DAM->get_costs()->changeCostStatus(cost_placement_name_, false);
 
-            running_IAMs[i] = boost::make_shared<crocoddyl::IntegratedActionModelEuler>(running_DAM, _config.dt_ocp);
+            running_IAMs[i] = boost::make_shared<crocoddyl::IntegratedActionModelEuler>(running_DAM, config.dt_ocp);
         }
 
         auto terminalCostModel = boost::make_shared<crocoddyl::CostModelSum>(state);
@@ -154,14 +154,14 @@ namespace panda_torque_mpc
             boost::make_shared<crocoddyl::ResidualModelState>(state, x0_dummy, actuation->get_nu()));
 
         // terminal gains have to be multiplied by dt in order to be up to scale with running costs
-        terminalCostModel.get()->addCost(cost_state_reg_name_,   state_reg_cost,         _config.w_x_reg_terminal*_config.dt_ocp);
-        terminalCostModel.get()->addCost(cost_translation_name_, frame_translation_cost, _config.w_frame_terminal*_config.dt_ocp);
-        terminalCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost,   _config.w_frame_terminal*_config.dt_ocp);
-        terminalCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost,    _config.w_frame_vel_terminal*_config.dt_ocp);
+        terminalCostModel.get()->addCost(cost_state_reg_name_,   state_reg_cost,         config.w_x_reg_terminal*config.dt_ocp);
+        terminalCostModel.get()->addCost(cost_translation_name_, frame_translation_cost, config.w_frame_terminal*config.dt_ocp);
+        terminalCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost,   config.w_frame_terminal*config.dt_ocp);
+        terminalCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost,    config.w_frame_vel_terminal*config.dt_ocp);
 
         auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel, terminalConstraintModelManager);
         // auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel);
-        terminal_DAM->set_armature(_config.armature);
+        terminal_DAM->set_armature(config.armature);
 
         // Deactivate goal cost by default until a proper reference is set
         terminal_DAM->get_costs()->changeCostStatus(cost_state_reg_name_, false);
@@ -175,10 +175,10 @@ namespace panda_torque_mpc
         ocp_ = boost::make_shared<mim_solvers::SolverCSQP>(shooting_problem);
         // ocp_ = boost::make_shared<mim_solvers::SolverSQP>(shooting_problem);
         // ocp_ = boost::make_shared<crocoddyl::SolverFDDP>(shooting_problem);
-        ocp_->set_termination_tolerance(_config.solver_termination_tolerance);
-        ocp_->set_max_qp_iters(_config.max_qp_iter);
-        ocp_->set_eps_abs(_config.qp_termination_tol_abs);
-        ocp_->set_eps_rel(_config.qp_termination_tol_rel);
+        ocp_->set_termination_tolerance(config.solver_termination_tolerance);
+        ocp_->set_max_qp_iters(config.max_qp_iter);
+        ocp_->set_eps_abs(config.qp_termination_tol_abs);
+        ocp_->set_eps_rel(config.qp_termination_tol_rel);
         ocp_->setCallbacks(false);
         
         // Callbacks from crocoddyl
@@ -187,7 +187,6 @@ namespace panda_torque_mpc
 
 
         // Callbacks from Mim Solvers
-        // std::cout << *collision_model << std::endl;
         std::cout << "costs term:   " << *terminalCostModel << std::endl;
         std::cout << "constraint term:   " << *terminalConstraintModelManager << std::endl;
         std::cout << "shooting pronlem:   " << *shooting_problem<< std::endl;

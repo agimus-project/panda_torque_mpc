@@ -2,17 +2,10 @@
 
 #include "panda_torque_mpc/obstacle_params_parser.h"
 
-#include <Eigen/Dense>
-#include <boost/shared_ptr.hpp>
-#include <fstream>
 #include <memory>
 #include <vector>
 
 #include <pinocchio/fwd.hpp>
-#include <pinocchio/multibody/model.hpp>
-
-#include <ros/ros.h>
-#include <yaml-cpp/yaml.h>
 
 namespace panda_torque_mpc {
 
@@ -26,24 +19,18 @@ ObstacleParamsParser::~ObstacleParamsParser(){};
 void ObstacleParamsParser::addCollisions() {
   // First adding the obstacles to the geometry model
 
-  std::cout << "in the parser" << std::endl;
-
   int obs_idx = 1;
 
   while (pnh_->hasParam("obstacle" + std::to_string(obs_idx) + "/type")) {
 
-    std::string obstacle_name;
-    obstacle_name = "obstacle" + std::to_string(obs_idx);
+    std::string obstacle_name = "obstacle" + std::to_string(obs_idx);
 
     std::string type;
-    if (!pnh_->hasParam(obstacle_name + "/type")) {
-      std::cerr << "No obstacle type declared." << std::endl;
-      return;
-    }
     pnh_->getParam(obstacle_name + "/type", type);
     std::vector<double> translation_vect;
+
     if (!pnh_->hasParam(obstacle_name + "/translation")) {
-      std::cerr << "No obstacle translation declared." << std::endl;
+      std::cerr << "No obstacle translation declared for the obstacle named: " << obstacle_name <<  std::endl;
       return;
     }
     pnh_->getParam(obstacle_name + "/translation", translation_vect);
@@ -52,7 +39,7 @@ void ObstacleParamsParser::addCollisions() {
 
     std::vector<double> rotation_vect;
     if (!pnh_->hasParam(obstacle_name + "/rotation")) {
-      std::cerr << "No obstacle rotation declared." << std::endl;
+      std::cerr << "No obstacle rotation declared for the obstacle named: " << obstacle_name << std::endl;
       return;
     }
     pnh_->getParam(obstacle_name + "/rotation", rotation_vect);
@@ -117,7 +104,7 @@ void ObstacleParamsParser::addCollisions() {
     pinocchio::GeometryObject obstacle(obstacle_name, 0, 0, geometry,
                                        obstacle_pose);
     collision_model_->addGeometryObject(obstacle);
-    obs_idx += 1;
+    obs_idx ++;
   }
   // Adding the collision pairs to the geometry model
 
@@ -140,25 +127,24 @@ void ObstacleParamsParser::addCollisions() {
 
             addCollisionPair(object1, object2);
           } else {
-            std::cerr << "Invalid collision pair type." << std::endl;
+            std::cerr << "Invalid collision pair type for collision pair " << i << std::endl;
             return;
           }
         } else {
-          std::cerr << "Invalid collision pair number." << std::endl;
+          std::cerr << "Invalid collision pair number for collision pair " <<i << std::endl;
           return;
         }
       }
     } else {
-      std::cerr << "No collision pair." << std::endl;
-      return;
+      std::cout << "No collision pair." << std::endl;
     }
   }
 }
 
 void ObstacleParamsParser::addCollisionPair(const std::string &name_object1,
                                             const std::string &name_object2) {
-  std::size_t object1Id = collision_model_->getGeometryId(name_object1);
-  std::size_t object2Id = collision_model_->getGeometryId(name_object2);
+  const std::size_t object1Id = collision_model_->getGeometryId(name_object1);
+  const std::size_t object2Id = collision_model_->getGeometryId(name_object2);
   if (!collision_model_->existGeometryName(name_object1) ||
       !collision_model_->existGeometryName(name_object2)) {
     std::cerr << "Object ID not found for collision pair: " << object1Id
@@ -169,4 +155,3 @@ void ObstacleParamsParser::addCollisionPair(const std::string &name_object1,
       pinocchio::CollisionPair(object1Id, object2Id));
 }
 }; // namespace panda_torque_mpc
-   // namespace panda_torque_mpc

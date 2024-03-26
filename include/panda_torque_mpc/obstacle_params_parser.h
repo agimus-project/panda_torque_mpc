@@ -5,14 +5,14 @@
 #include <fstream>
 #include <memory>
 #include <vector>
+#include <iostream>
 
 #include <pinocchio/fwd.hpp>
 #include <pinocchio/multibody/model.hpp>
-#include "pinocchio/algorithm/joint-configuration.hpp"
-#include "pinocchio/algorithm/geometry.hpp"
+#include <pinocchio/algorithm/joint-configuration.hpp>
+#include <pinocchio/algorithm/geometry.hpp>
 #include <hpp/fcl/collision_object.h>
 #include <hpp/fcl/shape/geometric_shapes.h>
-
 
 #include <ros/ros.h>
 

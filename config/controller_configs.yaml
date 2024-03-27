@@ -218,6 +218,15 @@ ctrl_mpc_linearized:
     w_u_reg_running: 0.001
     diag_u_reg_running: [1.,1.,1.,1.,1.,1.,1.]
 
+    # targets params
+    pose_target1: [0.0, -0.35, 1.0, 0.0, 1.0, 0.0, 0.0]
+    pose_target2: [0.0, 0.35, 1.0, 0.0, 1.0, 0.0, 0.0]
+    publish_frequency: 0.25
+
+    # Parameters to modify the curve of the target weight function
+    w_slope: 1.4
+    w_cut: 3.4
+
     ################################
     # Visual servoing mode reference
     ################################

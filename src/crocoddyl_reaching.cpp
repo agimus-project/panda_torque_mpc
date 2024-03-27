@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include <Eigen/Dense>
+#include <cmath>
 
 #include <pinocchio/fwd.hpp>
 #include <pinocchio/multibody/model.hpp>
@@ -38,8 +39,8 @@
 namespace panda_torque_mpc
 {
     CrocoddylReaching::CrocoddylReaching(pin::Model _model_pin, const boost::shared_ptr<pin::GeometryModel>& _collision_model ,
-        CrocoddylConfig _config) :
-    config_(_config)
+        CrocoddylConfig _config, TargetsConfig _targ_config) :
+    config_(_config), targ_config_(_targ_config)
     {
 
         auto end_effector_frame_id = _model_pin.getFrameId(_config.ee_frame_name);
@@ -221,26 +222,107 @@ namespace panda_torque_mpc
         return ocp_->get_K()[0];
     }
 
+    std::pair<double,double> CrocoddylReaching::get_targets_weights(const double& time,const int& node_index){
+            double cycle_start_time =double(int(time/targ_config_.cycle_duration) * targ_config_.cycle_duration);  // Date of cycle start in ms
+
+            // Compute the absolute time of the shooting interval, modulo the cycle time,
+            // so that 0<=time_a0<cycle_duration and 0<time_a1<=cycle_duration
+            double time_a0 = time + node_index * config_.dt_ocp - cycle_start_time; // absolute data of the time of the start of the shooting interval
+            double time_a1 = time + (node_index + 1) * config_.dt_ocp - cycle_start_time; // absolute data of the time of the start of the shooting interval
+            if (time_a0 > targ_config_.cycle_duration){
+                time_a0 -= targ_config_.cycle_duration;
+                time_a1 -= targ_config_.cycle_duration;
+            }
+            double time_b0, time_b1; 
+            // Compute the absolute time of the shooting interval for the second task, modulo the cycle time,
+            // so that 0<=time_b0<cycle_duration and 0<time_b1<=cycle_duration and [time_a0,time_a1] is in antiphase with [time_b0,time_b1].
+            if (time_a0 < targ_config_.cycle_duration_2){
+                time_b0 = time_a0 + targ_config_.cycle_duration_2;
+                if (time_a1 <= targ_config_.cycle_duration_2){
+                    time_b1 = time_a1 + targ_config_.cycle_duration_2;
+                }else{
+                    time_b1 = targ_config_.cycle_duration;
+                }
+            }
+            else{
+                time_b0 = time_a0 - targ_config_.cycle_duration_2;
+                time_b1 = time_a1 - targ_config_.cycle_duration_2;
+            }
+                
+            if (time_a1 > targ_config_.cycle_duration){
+                time_a1 =targ_config_.cycle_duration;
+            }
+
+            // Compute the weights for the first task, as \integral_time_a0^time_a1 weight(s) ds.
+            double exp_a1 = std::exp(targ_config_.w_slope * (time_a1 - targ_config_.w_cut));
+            double exp_a0 = std::exp(targ_config_.w_slope * (time_a0 - targ_config_.w_cut));
+            double weight_a = (exp_a1 - exp_a0) / targ_config_.w_slope;
+
+            // Compute the weights for the second task, as \integral_time_b0^time_b1 weight(s) ds.
+            double exp_b1 = std::exp(targ_config_.w_slope * (time_b1 - targ_config_.w_cut));
+            double exp_b0 = std::exp(targ_config_.w_slope * (time_b0 - targ_config_.w_cut));
+            double weight_b = (exp_b1 - exp_b0) / targ_config_.w_slope;
+
+            return std::make_pair(weight_a,weight_b);
+        }
+    
+    std::pair<double,pin::SE3> CrocoddylReaching::get_weight_and_target(const double& time,const int& node_index){
+        std::pair<double,double> weights = get_targets_weights(time, node_index);
+        double weight_a = weights.first;
+        double weight_b = weights.second;
+        if (node_index == 0){
+            if (weight_a > weight_b){
+                targ_config_.weight_a_is_target= true;
+            }else{
+                targ_config_.weight_a_is_target= false;
+            }
+        }
+        
+        const int current_target_idx = int(std::fmod(time,targ_config_.cycle_duration) * targ_config_.publish_frequency);
+        int next_target_idx = (current_target_idx+1)%targ_config_.nb_target;
+        pin::SE3 current_target = targ_config_.pose_targets[current_target_idx];
+        pin::SE3 next_target = targ_config_.pose_targets[next_target_idx];
+        pin::SE3 target;
+        target.rotation() = current_target.rotation();
+        if (targ_config_.weight_a_is_target){
+            target.translation() = (current_target.translation()*weight_a+next_target.translation()*weight_b)/(weight_a+weight_b);
+            
+        }else{
+            target.translation() = (current_target.translation()*weight_b+next_target.translation()*weight_a)/(weight_a+weight_b);
+        }
+        
+        std::cout << "weight " << weight_a+weight_b <<std::endl;
+        return std::make_pair(weight_a+weight_b,target);
+    }
+
     void CrocoddylReaching::set_ee_ref_translation(Eigen::Vector3d trans, bool is_active)
     {
+        const auto time = simulation_time.tac()/1000;
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
         {
             auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_runningModels()[node_index]);
             auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
             auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(running_DAM->get_costs()->get_costs().at(cost_translation_name_)->cost->get_residual());
-            frame_res_running->set_reference(trans);
+            std::pair<double,pin::SE3> weight_and_target =  get_weight_and_target(time, node_index);
+            pin::SE3 target = weight_and_target.second;
+            frame_res_running->set_reference(target.translation());
             if (!goal_translation_set_)
             {
                 running_DAM->get_costs()->changeCostStatus(cost_translation_name_, is_active);
             }
+
+            double weight = weight_and_target.first;
+            running_DAM->get_costs()->get_costs().at(cost_translation_name_)->weight =weight;
         }
 
         // Terminal
         auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_terminalModel());
         auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
         auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(terminal_DAM->get_costs()->get_costs().at(cost_translation_name_)->cost->get_residual());
-        frame_res_terminal->set_reference(trans);
+        std::pair<double,pin::SE3> weight_and_target =  get_weight_and_target(time, config_.T);
+        pin::SE3 target = weight_and_target.second;
+        frame_res_terminal->set_reference(target.translation());
         if (!goal_translation_set_)
         {
             terminal_DAM->get_costs()->changeCostStatus(cost_translation_name_, is_active);
@@ -248,30 +330,41 @@ namespace panda_torque_mpc
             // No need to activate again
             goal_translation_set_ = is_active;
         }
+
+        double weight = weight_and_target.first;
+        terminal_DAM->get_costs()->get_costs().at(cost_translation_name_)->weight =weight;
     }
 
     void CrocoddylReaching::set_ee_ref_placement(pin::SE3 placement, bool is_active, double uniform_weight_scaling)
     {
+        const auto time = simulation_time.tac()/1000;
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
         {
             auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_runningModels()[node_index]);
             auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
             auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(running_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
-            frame_res_running->set_reference(placement);
+            std::pair<double,pin::SE3> weight_and_target =  get_weight_and_target(time, node_index);
+            pin::SE3 target = weight_and_target.second;
+            frame_res_running->set_reference(target);
             if (!goal_placement_set_)
             {
                 running_DAM->get_costs()->changeCostStatus(cost_placement_name_, is_active);
             }
 
-            running_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight = uniform_weight_scaling * config_.w_frame_running;
+            double weight = weight_and_target.first;
+            running_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight =weight;
         }
 
         // Terminal
         auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_terminalModel());
         auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
         auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
-        frame_res_terminal->set_reference(placement);
+        
+        std::pair<double,pin::SE3> weight_and_target =  get_weight_and_target(time, config_.T);
+        pin::SE3 target = weight_and_target.second;
+        frame_res_terminal->set_reference(target);
+        
         if (!goal_placement_set_)
         {
             terminal_DAM->get_costs()->changeCostStatus(cost_placement_name_, is_active);
@@ -280,7 +373,8 @@ namespace panda_torque_mpc
             goal_placement_set_ = is_active;
         }
 
-        terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight = uniform_weight_scaling * config_.w_frame_running;
+        double weight = weight_and_target.first;
+        terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight =weight;
     }
 
 

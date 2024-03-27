@@ -23,6 +23,18 @@ namespace pin = pinocchio;
 
 namespace panda_torque_mpc
 {
+    struct TargetsConfig
+    {
+        double publish_frequency = 0.5;
+        int nb_target = 2;
+        int cycle_nb_nodes;
+        double cycle_duration;
+        double cycle_duration_2;
+        double w_slope;
+        double w_cut;
+        bool weight_a_is_target = true;
+        std::vector<pin::SE3> pose_targets;
+    };
     struct CrocoddylConfig
     {
         size_t T; // nb of nodes - terminal one
@@ -64,9 +76,15 @@ namespace panda_torque_mpc
             // dummy constructor necessary to use this class as a member variable directly
         }
 
-        CrocoddylReaching(pin::Model _model_pin, const boost::shared_ptr<pin::GeometryModel>& _collision_model ,CrocoddylConfig _config);
+        CrocoddylReaching(pin::Model _model_pin, const boost::shared_ptr<pin::GeometryModel>& _collision_model ,CrocoddylConfig _config, TargetsConfig _targ_config);
         // CrocoddylReaching(pin::Model _model_pin, CrocoddylConfig _config);
 
+        // Return weights for current and next target
+        std::pair<double,double> get_targets_weights(const double& time,const int& node_index);
+
+        // Return current target and his weight
+        std::pair<double,pin::SE3> get_weight_and_target(const double& time,const int& node_index);
+        
         void set_ee_ref_translation(Eigen::Vector3d trans, bool is_active=true);
         /**
          * placement: pin::SE3, reference placement, constant for the whole horizon
@@ -82,7 +100,10 @@ namespace panda_torque_mpc
         // boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
         // boost::shared_ptr<mim_solvers::SolverSQP> ocp_;
         boost::shared_ptr<mim_solvers::SolverCSQP> ocp_;
+
+        TicTac simulation_time;
         CrocoddylConfig config_;
+        TargetsConfig targ_config_;
 
         std::string cost_translation_name_;
         std::string cost_placement_name_;

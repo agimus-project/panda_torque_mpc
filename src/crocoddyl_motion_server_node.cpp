@@ -2,9 +2,6 @@
 #include <string>
 #include <cassert>
  
-// Use (void) to silence unused warnings.
-#define assertm(exp, msg) assert(((void)msg, exp))
-
 #include <pinocchio/fwd.hpp>
 #include <pinocchio/multibody/data.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
@@ -30,6 +27,7 @@
 
 #include "panda_torque_mpc/common.h"
 #include "panda_torque_mpc/crocoddyl_reaching.h"
+#include "panda_torque_mpc/obstacle_params_parser.h"
 
 #include "geometry_msgs/PoseStamped.h"
 #include "std_msgs/Duration.h"
@@ -44,6 +42,7 @@ namespace panda_torque_mpc
     {
     public:
         CrocoMotionServer(ros::NodeHandle &nh,
+                          ros::NodeHandle &pnh,
                           std::string robot_sensors_topic_sub,
                           std::string control_topic_pub,
                           std::string absolute_pose_ref_topic_sub,
@@ -57,6 +56,7 @@ namespace panda_torque_mpc
                           std::string ocp_solve_time_topic_pub
                           )
         {
+
             bool params_success = true;
             ///////////////////
             // Load parameters
@@ -128,37 +128,9 @@ namespace panda_torque_mpc
             auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
             collision_model = loadPandaGeometryModel(model_pin_);
 
-            double radius = 0.35/2.0;
-
-            auto geometry = pinocchio::GeometryObject::CollisionGeometryPtr(new hpp::fcl::Sphere(radius));
-
-            pinocchio::SE3 obstacle_pose(Eigen::Quaterniond (1.,0.,0.,0.), Eigen::Vector3d (0,0,0.825));
-            // pinocchio::SE3 obstacle_pose;
-            // obstacle_pose.setIdentity();
-            // obstacle_pose.trans << 0., 0., 0.;
-
-            pinocchio::GeometryObject obstacle("obstacle", 0,0, geometry, obstacle_pose);
-            collision_model->addGeometryObject(obstacle);
-
-
-            assertm(collision_model->getGeometryId("obstacle") < collision_model->geometryObjects.size(), "The index of the obstacle is not right.");
-            assertm(collision_model->getGeometryId("panda_leftfinger_0") < collision_model->geometryObjects.size(), "The index of the panda_leftfinger_0 is not right.");
-            assertm(collision_model->getGeometryId("panda_rightfinger_0") < collision_model->geometryObjects.size(), "The index of the panda_rightfinger_0 is not right.");
-
-            //   Print out the placement of each collision geometry object
-
-            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-                collision_model->getGeometryId("panda_leftfinger_0")));
-
-            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-                collision_model->getGeometryId("panda_rightfinger_0")));
-
-            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-                collision_model->getGeometryId("panda_link7_sc_1")));
-
-            collision_model->addCollisionPair(pinocchio::CollisionPair(collision_model->getGeometryId("obstacle"),
-                collision_model->getGeometryId("panda_link7_sc_4")));
-                        
+            ObstacleParamsParser obstacle_parser(boost::make_shared<ros::NodeHandle>(pnh), collision_model);
+            obstacle_parser.addCollisions();
+                                   
             if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
             {
                 ROS_ERROR_STREAM("Problem when loading the robot urdf");
@@ -573,6 +545,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "crocoddyl_motion_server_node");
 
     ros::NodeHandle nh;
+    ros::NodeHandle pnh("~");
 
     std::string robot_sensors_topic_sub = "robot_sensors";
     std::string control_topic_pub = "motion_server_control";
@@ -589,6 +562,7 @@ int main(int argc, char **argv)
 
     auto motion_server = panda_torque_mpc::CrocoMotionServer(
                             nh, 
+                            pnh,
                             robot_sensors_topic_sub,
                             control_topic_pub,
                             absolute_pose_ref_topic_sub,

@@ -85,19 +85,30 @@ ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc pose_publisher.py
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP robot:=panda
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ``` -->
-
+<!-- 
 ### Follow absolute end effector reference with asynchronous MPC (simu)
 ```bash
 roslaunch panda_torque_mpc simulation.launch arm_id:=panda simulate_camera:=false
 roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc pose_publisher.launch
+
+``` -->
+
+
+### Follow absolute end effector reference with asynchronous MPC (simu)
+```bash
+roslaunch panda_torque_mpc simulation.launch arm_id:=panda simulate_camera:=false
+roslaunch panda_torque_mpc sim_controllers.launch controller:=ctrl_mpc_linearized
+roslaunch panda_torque_mpc crocoddyl_motion_server_node.launch
+ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc pose_publisher.launch
+
 ```
 
 ### Follow absolute end effector reference with asynchronous MPC (real)
 ```bash
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP robot:=panda
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
+roslaunch panda_torque_mpc crocoddyl_motion_server_node
 ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc pose_publisher.launch
 ```
 
@@ -107,7 +118,7 @@ First, check that `pose_e_c` and `pose_c_o_ref` have sensible values in `control
 roslaunch realsense2_camera rs_camera.launch
 roslaunch apriltag_ros continuous_detection.launch  # check the tag id/tag size etc.
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP robot:=panda
-ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
+roslaunch panda_torque_mpc crocoddyl_motion_server_node
 ```
 
 # TODOLIST

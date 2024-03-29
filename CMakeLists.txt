@@ -108,6 +108,7 @@ add_library(panda_torque_mpc
   src/ctrl_joint_space_ID.cpp
   src/ctrl_task_space_ID.cpp
   src/ctrl_mpc_linearized.cpp
+  src/obstacle_params_parser.cpp
 )
 
 #message(FATAL_ERROR "dbg: ${catkin_INCLUDE_DIRS}")
@@ -134,7 +135,7 @@ add_dependencies(panda_torque_mpc panda_torque_mpc_generate_messages_cpp)
 ##############################
 # Motion server crocoddyl node
 ##############################
-add_executable(crocoddyl_motion_server_node src/crocoddyl_motion_server_node.cpp)
+add_executable(crocoddyl_motion_server_node src/crocoddyl_motion_server_node.cpp src/obstacle_params_parser.cpp)
 
 target_link_libraries(crocoddyl_motion_server_node PUBLIC
   ${catkin_LIBRARIES}
@@ -160,6 +161,7 @@ install(FILES
   launch/record_joint_ctrl.launch
   launch/record_task_ctrl.launch
   launch/sim_controllers.launch
+  launch/crocoddyl_motion_server_node.launch
   launch/simulation.launch
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
@@ -172,6 +174,7 @@ install(FILES
   config/franka_control_node.yaml
   config/pose_publisher_params.yaml
   config/start_joint_pose.yaml
+  config/obstacle_params.yaml
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
   )

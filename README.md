@@ -108,7 +108,7 @@ ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc pose_publisher.lau
 ### Follow absolute end effector reference with asynchronous MPC (real)
 ```bash
 roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_linearized robot_ip:=$PANDA_IP robot:=panda
-ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc crocoddyl_motion_server_node
+roslaunch panda_torque_mpc crocoddyl_motion_server_node
 ROS_NAMESPACE=/ctrl_mpc_linearized roslaunch panda_torque_mpc pose_publisher.launch
 ```
 

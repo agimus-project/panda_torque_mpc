@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Eigen/Dense>
 #include <boost/shared_ptr.hpp>
 #include <fstream>
 #include <memory>

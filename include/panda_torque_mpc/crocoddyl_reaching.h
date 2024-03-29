@@ -31,6 +31,7 @@ namespace panda_torque_mpc
         double cycle_duration;
         double cycle_duration_2;
         double w_slope;
+        double max_w;
         double w_cut;
         bool weight_a_is_target = true;
         std::vector<pin::SE3> pose_targets;
@@ -85,13 +86,13 @@ namespace panda_torque_mpc
         // Return current target and his weight
         std::pair<double,pin::SE3> get_weight_and_target(const double& time,const int& node_index);
         
-        void set_ee_ref_translation(Eigen::Vector3d trans, bool is_active=true);
+        void set_ee_ref_translation(Eigen::Vector3d trans, double time, bool is_active=true);
         /**
          * placement: pin::SE3, reference placement, constant for the whole horizon
          * is_active: bool, activate/deactivate the costs over the whole horizon
          * uniform_weight_scaling: double, constant for the whole horizon
         */
-        void set_ee_ref_placement(pin::SE3 placement, bool is_active=true, double uniform_weight_scaling=1.0);
+        void set_ee_ref_placement(pin::SE3 placement, double time, bool is_active=true, double uniform_weight_scaling=1.0);
 
         void set_posture_ref(Eigen::VectorXd x0);
 

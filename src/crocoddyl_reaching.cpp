@@ -254,14 +254,18 @@ namespace panda_torque_mpc
             }
 
             // Compute the weights for the first task, as \integral_time_a0^time_a1 weight(s) ds.
-            double exp_a1 = std::exp(targ_config_.w_slope * (time_a1 - targ_config_.w_cut));
+            /*double exp_a1 = std::exp(targ_config_.w_slope * (time_a1 - targ_config_.w_cut));
             double exp_a0 = std::exp(targ_config_.w_slope * (time_a0 - targ_config_.w_cut));
-            double weight_a = (exp_a1 - exp_a0) / targ_config_.w_slope;
+            double weight_a = (exp_a1 - exp_a0) / targ_config_.w_slope;*/
+            //double v = 10;
+            //double u = 4.29; //=log(0.2)*Ts/(1-Ts)
+            double weight_a = targ_config_.max_w*std::exp(-targ_config_.w_slope*(targ_config_.cycle_duration-time_a0)/targ_config_.cycle_duration);
 
             // Compute the weights for the second task, as \integral_time_b0^time_b1 weight(s) ds.
-            double exp_b1 = std::exp(targ_config_.w_slope * (time_b1 - targ_config_.w_cut));
+            /*double exp_b1 = std::exp(targ_config_.w_slope * (time_b1 - targ_config_.w_cut));
             double exp_b0 = std::exp(targ_config_.w_slope * (time_b0 - targ_config_.w_cut));
-            double weight_b = (exp_b1 - exp_b0) / targ_config_.w_slope;
+            double weight_b = (exp_b1 - exp_b0) / targ_config_.w_slope;*/
+            double weight_b = targ_config_.max_w*std::exp(-targ_config_.w_slope*(targ_config_.cycle_duration-time_b0)/targ_config_.cycle_duration);
 
             return std::make_pair(weight_a,weight_b);
         }
@@ -283,21 +287,27 @@ namespace panda_torque_mpc
         pin::SE3 current_target = targ_config_.pose_targets[current_target_idx];
         pin::SE3 next_target = targ_config_.pose_targets[next_target_idx];
         pin::SE3 target;
-        target.rotation() = current_target.rotation();
-        if (targ_config_.weight_a_is_target){
-            target.translation() = (current_target.translation()*weight_a+next_target.translation()*weight_b)/(weight_a+weight_b);
-            
+        double weight;
+        if (weight_a > weight_b){
+            weight = weight_a;
         }else{
-            target.translation() = (current_target.translation()*weight_b+next_target.translation()*weight_a)/(weight_a+weight_b);
+            weight = weight_b;
+        }
+        target.rotation() = current_target.rotation();
+        if ((targ_config_.weight_a_is_target && weight_a > weight_b) || (!targ_config_.weight_a_is_target && weight_b > weight_a)){
+            target.translation() = current_target.translation();
+        }else{
+            target.translation() = next_target.translation();
+        }
+        if (node_index ==0){
+            std::cout<< "w " << weight << " targ y "<<target.translation()[1]<<" wa "<< weight_a<<" wb "<< weight_b << std::endl;
         }
         
-        std::cout << "weight " << weight_a+weight_b <<std::endl;
-        return std::make_pair(weight_a+weight_b,target);
+        return std::make_pair(weight,target);
     }
 
-    void CrocoddylReaching::set_ee_ref_translation(Eigen::Vector3d trans, bool is_active)
+    void CrocoddylReaching::set_ee_ref_translation(Eigen::Vector3d trans, double time, bool is_active)
     {
-        const auto time = simulation_time.tac()/1000;
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
         {
@@ -335,9 +345,8 @@ namespace panda_torque_mpc
         terminal_DAM->get_costs()->get_costs().at(cost_translation_name_)->weight =weight;
     }
 
-    void CrocoddylReaching::set_ee_ref_placement(pin::SE3 placement, bool is_active, double uniform_weight_scaling)
+    void CrocoddylReaching::set_ee_ref_placement(pin::SE3 placement, double time, bool is_active, double uniform_weight_scaling)
     {
-        const auto time = simulation_time.tac()/1000;
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
         {

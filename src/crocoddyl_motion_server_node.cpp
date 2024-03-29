@@ -66,7 +66,7 @@ namespace panda_torque_mpc
 
             // Croco params
             int nb_shooting_nodes, nb_iterations_max, max_qp_iter;
-            double dt_ocp,solver_termination_tolerance,qp_termination_tol_abs , qp_termination_tol_rel, w_frame_running, w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running, publish_frequency, w_slope, w_cut;
+            double dt_ocp,solver_termination_tolerance,qp_termination_tol_abs , qp_termination_tol_rel, w_frame_running, w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running, publish_frequency, w_slope, w_cut, max_w;
             std::vector<double> diag_frame_vel, diag_q_reg_running, diag_v_reg_running, diag_u_reg_running, armature;
             std::vector<double> pose_e_c, pose_c_o_ref, pose_target1, pose_target2;  // px,py,pz, qx,qy,qz,qw
             std::vector<pin::SE3> pose_targets;
@@ -91,6 +91,7 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<double>(nh, publish_frequency,  "publish_frequency") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_slope,  "w_slope") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_cut,  "w_cut") && params_success;
+            params_success = get_param_error_tpl<double>(nh, max_w,  "max_w") && params_success;
 
             params_success = get_param_error_tpl<std::vector<double>>(nh, diag_frame_vel, "diag_frame_vel",
                                                                       [](std::vector<double> v)
@@ -216,6 +217,7 @@ namespace panda_torque_mpc
             targ_config_.cycle_nb_nodes = targ_config_.cycle_duration / dt_ocp;
             targ_config_.w_slope = w_slope;
             targ_config_.w_cut = w_cut;
+            targ_config_.max_w = max_w;
 
             // croco_reaching_ = CrocoddylReaching(model_pin_ ,config_croco_);
             croco_reaching_ = CrocoddylReaching(model_pin_, collision_model ,config_croco_, targ_config_);
@@ -494,13 +496,14 @@ namespace panda_torque_mpc
             // Deactivating reaching task would requires to re-equilibrate the OCP weights
             // -> easier to track last known reference active
             bool reaching_task_is_active = true;
+            double time_sensor = t_sensor_.sec + t_sensor_.nsec*1e-9;
             if (config_croco_.reference_is_placement)
             {
-                croco_reaching_.set_ee_ref_placement(T_b_e_ref, reaching_task_is_active, 1.0);
+                croco_reaching_.set_ee_ref_placement(T_b_e_ref, time_sensor, reaching_task_is_active, 1.0);
             }
             else
             {
-                croco_reaching_.set_ee_ref_translation(T_b_e_ref.translation(), reaching_task_is_active);
+                croco_reaching_.set_ee_ref_translation(T_b_e_ref.translation(), time_sensor, reaching_task_is_active);
             }
             croco_reaching_.set_posture_ref(x_init);
 

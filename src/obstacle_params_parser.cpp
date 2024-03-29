@@ -3,7 +3,6 @@
 #include "panda_torque_mpc/obstacle_params_parser.h"
 
 #include <boost/shared_ptr.hpp>
-#include <fstream>
 #include <memory>
 #include <vector>
 #include <iostream>

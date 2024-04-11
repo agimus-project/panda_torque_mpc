@@ -135,7 +135,7 @@ namespace panda_torque_mpc
             runningCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost, _config.w_frame_running); // TODO: weight schedule
             runningCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost, _config.w_frame_vel_running); // TODO: weight schedule
             
-            auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel, runningConstraintModelManager);
+            auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel);//, runningConstraintModelManager
             // auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel);
             running_DAM->set_armature(_config.armature);
 
@@ -160,7 +160,7 @@ namespace panda_torque_mpc
         terminalCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost,   _config.w_frame_terminal*_config.dt_ocp);
         terminalCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost,    _config.w_frame_vel_terminal*_config.dt_ocp);
 
-        auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel, terminalConstraintModelManager);
+        auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel);//, terminalConstraintModelManager
         // auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel);
         terminal_DAM->set_armature(_config.armature);
 
@@ -173,14 +173,14 @@ namespace panda_torque_mpc
 
         // Shooting problem
         auto shooting_problem = boost::make_shared<crocoddyl::ShootingProblem>(x0_dummy, running_IAMs, terminal_IAM);
-        ocp_ = boost::make_shared<mim_solvers::SolverCSQP>(shooting_problem);
+        ocp_ = boost::make_shared<crocoddyl::SolverFDDP>(shooting_problem);
         // ocp_ = boost::make_shared<mim_solvers::SolverSQP>(shooting_problem);
         // ocp_ = boost::make_shared<crocoddyl::SolverFDDP>(shooting_problem);
-        ocp_->set_termination_tolerance(_config.solver_termination_tolerance);
+        /*ocp_->set_termination_tolerance(_config.solver_termination_tolerance);
         ocp_->set_max_qp_iters(_config.max_qp_iter);
         ocp_->set_eps_abs(_config.qp_termination_tol_abs);
         ocp_->set_eps_rel(_config.qp_termination_tol_rel);
-        ocp_->setCallbacks(false);
+        ocp_->setCallbacks(false);*/
         
         // Callbacks from crocoddyl
         std::vector<boost::shared_ptr<crocoddyl::CallbackAbstract>> callbacks;
@@ -300,7 +300,7 @@ namespace panda_torque_mpc
             target.translation() = next_target.translation();
         }
         if (node_index ==0){
-            std::cout<< "w " << weight << " targ y "<<target.translation()[1]<<" wa "<< weight_a<<" wb "<< weight_b << std::endl;
+            //std::cout<< "w " << weight << " targ y "<<target.translation()[1]<<" wa "<< weight_a<<" wb "<< weight_b << " time "<<time << std::endl;
         }
         
         return std::make_pair(weight,target);

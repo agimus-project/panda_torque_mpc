@@ -52,11 +52,12 @@ def get_pose_list(q_array):
     return pose_list
 
 
+cycle_len = 120
 targets = {}
-targets["x"] = [0] * 240
-targets["y1"] = [-0.35] * 240
-targets["y2"] = [0.35] * 240
-targets["z"] = [1] * 240
+targets["x"] = [0] * cycle_len
+targets["y1"] = [-0.35] * cycle_len
+targets["y2"] = [0.35] * cycle_len
+targets["z"] = [1] * cycle_len
 for i_field, field in enumerate(fields):
     fig_dq, ax_dq = plt.subplots(1, 1)
     fig_tau, ax_tau = plt.subplots(1, 1)
@@ -70,10 +71,10 @@ for i_field, field in enumerate(fields):
     d_res = read_jsid_bag(BAG_PATHS[0], CONTROLLER_NAME)
     if len(d_res["t"]) < 600:
         start_idx = 0
-        end_idx = 240
+        end_idx = cycle_len
     else:
-        start_idx = 240
-        end_idx = 480
+        start_idx = cycle_len
+        end_idx = 2 * cycle_len
     pose_list = get_pose_list(d_res["q"][field])
     axes = ["x", "y", "z"]
     for i in range(3):

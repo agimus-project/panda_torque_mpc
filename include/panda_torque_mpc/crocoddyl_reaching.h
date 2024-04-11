@@ -100,11 +100,12 @@ namespace panda_torque_mpc
 
         // boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
         // boost::shared_ptr<mim_solvers::SolverSQP> ocp_;
-        boost::shared_ptr<mim_solvers::SolverCSQP> ocp_;
+        boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
 
         TicTac simulation_time;
         CrocoddylConfig config_;
         TargetsConfig targ_config_;
+        bool first_time =false;
 
         std::string cost_translation_name_;
         std::string cost_placement_name_;

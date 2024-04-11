@@ -436,6 +436,7 @@ namespace panda_torque_mpc
             if (!(first_robot_sensor_msg_received_ && first_pose_ref_msg_received_))
             {
                 croco_reaching_.simulation_time.tic();
+                start_time = t_sensor_.sec + t_sensor_.nsec*1e-9;
                 return;
             }
 
@@ -499,7 +500,7 @@ namespace panda_torque_mpc
             double time_sensor = t_sensor_.sec + t_sensor_.nsec*1e-9;
             if (config_croco_.reference_is_placement)
             {
-                croco_reaching_.set_ee_ref_placement(T_b_e_ref, time_sensor, reaching_task_is_active, 1.0);
+                croco_reaching_.set_ee_ref_placement(T_b_e_ref, time_sensor-start_time, reaching_task_is_active, 1.0);
             }
             else
             {
@@ -531,6 +532,7 @@ namespace panda_torque_mpc
 
         // sensor callback
         ros::Time t_sensor_;
+        double start_time = 0.0;
         Vector7d q_init_rtbox_;
         Eigen::Matrix<double, 14, 1> current_x_rtbox_;
         pin::SE3 T_b_e0_;

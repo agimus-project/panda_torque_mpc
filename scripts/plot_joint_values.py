@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
+import mpc_utils
 import example_robot_data
 import pinocchio as pin
 
@@ -52,12 +53,13 @@ def get_pose_list(q_array):
     return pose_list
 
 
-cycle_len = 120
+cycle_len = 300
 targets = {}
 targets["x"] = [0] * cycle_len
 targets["y1"] = [-0.35] * cycle_len
 targets["y2"] = [0.35] * cycle_len
 targets["z"] = [1] * cycle_len
+
 for i_field, field in enumerate(fields):
     fig_dq, ax_dq = plt.subplots(1, 1)
     fig_tau, ax_tau = plt.subplots(1, 1)
@@ -164,3 +166,130 @@ for i_field, field in enumerate(fields):
         ax_errq[i].legend()
 
 plt.show()
+
+"""
+with open("us.txt") as f:
+    us_values = f.readlines()
+
+for idx in range(len(us_values)):
+    us_values[idx] = us_values[idx].rstrip("\n")
+
+with open("xs.txt") as f:
+    xs_values = f.readlines()
+
+for idx in range(len(xs_values)):
+    xs_values[idx] = xs_values[idx].rstrip("\n")
+
+
+# # # # # # # # # # # #
+###  MPC SIMULATION ###
+# # # # # # # # # # # #
+# OCP parameters
+ocp_params = {}
+ocp_params["N_h"] = 40
+ocp_params["dt"] = 5e-2
+ocp_params["maxiter"] = 1
+ocp_params["pin_model"] = robot.model
+# ocp_params["armature"] = runningModel.differential.armature
+ocp_params["id_endeff"] = robot.model.getFrameId("panda_joint7")
+# ocp_params["active_costs"] = solver.problem.runningModels[0].differential.costs.active.tolist()
+# Simu parameters
+sim_params = {}
+sim_params["sim_freq"] = 1000
+sim_params["mpc_freq"] = 1000
+sim_params["T_sim"] = 2.0
+log_rate = 100
+# Initialize simulation data
+sim_data = mpc_utils.init_sim_data(sim_params, ocp_params, robot.x0)
+# Display target
+mpc_utils.display_ball(endeff_translation, RADIUS=0.05, COLOR=[1.0, 0.0, 0.0, 0.6])
+# Simulate
+mpc_cycle = 0
+for i in range(sim_data["N_sim"]):
+
+    if i % log_rate == 0:
+        print("\n SIMU step " + str(i) + "/" + str(sim_data["N_sim"]) + "\n")
+
+    # Solve OCP if we are in a planning cycle (MPC/planning frequency)
+    if i % int(sim_params["sim_freq"] / sim_params["mpc_freq"]) == 0:
+        # Set x0 to measured state
+        solver.problem.x0 = sim_data["state_mea_SIM_RATE"][i, :]
+        # Warm start using previous solution
+        xs_init = list(solver.xs[1:]) + [solver.xs[-1]]
+        xs_init[0] = sim_data["state_mea_SIM_RATE"][i, :]
+        us_init = list(solver.us[1:]) + [solver.us[-1]]
+
+        # Solve OCP & record MPC predictions
+        solver.solve(xs_init, us_init, ocp_params["maxiter"])
+        sim_data["state_pred"][mpc_cycle, :, :] = np.array(solver.xs)
+        sim_data["ctrl_pred"][mpc_cycle, :, :] = np.array(solver.us)
+        # Extract relevant predictions for interpolations
+        x_curr = sim_data["state_pred"][
+            mpc_cycle, 0, :
+        ]  # x0* = measured state    (q^,  v^ )
+        x_pred = sim_data["state_pred"][
+            mpc_cycle, 1, :
+        ]  # x1* = predicted state   (q1*, v1*)
+        u_curr = sim_data["ctrl_pred"][
+            mpc_cycle, 0, :
+        ]  # u0* = optimal control   (tau0*)
+        # Record costs references
+        q = sim_data["state_pred"][mpc_cycle, 0, : sim_data["nq"]]
+        sim_data["ctrl_ref"][mpc_cycle, :] = pin_utils.get_u_grav(
+            q,
+            solver.problem.runningModels[0].differential.pinocchio,
+            ocp_params["armature"],
+        )
+        sim_data["state_ref"][mpc_cycle, :] = (
+            solver.problem.runningModels[0]
+            .differential.costs.costs["stateReg"]
+            .cost.residual.reference
+        )
+        sim_data["lin_pos_ee_ref"][mpc_cycle, :] = (
+            solver.problem.runningModels[0]
+            .differential.costs.costs["translation"]
+            .cost.residual.reference
+        )
+
+        # Select reference control and state for the current MPC cycle
+        x_ref_MPC_RATE = x_curr + sim_data["ocp_to_mpc_ratio"] * (x_pred - x_curr)
+        u_ref_MPC_RATE = u_curr
+        if mpc_cycle == 0:
+            sim_data["state_des_MPC_RATE"][mpc_cycle, :] = x_curr
+        sim_data["ctrl_des_MPC_RATE"][mpc_cycle, :] = u_ref_MPC_RATE
+        sim_data["state_des_MPC_RATE"][mpc_cycle + 1, :] = x_ref_MPC_RATE
+
+        # Increment planning counter
+        mpc_cycle += 1
+
+        # Select reference control and state for the current SIMU cycle
+        x_ref_SIM_RATE = x_curr + sim_data["ocp_to_mpc_ratio"] * (x_pred - x_curr)
+        u_ref_SIM_RATE = u_curr
+
+        # First prediction = measurement = initialization of MPC
+        if i == 0:
+            sim_data["state_des_SIM_RATE"][i, :] = x_curr
+        sim_data["ctrl_des_SIM_RATE"][i, :] = u_ref_SIM_RATE
+        sim_data["state_des_SIM_RATE"][i + 1, :] = x_ref_SIM_RATE
+
+        # Send torque to simulator & step simulator
+        robot_simulator.send_joint_command(u_ref_SIM_RATE)
+        env.step()
+        # Measure new state from simulator
+        q_mea_SIM_RATE, v_mea_SIM_RATE = robot_simulator.get_state()
+        # Update pinocchio model
+        robot_simulator.forward_robot(q_mea_SIM_RATE, v_mea_SIM_RATE)
+        # Record data
+        x_mea_SIM_RATE = np.concatenate([q_mea_SIM_RATE, v_mea_SIM_RATE]).T
+        sim_data["state_mea_SIM_RATE"][i + 1, :] = x_mea_SIM_RATE
+
+
+plot_data = mpc_utils.extract_plot_data_from_sim_data(sim_data)
+
+mpc_utils.plot_mpc_results(
+    plot_data,
+    which_plots=["all"],
+    PLOT_PREDICTIONS=True,
+    pred_plot_sampling=int(sim_params["mpc_freq"] / 10),
+)
+"""

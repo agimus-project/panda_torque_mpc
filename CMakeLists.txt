@@ -148,6 +148,7 @@ target_include_directories(crocoddyl_motion_server_node SYSTEM PUBLIC
   include
 )
 
+
 # Make sure that the messages are built before this target
 add_dependencies(crocoddyl_motion_server_node panda_torque_mpc_generate_messages_cpp)
 
@@ -228,3 +229,10 @@ install(FILES
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/meshes
 )
+
+FINDPYTHON()
+set(PY_NAME "${PROJECT_NAME}_pywrap")
+set(${PY_NAME}_INSTALL_DIR ${PYTHON_SITELIB}/${PY_NAME})
+SEARCH_FOR_BOOST_PYTHON()
+
+add_subdirectory(bindings)

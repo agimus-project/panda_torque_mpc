@@ -176,7 +176,7 @@ ctrl_mpc_linearized:
     # OCP motion server configs
     # nb_shooting_nodes: 20
 
-    dt_ocp: 0.05
+    dt_ocp: 0.1
     # nb_iterations_max: 1
     reference_is_placement: true   # otherwise, translation
     keep_original_ee_rotation: false
@@ -186,9 +186,9 @@ ctrl_mpc_linearized:
     
     #### PARAMETERS FROM NYC 
     nb_shooting_nodes: 10
-    nb_iterations_max: 4
+    nb_iterations_max: 5
     solver_termination_tolerance: 0.0001              # Tolerance on KKT residual 
-    max_qp_iter: 25    #125 
+    max_qp_iter: 100    #125 
     qp_termination_tol_abs: 0.00001
     qp_termination_tol_rel: 0.00001
 

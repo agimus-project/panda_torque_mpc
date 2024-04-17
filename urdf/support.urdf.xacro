@@ -45,29 +45,6 @@
         </collision> -->
       </link>
 
-      <link name="the_ball">
-        <inertial>
-          <mass value="1"/>
-          <origin xyz="0 0 0"/>
-          <inertia ixx="1"  ixy="0"  ixz="0" iyy="1" iyz="0" izz="1" />
-        </inertial>
-        <visual>
-          <origin xyz="0 0 0"/>
-          <geometry>
-            <sphere radius="0.15"/>
-          </geometry>
-          <material name="green">
-            <color rgba ="0 1 0 0.8"/>
-          </material>
-        </visual>
-        <collision>
-          <origin xyz="0 0 0"/>
-          <geometry>
-            <sphere radius="0.15"/>
-          </geometry>
-        </collision>
-      </link>
-
       <link name="wall_link_1">
         <inertial>
           <mass value="200"/>
@@ -208,11 +185,5 @@
         <parent link="world"/>
         <child link="panda1_box"/>
       </joint>
-      <joint name="the_ball_joint" type="fixed">
-        <origin xyz="0 0 0.8" />
-        <parent link="world"/>
-        <child link="the_ball"/>
-      </joint>
   </xacro:macro>
 </robot>
-

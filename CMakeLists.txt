@@ -163,6 +163,7 @@ install(FILES
   launch/sim_controllers.launch
   launch/crocoddyl_motion_server_node.launch
   launch/simulation.launch
+  launch/obstacle_visualizer.launch
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
   )
@@ -183,6 +184,8 @@ install(FILES
 install(PROGRAMS
   nodes/move_to_start.py
   nodes/pose_publisher.py
+  nodes/obstacle_visualizer.py
+  nodes/SDFGenerator.py
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts
   )

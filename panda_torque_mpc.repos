@@ -21,7 +21,7 @@ repositories:
 
   vcs_repos/colmpc:
     type: git
-    url: https://github.com/arthurH91/colmpc
+    url: https://github.com/agimus-project/colmpc
     version: v0.1.0
 
   vcs_repos/mim_solvers:

@@ -3,19 +3,18 @@
 #include "panda_torque_mpc/obstacle_params_parser.h"
 
 #include <boost/shared_ptr.hpp>
+#include <iostream>
 #include <memory>
 #include <vector>
-#include <iostream>
 
-#include <pinocchio/fwd.hpp>
-#include <pinocchio/multibody/model.hpp>
-#include <pinocchio/algorithm/joint-configuration.hpp>
-#include <pinocchio/algorithm/geometry.hpp>
 #include <hpp/fcl/collision_object.h>
 #include <hpp/fcl/shape/geometric_shapes.h>
+#include <pinocchio/algorithm/geometry.hpp>
+#include <pinocchio/algorithm/joint-configuration.hpp>
+#include <pinocchio/fwd.hpp>
+#include <pinocchio/multibody/model.hpp>
 
 #include <ros/ros.h>
-
 
 namespace panda_torque_mpc {
 
@@ -40,7 +39,8 @@ void ObstacleParamsParser::addCollisions() {
     std::vector<double> translation_vect;
 
     if (!pnh_->hasParam(obstacle_name + "/translation")) {
-      std::cerr << "No obstacle translation declared for the obstacle named: " << obstacle_name <<  std::endl;
+      std::cerr << "No obstacle translation declared for the obstacle named: "
+                << obstacle_name << std::endl;
       return;
     }
     pnh_->getParam(obstacle_name + "/translation", translation_vect);
@@ -49,7 +49,8 @@ void ObstacleParamsParser::addCollisions() {
 
     std::vector<double> rotation_vect;
     if (!pnh_->hasParam(obstacle_name + "/rotation")) {
-      std::cerr << "No obstacle rotation declared for the obstacle named: " << obstacle_name << std::endl;
+      std::cerr << "No obstacle rotation declared for the obstacle named: "
+                << obstacle_name << std::endl;
       return;
     }
     pnh_->getParam(obstacle_name + "/rotation", rotation_vect);
@@ -68,7 +69,7 @@ void ObstacleParamsParser::addCollisions() {
                      "config. Try to use "
                      "the ones for the shapes desired, such as 'radius' for "
                      "'sphere','x', 'y', 'z' for 'box' or 'halfLength' and "
-                     "'radius' for 'capsule'."
+                     "'radius' for 'cylinder' and 'capsule'."
                   << std::endl;
         return;
       }
@@ -78,7 +79,7 @@ void ObstacleParamsParser::addCollisions() {
       double z;
       if (pnh_->hasParam(obstacle_name + "/x") &&
           pnh_->hasParam(obstacle_name + "/y") &&
-          pnh_->hasParam(obstacle_name + "/z") ) {
+          pnh_->hasParam(obstacle_name + "/z")) {
         pnh_->getParam(obstacle_name + "/x", x);
         pnh_->getParam(obstacle_name + "/y", y);
         pnh_->getParam(obstacle_name + "/z", z);
@@ -89,11 +90,29 @@ void ObstacleParamsParser::addCollisions() {
                      "config. Try to use "
                      "the ones for the shapes desired, such as 'radius' for "
                      "'sphere','x', 'y', 'z' for 'box' or 'halfLength' and "
-                     "'radius' for 'capsule'."
+                     "'radius' for 'cylinder' and 'capsule."
                   << std::endl;
         return;
       }
 
+    } else if (type == "cylinder") {
+      double radius;
+      double halfLength;
+      if (pnh_->hasParam(obstacle_name + "/radius") &&
+          pnh_->hasParam(obstacle_name + "/halfLength")) {
+        pnh_->getParam(obstacle_name + "/radius", radius);
+        pnh_->getParam(obstacle_name + "/halfLength", halfLength);
+        geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
+            new hpp::fcl::Cylinder(radius, halfLength));
+      } else {
+        std::cerr << "No dimension or wrong dimensions in the obstacle "
+                     "config. Try to use "
+                     "the ones for the shapes desired, such as 'radius' for "
+                     "'sphere','x', 'y', 'z' for 'box' or 'halfLength' and "
+                     "'radius' for 'cylinder' and 'capsule."
+                  << std::endl;
+        return;
+      }
     } else if (type == "capsule") {
       double radius;
       double halfLength;
@@ -103,18 +122,30 @@ void ObstacleParamsParser::addCollisions() {
         pnh_->getParam(obstacle_name + "/halfLength", halfLength);
         geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
             new hpp::fcl::Capsule(radius, halfLength));
+      } else {
+        std::cerr << "No dimension or wrong dimensions in the obstacle "
+                     "config. Try to use "
+                     "the ones for the shapes desired, such as 'radius' for "
+                     "'sphere','x', 'y', 'z' for 'box' or 'halfLength' and "
+                     "'radius' for 'cylinder' and 'capsule."
+                  << std::endl;
+        return;
       }
-    } else {
+    }
+
+    else {
       std::cerr << "No type or wrong type in the obstacle config. Try to use "
-                   "the one implemented, such as 'sphere', 'box' or 'capsule'."
+                   "the one implemented, such as 'sphere', 'box', 'capsule' or "
+                   "'cylinder'."
                 << std::endl;
       return;
     }
+
     pinocchio::SE3 obstacle_pose(rotation, translation);
     pinocchio::GeometryObject obstacle(obstacle_name, 0, 0, geometry,
                                        obstacle_pose);
     collision_model_->addGeometryObject(obstacle);
-    obs_idx ++;
+    obs_idx++;
   }
   // Adding the collision pairs to the geometry model
 
@@ -130,18 +161,27 @@ void ObstacleParamsParser::addCollisions() {
                   XmlRpc::XmlRpcValue::TypeString &&
               collision_pairs[i][1].getType() ==
                   XmlRpc::XmlRpcValue::TypeString) {
-            std::string object1 =
+            std::string name_object1 =
                 static_cast<std::string>(collision_pairs[i][0]);
-            std::string object2 =
+            if (!collision_model_->existGeometryName(name_object1)){
+              std::cerr << "Object " << name_object1 << " doesn't exist in the collision model." << std::endl;
+              return;
+            }
+            std::string name_object2 =
                 static_cast<std::string>(collision_pairs[i][1]);
-
-            addCollisionPair(object1, object2);
+            if (!collision_model_->existGeometryName(name_object2)){
+              std::cerr << "Object " << name_object2 << " doesn't exist in the collision model." << std::endl;
+              return;
+            }
+            addCollisionPair(name_object1, name_object2);
           } else {
-            std::cerr << "Invalid collision pair type for collision pair " << i << std::endl;
+            std::cerr << "Invalid collision pair type for collision pair " << i
+                      << std::endl;
             return;
           }
         } else {
-          std::cerr << "Invalid collision pair number for collision pair " <<i << std::endl;
+          std::cerr << "Invalid collision pair number for collision pair " << i
+                    << std::endl;
           return;
         }
       }

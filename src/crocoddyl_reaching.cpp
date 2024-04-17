@@ -72,7 +72,7 @@ namespace panda_torque_mpc
         Eigen::VectorXd lower_bound(1);
         Eigen::VectorXd upper_bound(1);
 
-        lower_bound << 1e-1;
+        lower_bound << 5e-2;
         upper_bound << std::numeric_limits<double>::infinity();
 
         for (int col_idx = 0; col_idx < collision_model->collisionPairs.size(); col_idx++)

@@ -28,6 +28,8 @@
 #include "panda_torque_mpc/common.h"
 #include "panda_torque_mpc/crocoddyl_reaching.h"
 #include "panda_torque_mpc/obstacle_params_parser.h"
+#include "panda_torque_mpc/reduce_collision_model.h"
+
 
 #include "geometry_msgs/PoseStamped.h"
 #include "std_msgs/Duration.h"
@@ -125,12 +127,16 @@ namespace panda_torque_mpc
             std::string urdf_path = ros::package::getPath("panda_torque_mpc") + "/urdf/robot.urdf";
 
             // Building the GeometryModel
+            auto collision_model_full = boost::make_shared<pinocchio::GeometryModel>();
+            collision_model_full = loadPandaGeometryModel(model_pin_);
+
             auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
-            collision_model = loadPandaGeometryModel(model_pin_);
+            collision_model = reduce_capsules_robot(collision_model_full);
 
             ObstacleParamsParser obstacle_parser(boost::make_shared<ros::NodeHandle>(pnh), collision_model);
             obstacle_parser.addCollisions();
-                                   
+            
+
             if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))
             {
                 ROS_ERROR_STREAM("Problem when loading the robot urdf");
@@ -541,7 +547,6 @@ namespace panda_torque_mpc
 
 int main(int argc, char **argv)
 {
-
     ros::init(argc, argv, "crocoddyl_motion_server_node");
 
     ros::NodeHandle nh;

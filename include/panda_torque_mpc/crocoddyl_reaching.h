@@ -95,6 +95,9 @@ namespace panda_torque_mpc
         void set_ee_ref_placement(pin::SE3 placement, double time, bool is_active=true, double uniform_weight_scaling=1.0);
 
         void set_posture_ref(Eigen::VectorXd x0);
+        boost::shared_ptr<crocoddyl::SolverFDDP> get_solver(){
+            return ocp_;
+        }
 
         void set_with_collision(const bool enable) {config_.with_collisions = enable;}
 

@@ -39,7 +39,7 @@
 namespace panda_torque_mpc
 {
     CrocoddylReaching::CrocoddylReaching(pin::Model _model_pin, const boost::shared_ptr<pin::GeometryModel>& _collision_model ,
-        CrocoddylConfig _config, TargetsConfig _targ_config) :
+      CrocoddylConfig _config, TargetsConfig _targ_config) :
     config_(_config), targ_config_(_targ_config)
     {
 
@@ -172,7 +172,9 @@ namespace panda_torque_mpc
         auto terminal_IAM = boost::make_shared<crocoddyl::IntegratedActionModelEuler>(terminal_DAM, 0.0);
 
         // Shooting problem
+        std::cout << "shooting " << std::endl;
         auto shooting_problem = boost::make_shared<crocoddyl::ShootingProblem>(x0_dummy, running_IAMs, terminal_IAM);
+        std::cout << "create ocp " << std::endl;
         ocp_ = boost::make_shared<crocoddyl::SolverFDDP>(shooting_problem);
         // ocp_ = boost::make_shared<mim_solvers::SolverSQP>(shooting_problem);
         // ocp_ = boost::make_shared<crocoddyl::SolverFDDP>(shooting_problem);
@@ -183,6 +185,7 @@ namespace panda_torque_mpc
         ocp_->setCallbacks(false);*/
         
         // Callbacks from crocoddyl
+        std::cout << "set callback " << std::endl;
         std::vector<boost::shared_ptr<crocoddyl::CallbackAbstract>> callbacks;
         callbacks.push_back(boost::make_shared<crocoddyl::CallbackVerbose>());
 
@@ -417,5 +420,21 @@ namespace panda_torque_mpc
             posture_set_ = true;
         }
     }
+
+    /*void CrocoddylReaching::solving(Eigen::Matrix<double, -1, 1> x0,std::vector<Eigen::Matrix<double, -1, 1>> xs_init,std::vector<Eigen::Matrix<double, -1, 1>> us_init,double time){
+        ocp_->get_problem()->set_x0(x0);
+
+        // Deactivating reaching task would requires to re-equilibrate the OCP weights
+        // -> easier to track last known reference active
+        bool reaching_task_is_active = true;
+        set_ee_ref_placement(pin::SE3::Identity(), time, reaching_task_is_active, 1.0);
+        
+        set_posture_ref(x0);
+
+        bool ok = solve(xs_init, us_init);
+        if(!ok){
+            std::cout << "had bad solution"<<std::endl;
+        }
+    }*/
 
 } // namespace panda_torque_mpc

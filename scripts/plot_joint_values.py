@@ -4,9 +4,11 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 import mpc_utils
+import pin_utils
 import example_robot_data
 import pinocchio as pin
-
+import initialize_croco_reaching as croco_reach
+from panda_torque_mpc_pywrap import CrocoddylReaching
 from read_plot_utils import read_jsid_bag
 
 DIRECTORY = "."  # ../bags/
@@ -60,139 +62,127 @@ targets["y1"] = [-0.35] * cycle_len
 targets["y2"] = [0.35] * cycle_len
 targets["z"] = [1] * cycle_len
 
-for i_field, field in enumerate(fields):
-    fig_dq, ax_dq = plt.subplots(1, 1)
-    fig_tau, ax_tau = plt.subplots(1, 1)
-    fig_q, ax_q = plt.subplots(3, 1)
-    fig_errq, ax_errq = plt.subplots(3, 1)
-
-    # fig_q.canvas.manager.set_window_title(f"Joint configurations {field}")
-    fig_dq.canvas.manager.set_window_title(f"Joint velocities {field}")
-    fig_tau.canvas.manager.set_window_title(f"Joint torques {field}")
-
-    d_res = read_jsid_bag(BAG_PATHS[0], CONTROLLER_NAME)
-    if len(d_res["t"]) < 600:
-        start_idx = 0
-        end_idx = cycle_len
-    else:
-        start_idx = cycle_len
-        end_idx = 2 * cycle_len
-    pose_list = get_pose_list(d_res["q"][field])
-    axes = ["x", "y", "z"]
-    for i in range(3):
-        if not JOINTS_TO_PLOT[i]:
-            continue
-        c = COLORS[i]
-        sym = "."
-
-        ax_q[i].plot(
-            d_res["t"][start_idx:end_idx],
-            pose_list[start_idx:end_idx, i],
-            # f"{c}{sym}",
-            label=axes[i],
-            markersize=MSIZE,
-        )
-    for i, key in enumerate(targets.keys()):
-
-        if i > 1:
-            i = i - 1
-        ax_q[i].plot(
-            d_res["t"][start_idx:end_idx],
-            targets[key],
-            label="target_" + key,
-            markersize=MSIZE,
-        )
-        ax_errq[i].plot(
-            d_res["t"][start_idx:end_idx],
-            targets[key] - pose_list[start_idx:end_idx, i],
-            label="target_" + key,
-            markersize=MSIZE,
-        )
-
-    for i in range(7):
-        if not JOINTS_TO_PLOT[i]:
-            continue
-        c = COLORS[i]
-        sym = "."
-        ax_dq.plot(
-            d_res["t"][start_idx:end_idx],
-            d_res["dq"][field][start_idx:end_idx, i],
-            # f"{c}{sym}",
-            label=f"dq{i}",
-            markersize=MSIZE,
-        )
-        ax_tau.plot(
-            d_res["t"][start_idx:end_idx],
-            d_res["tau"][field][start_idx:end_idx, i],
-            # f"{c}{sym}",
-            label=f"tau{i}",
-            markersize=MSIZE,
-        )
-    # d_res = read_jsid_bag(BAG_PATHS[1], CONTROLLER_NAME)
-    # for i in range(7):
-    #     if not JOINTS_TO_PLOT[i]:
-    #         continue
-    #     c = COLORS[i]
-    #     sym = 'x'
-    #     ax_q.plot(d_res['t'], d_res['q'][field][:, i],
-    #               f'{c}{sym}', label=f'q{i}', markersize=MSIZE)
-    #     ax_dq.plot(d_res['t'], d_res['dq'][field][:, i],
-    #                f'{c}{sym}', label=f'dq{i}', markersize=MSIZE)
-    #     ax_tau.plot(d_res['t'], d_res['tau'][field][:, i],
-    #                 f'{c}{sym}', label=f'tau{i}', markersize=MSIZE)
-
-    # ax_q.set_title(field)
-
-    ax_dq.set_title(field)
-    ax_tau.set_title(field)
-    ax_dq.set_xlabel("t (s)")
-    ax_tau.set_xlabel("t (s)")
-    ax_dq.set_ylabel("dq (rad/s)")
-    ax_tau.set_ylabel("tau (N.m)")
-
-    ax_dq.grid()
-    ax_tau.grid()
-    ax_dq.legend()
-    ax_tau.legend()
-
-    for i, axe in enumerate(axes):
-        ax_q[i].set_xlabel("t (s)")
-        ax_q[i].set_ylabel(axe)
-        ax_q[i].grid()
-        ax_q[i].legend()
-        ax_errq[i].set_xlabel("t (s)")
-        ax_errq[i].set_ylabel("error" + axe)
-        ax_errq[i].grid()
-        ax_errq[i].legend()
-
-plt.show()
-
-"""
-with open("us.txt") as f:
-    us_values = f.readlines()
-
-for idx in range(len(us_values)):
-    us_values[idx] = us_values[idx].rstrip("\n")
-
-with open("xs.txt") as f:
-    xs_values = f.readlines()
-
-for idx in range(len(xs_values)):
-    xs_values[idx] = xs_values[idx].rstrip("\n")
+d_res = read_jsid_bag(BAG_PATHS[0], CONTROLLER_NAME)
 
 
+def plotting():
+    for i_field, field in enumerate(fields):
+        fig_dq, ax_dq = plt.subplots(1, 1)
+        fig_tau, ax_tau = plt.subplots(1, 1)
+        fig_q, ax_q = plt.subplots(3, 1)
+        fig_errq, ax_errq = plt.subplots(3, 1)
+
+        # fig_q.canvas.manager.set_window_title(f"Joint configurations {field}")
+        fig_dq.canvas.manager.set_window_title(f"Joint velocities {field}")
+        fig_tau.canvas.manager.set_window_title(f"Joint torques {field}")
+
+        if len(d_res["t"]) < 600:
+            start_idx = 0
+            end_idx = cycle_len
+        else:
+            start_idx = cycle_len
+            end_idx = 2 * cycle_len
+        pose_list = get_pose_list(d_res["q"][field])
+        axes = ["x", "y", "z"]
+        for i in range(3):
+            if not JOINTS_TO_PLOT[i]:
+                continue
+            c = COLORS[i]
+            sym = "."
+
+            ax_q[i].plot(
+                d_res["t"][start_idx:end_idx],
+                pose_list[start_idx:end_idx, i],
+                # f"{c}{sym}",
+                label=axes[i],
+                markersize=MSIZE,
+            )
+        for i, key in enumerate(targets.keys()):
+
+            if i > 1:
+                i = i - 1
+            ax_q[i].plot(
+                d_res["t"][start_idx:end_idx],
+                targets[key],
+                label="target_" + key,
+                markersize=MSIZE,
+            )
+            ax_errq[i].plot(
+                d_res["t"][start_idx:end_idx],
+                targets[key] - pose_list[start_idx:end_idx, i],
+                label="target_" + key,
+                markersize=MSIZE,
+            )
+
+        for i in range(7):
+            if not JOINTS_TO_PLOT[i]:
+                continue
+            c = COLORS[i]
+            sym = "."
+            ax_dq.plot(
+                d_res["t"][start_idx:end_idx],
+                d_res["dq"][field][start_idx:end_idx, i],
+                # f"{c}{sym}",
+                label=f"dq{i}",
+                markersize=MSIZE,
+            )
+            ax_tau.plot(
+                d_res["t"][start_idx:end_idx],
+                d_res["tau"][field][start_idx:end_idx, i],
+                # f"{c}{sym}",
+                label=f"tau{i}",
+                markersize=MSIZE,
+            )
+
+        ax_dq.set_title(field)
+        ax_tau.set_title(field)
+        ax_dq.set_xlabel("t (s)")
+        ax_tau.set_xlabel("t (s)")
+        ax_dq.set_ylabel("dq (rad/s)")
+        ax_tau.set_ylabel("tau (N.m)")
+
+        ax_dq.grid()
+        ax_tau.grid()
+        ax_dq.legend()
+        ax_tau.legend()
+
+        for i, axe in enumerate(axes):
+            ax_q[i].set_xlabel("t (s)")
+            ax_q[i].set_ylabel(axe)
+            ax_q[i].grid()
+            ax_q[i].legend()
+            ax_errq[i].set_xlabel("t (s)")
+            ax_errq[i].set_ylabel("error" + axe)
+            ax_errq[i].grid()
+            ax_errq[i].legend()
+
+    plt.show()
+
+
+croco_reaching, xs_init, us_init, params = croco_reach.get_croco_reaching()
+first_solve = True
 # # # # # # # # # # # #
 ###  MPC SIMULATION ###
 # # # # # # # # # # # #
 # OCP parameters
 ocp_params = {}
-ocp_params["N_h"] = 40
-ocp_params["dt"] = 5e-2
+ocp_params["N_h"] = params["nb_shooting_nodes"]
+ocp_params["dt"] = params["dt_ocp"]
 ocp_params["maxiter"] = 1
 ocp_params["pin_model"] = robot.model
-# ocp_params["armature"] = runningModel.differential.armature
+ocp_params["armature"] = params["armature"]
 ocp_params["id_endeff"] = robot.model.getFrameId("panda_joint7")
-# ocp_params["active_costs"] = solver.problem.runningModels[0].differential.costs.active.tolist()
+ocp_params["active_costs"] = [
+    "translation_cost",
+    "placement_cost",
+    "velocity_cost",
+    "state_reg",
+    "ctrl_reg",
+]
+# ocp_params["active_costs"] = solver.problem.runningModels[
+#   0
+# ].differential.costs.active.tolist()
+
 # Simu parameters
 sim_params = {}
 sim_params["sim_freq"] = 1000
@@ -200,9 +190,10 @@ sim_params["mpc_freq"] = 1000
 sim_params["T_sim"] = 2.0
 log_rate = 100
 # Initialize simulation data
+robot.x0 = xs_init[0]
 sim_data = mpc_utils.init_sim_data(sim_params, ocp_params, robot.x0)
 # Display target
-mpc_utils.display_ball(endeff_translation, RADIUS=0.05, COLOR=[1.0, 0.0, 0.0, 0.6])
+# mpc_utils.display_ball(endeff_translation, RADIUS=0.05, COLOR=[1.0, 0.0, 0.0, 0.6])
 # Simulate
 mpc_cycle = 0
 for i in range(sim_data["N_sim"]):
@@ -213,16 +204,27 @@ for i in range(sim_data["N_sim"]):
     # Solve OCP if we are in a planning cycle (MPC/planning frequency)
     if i % int(sim_params["sim_freq"] / sim_params["mpc_freq"]) == 0:
         # Set x0 to measured state
-        solver.problem.x0 = sim_data["state_mea_SIM_RATE"][i, :]
+
+        x0 = np.concatenate([d_res["q"]["measured"][i], d_res["dq"]["measured"][i]])
         # Warm start using previous solution
-        xs_init = list(solver.xs[1:]) + [solver.xs[-1]]
-        xs_init[0] = sim_data["state_mea_SIM_RATE"][i, :]
-        us_init = list(solver.us[1:]) + [solver.us[-1]]
+        if first_solve:
+            first_solve = False
+        else:
+            xs_init = croco_reaching.get_xs()
+            # xs_init[0] = sim_data["state_mea_SIM_RATE"][i, :]
+            us_init = croco_reaching.get_us()
 
         # Solve OCP & record MPC predictions
-        solver.solve(xs_init, us_init, ocp_params["maxiter"])
-        sim_data["state_pred"][mpc_cycle, :, :] = np.array(solver.xs)
-        sim_data["ctrl_pred"][mpc_cycle, :, :] = np.array(solver.us)
+        # breakpoint()
+        for idx in range(len(us_init)):
+            xs_init[idx] = np.array(xs_init[idx])
+            us_init[idx] = np.array(us_init[idx])
+        xs_init[-1] = np.array(xs_init[-1])
+        croco_reaching.solving(x0, xs_init, us_init, d_res["t"][i])
+        xs = croco_reaching.get_xs()
+        us = croco_reaching.get_us()
+        sim_data["state_pred"][mpc_cycle, :, :] = np.array(xs)
+        sim_data["ctrl_pred"][mpc_cycle, :, :] = np.array(us)
         # Extract relevant predictions for interpolations
         x_curr = sim_data["state_pred"][
             mpc_cycle, 0, :
@@ -281,7 +283,7 @@ for i in range(sim_data["N_sim"]):
         robot_simulator.forward_robot(q_mea_SIM_RATE, v_mea_SIM_RATE)
         # Record data
         x_mea_SIM_RATE = np.concatenate([q_mea_SIM_RATE, v_mea_SIM_RATE]).T
-        sim_data["state_mea_SIM_RATE"][i + 1, :] = x_mea_SIM_RATE
+        sim_data["state_mea_SIM_RATE"][i + 1, :] = x0  # x_mea_SIM_RATE
 
 
 plot_data = mpc_utils.extract_plot_data_from_sim_data(sim_data)
@@ -292,4 +294,3 @@ mpc_utils.plot_mpc_results(
     PLOT_PREDICTIONS=True,
     pred_plot_sampling=int(sim_params["mpc_freq"] / 10),
 )
-"""

@@ -47,11 +47,4 @@ def get_croco_reaching():
         0.00203523,
     ]
 
-    xs_init = (params["nb_shooting_nodes"] + 1) * [xs_0]
-    tau_grav = pin.computeGeneralizedGravity(
-        robot.model, robot.data, np.array(xs_0[:7])
-    )
-    tau_grav = tau_grav[:7]
-    us_init = params["nb_shooting_nodes"] * [tau_grav]
-
-    return croco_reaching, xs_init, us_init, params
+    return croco_reaching, params

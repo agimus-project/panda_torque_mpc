@@ -32,7 +32,7 @@ COLORS = "rgbcmyk"
 MSIZE = 5
 
 
-fields = ["measured"]  # "error", "measured","commanded"
+fields = ["measured", "commanded"]  # "error", "measured","commanded"
 # fields = ['error', 'measured']
 # fields = ['error']
 robot = example_robot_data.load("panda")
@@ -159,8 +159,13 @@ def plotting():
     plt.show()
 
 
-croco_reaching, xs_init, us_init, params = croco_reach.get_croco_reaching()
+croco_reaching, params = croco_reach.get_croco_reaching()
 first_solve = True
+xs_0 = np.concatenate([d_res["q"]["measured"][0], d_res["dq"]["measured"][0]])
+xs_init = (params["nb_shooting_nodes"] + 1) * [xs_0]
+tau_grav = pin.computeGeneralizedGravity(robot.model, robot.data, np.array(xs_0[:7]))
+tau_grav = tau_grav[:7]
+us_init = params["nb_shooting_nodes"] * [tau_grav]
 # # # # # # # # # # # #
 ###  MPC SIMULATION ###
 # # # # # # # # # # # #
@@ -185,9 +190,10 @@ ocp_params["active_costs"] = [
 
 # Simu parameters
 sim_params = {}
-sim_params["sim_freq"] = 30
-sim_params["mpc_freq"] = 30
-sim_params["T_sim"] = 15
+dt_sim = d_res["t"][1] - d_res["t"][0]
+sim_params["sim_freq"] = int(1 / dt_sim)
+sim_params["mpc_freq"] = int(1 / dt_sim)
+sim_params["T_sim"] = d_res["t"][-1] - d_res["t"][0]
 log_rate = 100
 # Initialize simulation data
 robot.x0 = xs_init[0]
@@ -215,11 +221,8 @@ for i in range(sim_data["N_sim"]):
             us_init = croco_reaching.solver.us
 
         # Solve OCP & record MPC predictions
-        # breakpoint()
-        for idx in range(len(us_init)):
-            xs_init[idx] = np.array(xs_init[idx])
-            us_init[idx] = np.array(us_init[idx])
-        xs_init[-1] = np.array(xs_init[-1])
+        xs_init = [np.array(x) for x in xs_init]
+        us_init = [np.array(u) for u in us_init]
         # croco_reaching.solving(x0, xs_init, us_init, d_res["t"][i])
         croco_reaching.solver.problem.x0 = x0
         time = d_res["t"][i]
@@ -256,8 +259,8 @@ for i in range(sim_data["N_sim"]):
         )
         sim_data["lin_pos_ee_ref"][mpc_cycle, :] = (
             croco_reaching.solver.problem.runningModels[0]
-            .differential.costs.costs["translation_cost"]
-            .cost.residual.reference
+            .differential.costs.costs["placement_cost"]
+            .cost.residual.reference.translation
         )
 
         # Select reference control and state for the current MPC cycle
@@ -272,26 +275,20 @@ for i in range(sim_data["N_sim"]):
         mpc_cycle += 1
 
         # Select reference control and state for the current SIMU cycle
-        x_ref_SIM_RATE = x_curr + sim_data["ocp_to_mpc_ratio"] * (x_pred - x_curr)
-        u_ref_SIM_RATE = u_curr
+        # x_ref_SIM_RATE = x_curr + sim_data["ocp_to_mpc_ratio"] * (x_pred - x_curr)
+        # u_ref_SIM_RATE = u_curr
 
         # First prediction = measurement = initialization of MPC
         if i == 0:
             sim_data["state_des_SIM_RATE"][i, :] = x_curr
-        sim_data["ctrl_des_SIM_RATE"][i, :] = u_ref_SIM_RATE
-        sim_data["state_des_SIM_RATE"][i + 1, :] = x_ref_SIM_RATE
+        sim_data["ctrl_des_SIM_RATE"][i, :] = d_res["tau"]["commanded"][i]
+        sim_data["state_des_SIM_RATE"][i + 1, :] = np.concatenate(
+            [d_res["q"]["commanded"][i], d_res["dq"]["commanded"][i]]
+        )
 
-        # Send torque to simulator & step simulator
-        """
-        robot_simulator.send_joint_command(u_ref_SIM_RATE)
-        env.step()
-        # Measure new state from simulator
-        q_mea_SIM_RATE, v_mea_SIM_RATE = robot_simulator.get_state()
-        # Update pinocchio model
-        robot_simulator.forward_robot(q_mea_SIM_RATE, v_mea_SIM_RATE)
-        # Record data
-        x_mea_SIM_RATE = np.concatenate([q_mea_SIM_RATE, v_mea_SIM_RATE]).T"""
-        sim_data["state_mea_SIM_RATE"][i + 1, :] = x0  # x_mea_SIM_RATE
+        sim_data["state_mea_SIM_RATE"][i + 1, :] = np.concatenate(
+            [d_res["q"]["measured"][i + 1], d_res["dq"]["measured"][i + 1]]
+        )  # x_mea_SIM_RATE
 
 
 plot_data = mpc_utils.extract_plot_data_from_sim_data(sim_data)

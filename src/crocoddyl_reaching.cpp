@@ -309,7 +309,7 @@ namespace panda_torque_mpc
         return std::make_pair(weight,target);
     }
 
-    void CrocoddylReaching::set_ee_ref_translation(Eigen::Vector3d trans, double time, bool is_active)
+    void CrocoddylReaching::set_ee_ref_translation(double time, bool is_active)
     {
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
@@ -348,7 +348,7 @@ namespace panda_torque_mpc
         terminal_DAM->get_costs()->get_costs().at(cost_translation_name_)->weight =weight;
     }
 
-    void CrocoddylReaching::set_ee_ref_placement(pin::SE3 placement, double time, bool is_active, double uniform_weight_scaling)
+    void CrocoddylReaching::set_ee_ref_placement(double time, bool is_active, double uniform_weight_scaling)
     {
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)

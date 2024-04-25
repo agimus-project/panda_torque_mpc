@@ -86,13 +86,13 @@ namespace panda_torque_mpc
         // Return current target and his weight
         std::pair<double,pin::SE3> get_weight_and_target(const double& time,const int& node_index);
         
-        void set_ee_ref_translation(Eigen::Vector3d trans, double time, bool is_active=true);
+        void set_ee_ref_translation(double time, bool is_active=true);
         /**
          * placement: pin::SE3, reference placement, constant for the whole horizon
          * is_active: bool, activate/deactivate the costs over the whole horizon
          * uniform_weight_scaling: double, constant for the whole horizon
         */
-        void set_ee_ref_placement(pin::SE3 placement, double time, bool is_active=true, double uniform_weight_scaling=1.0);
+        void set_ee_ref_placement(double time, bool is_active=true, double uniform_weight_scaling=1.0);
 
         void set_posture_ref(Eigen::VectorXd x0);
         boost::shared_ptr<crocoddyl::SolverFDDP> get_solver(){

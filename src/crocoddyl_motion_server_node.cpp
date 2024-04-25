@@ -500,18 +500,18 @@ namespace panda_torque_mpc
             double time_sensor = t_sensor_.sec + t_sensor_.nsec*1e-9;
             if (config_croco_.reference_is_placement)
             {
-                croco_reaching_.set_ee_ref_placement(T_b_e_ref, time_sensor-start_time, reaching_task_is_active, 1.0);
+                croco_reaching_.set_ee_ref_placement(time_sensor-start_time, reaching_task_is_active, 1.0);
             }
             else
             {
-                croco_reaching_.set_ee_ref_translation(T_b_e_ref.translation(), time_sensor, reaching_task_is_active);
+                croco_reaching_.set_ee_ref_translation(time_sensor-start_time, reaching_task_is_active);
             }
             croco_reaching_.set_posture_ref(x_init);
 
             TicTac tt_solve;
             bool ok = croco_reaching_.solve(xs_init, us_init);
             const auto duration = tt_solve.tac();
-            std::cout << std::setprecision(9) << "n_iter, dt_solve (ms): " << croco_reaching_.ocp_->get_iter() << ", " << duration << std::endl;
+            //std::cout << std::setprecision(9) << "n_iter, dt_solve (ms): " << croco_reaching_.ocp_->get_iter() << ", " << duration << std::endl;
             std_msgs::Duration time;
             time.data = ros::Duration(duration * 0.001);
             ocp_solve_time_pub_.publish(time);

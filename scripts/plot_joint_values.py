@@ -185,9 +185,9 @@ ocp_params["active_costs"] = [
 
 # Simu parameters
 sim_params = {}
-sim_params["sim_freq"] = 1000
-sim_params["mpc_freq"] = 1000
-sim_params["T_sim"] = 2.0
+sim_params["sim_freq"] = 30
+sim_params["mpc_freq"] = 30
+sim_params["T_sim"] = 15
 log_rate = 100
 # Initialize simulation data
 robot.x0 = xs_init[0]
@@ -210,9 +210,9 @@ for i in range(sim_data["N_sim"]):
         if first_solve:
             first_solve = False
         else:
-            xs_init = croco_reaching.get_xs()
+            xs_init = croco_reaching.solver.xs
             # xs_init[0] = sim_data["state_mea_SIM_RATE"][i, :]
-            us_init = croco_reaching.get_us()
+            us_init = croco_reaching.solver.us
 
         # Solve OCP & record MPC predictions
         # breakpoint()
@@ -220,9 +220,16 @@ for i in range(sim_data["N_sim"]):
             xs_init[idx] = np.array(xs_init[idx])
             us_init[idx] = np.array(us_init[idx])
         xs_init[-1] = np.array(xs_init[-1])
-        croco_reaching.solving(x0, xs_init, us_init, d_res["t"][i])
-        xs = croco_reaching.get_xs()
-        us = croco_reaching.get_us()
+        # croco_reaching.solving(x0, xs_init, us_init, d_res["t"][i])
+        croco_reaching.solver.problem.x0 = x0
+        time = d_res["t"][i]
+        croco_reaching.set_ee_ref_placement(time, True, 1.0)
+
+        croco_reaching.set_posture_ref(x0)
+
+        croco_reaching.solve(xs_init, us_init)
+        xs = croco_reaching.solver.xs
+        us = croco_reaching.solver.us
         sim_data["state_pred"][mpc_cycle, :, :] = np.array(xs)
         sim_data["ctrl_pred"][mpc_cycle, :, :] = np.array(us)
         # Extract relevant predictions for interpolations
@@ -239,17 +246,17 @@ for i in range(sim_data["N_sim"]):
         q = sim_data["state_pred"][mpc_cycle, 0, : sim_data["nq"]]
         sim_data["ctrl_ref"][mpc_cycle, :] = pin_utils.get_u_grav(
             q,
-            solver.problem.runningModels[0].differential.pinocchio,
+            croco_reaching.solver.problem.runningModels[0].differential.pinocchio,
             ocp_params["armature"],
         )
         sim_data["state_ref"][mpc_cycle, :] = (
-            solver.problem.runningModels[0]
-            .differential.costs.costs["stateReg"]
+            croco_reaching.solver.problem.runningModels[0]
+            .differential.costs.costs["state_reg"]
             .cost.residual.reference
         )
         sim_data["lin_pos_ee_ref"][mpc_cycle, :] = (
-            solver.problem.runningModels[0]
-            .differential.costs.costs["translation"]
+            croco_reaching.solver.problem.runningModels[0]
+            .differential.costs.costs["translation_cost"]
             .cost.residual.reference
         )
 
@@ -275,6 +282,7 @@ for i in range(sim_data["N_sim"]):
         sim_data["state_des_SIM_RATE"][i + 1, :] = x_ref_SIM_RATE
 
         # Send torque to simulator & step simulator
+        """
         robot_simulator.send_joint_command(u_ref_SIM_RATE)
         env.step()
         # Measure new state from simulator
@@ -282,7 +290,7 @@ for i in range(sim_data["N_sim"]):
         # Update pinocchio model
         robot_simulator.forward_robot(q_mea_SIM_RATE, v_mea_SIM_RATE)
         # Record data
-        x_mea_SIM_RATE = np.concatenate([q_mea_SIM_RATE, v_mea_SIM_RATE]).T
+        x_mea_SIM_RATE = np.concatenate([q_mea_SIM_RATE, v_mea_SIM_RATE]).T"""
         sim_data["state_mea_SIM_RATE"][i + 1, :] = x0  # x_mea_SIM_RATE
 
 

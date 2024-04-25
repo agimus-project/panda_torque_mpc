@@ -79,16 +79,19 @@ namespace panda_torque_mpc
            "Return weights and target.\n\n"
            ":param time: time\n"
            ":param node_index: node index")
+        .def<void (CrocoddylReaching::*)(Eigen::VectorXd) >("set_posture_ref", &CrocoddylReaching::set_posture_ref,
+           bp::args("self", " x0"),
+           "change posture ref\n")
+        .def<bool (CrocoddylReaching::*)(std::vector<Eigen::Matrix<double, -1, 1>>, std::vector<Eigen::Matrix<double, -1, 1>>) >("solve", &CrocoddylReaching::solve,
+           bp::args("self", " xs_init","us_init"),
+           "solving\n")
         .def("set_ee_ref_placement", &CrocoddylReaching::set_ee_ref_placement,
-           bp::args("self", "placement", "time","is_active","uniform_weight_scaling"),
+           bp::args("self", "time","is_active","uniform_weight_scaling"),
            "update ocp.\n\n"
-           ":param placement: placement\n"
            ":param time: time\n"
            ":param is_active: is_active\n"
            ":param uniform_weight_scaling: uniform_weight_scaling")
-        /*.def<void (CrocoddylReaching::*)(Eigen::Matrix<double, -1, 1> ,std::vector<Eigen::Matrix<double, -1, 1>> ,std::vector<Eigen::Matrix<double, -1, 1>> ,double)>("solving", &CrocoddylReaching::solving,
-           bp::args("self", "x0", "xs_init","us_init","time"),
-           "Solve the problem.\n\n")*/
+        
         .add_property("solver", &CrocoddylReaching::get_solver);
     }
 

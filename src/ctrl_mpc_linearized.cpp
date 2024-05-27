@@ -43,7 +43,7 @@ namespace panda_torque_mpc
                                                            { return v.size() == 7; }))
             return false;
 
-        double publish_log_rate(30.0);
+        double publish_log_rate(100.0);
         if (!nh.getParam("publish_log_rate", publish_log_rate))
         {
             ROS_INFO_STREAM("CtrlMpcLinearized: publish_log_rate not found. Defaulting to " << publish_log_rate);

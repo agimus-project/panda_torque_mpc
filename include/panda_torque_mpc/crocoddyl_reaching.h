@@ -95,15 +95,18 @@ namespace panda_torque_mpc
         void set_ee_ref_placement(double time, bool is_active=true, double uniform_weight_scaling=1.0);
 
         void set_posture_ref(Eigen::VectorXd x0);
+
+        void print_ref_for_node_idx(size_t node_idx);
+
         boost::shared_ptr<crocoddyl::SolverFDDP> get_solver(){
             return ocp_;
         }
 
         void set_with_collision(const bool enable) {config_.with_collisions = enable;}
 
-        // boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
-        // boost::shared_ptr<mim_solvers::SolverSQP> ocp_;
         boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
+        // boost::shared_ptr<mim_solvers::SolverSQP> ocp_;
+        
 
         TicTac simulation_time;
         CrocoddylConfig config_;
@@ -124,7 +127,7 @@ namespace panda_torque_mpc
 
 
     bool valid_pbe();
-    bool solve(std::vector<Eigen::Matrix<double, -1, 1>> xs_init, std::vector<Eigen::Matrix<double, -1, 1>> us_init);
+    bool solve(std::vector<Eigen::Matrix<double, -1, 1>> xs_init, std::vector<Eigen::Matrix<double, -1, 1>> us_init, double nb_iter_max=1.0);
     Vector7d get_tau_ff() const;
     Eigen::MatrixXd get_ricatti_mat() const;
 

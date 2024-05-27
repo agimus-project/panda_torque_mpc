@@ -8,4 +8,5 @@ rosbag record \
     /ctrl_mpc_linearized/absolute_pose_ref \
     /ctrl_mpc_linearized/joint_configurations_comparison \
     /ctrl_mpc_linearized/joint_velocities_comparison \
-    /ctrl_mpc_linearized/joint_torques_comparison
+    /ctrl_mpc_linearized/joint_torques_comparison \
+    /ctrl_mpc_linearized/target_time

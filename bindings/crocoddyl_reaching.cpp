@@ -53,8 +53,9 @@ namespace panda_torque_mpc
    targ_config_.pose_targets = {panda_torque_mpc::XYZQUATToSE3(pose_target1),panda_torque_mpc::XYZQUATToSE3(pose_target2)};
    targ_config_.publish_frequency = bp::extract<double>(mpc_params["publish_frequency"]);
    targ_config_.nb_target = targ_config_.pose_targets.size();
-   targ_config_.cycle_nb_nodes = targ_config_.cycle_duration / croco_conf.dt_ocp;
    targ_config_.cycle_duration = targ_config_.nb_target/targ_config_.publish_frequency;
+   targ_config_.cycle_nb_nodes = targ_config_.cycle_duration / croco_conf.dt_ocp;
+   
    targ_config_.cycle_duration_2 = targ_config_.cycle_duration /2;
    targ_config_.w_slope = bp::extract<double>(mpc_params["w_slope"]);
    targ_config_.max_w = bp::extract<double>(mpc_params["max_w"]);
@@ -82,8 +83,8 @@ namespace panda_torque_mpc
         .def<void (CrocoddylReaching::*)(Eigen::VectorXd) >("set_posture_ref", &CrocoddylReaching::set_posture_ref,
            bp::args("self", " x0"),
            "change posture ref\n")
-        .def<bool (CrocoddylReaching::*)(std::vector<Eigen::Matrix<double, -1, 1>>, std::vector<Eigen::Matrix<double, -1, 1>>) >("solve", &CrocoddylReaching::solve,
-           bp::args("self", " xs_init","us_init"),
+        .def<bool (CrocoddylReaching::*)(std::vector<Eigen::Matrix<double, -1, 1>>, std::vector<Eigen::Matrix<double, -1, 1>>, double) >("solve", &CrocoddylReaching::solve,
+           bp::args("self", " xs_init","us_init", "nb_iter_max"),
            "solving\n")
         .def("set_ee_ref_placement", &CrocoddylReaching::set_ee_ref_placement,
            bp::args("self", "time","is_active","uniform_weight_scaling"),
@@ -91,7 +92,6 @@ namespace panda_torque_mpc
            ":param time: time\n"
            ":param is_active: is_active\n"
            ":param uniform_weight_scaling: uniform_weight_scaling")
-        
         .add_property("solver", &CrocoddylReaching::get_solver);
     }
 

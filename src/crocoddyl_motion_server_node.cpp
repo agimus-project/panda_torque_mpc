@@ -229,7 +229,10 @@ namespace panda_torque_mpc
             cam_pose_ref_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_ref_viz_topic_pub, 1);
             cam_pose_error_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_error_topic_pub, 1);
             ee_pose_error_pub_ = nh.advertise<geometry_msgs::PoseStamped>(ee_pose_error_topic_pub, 1);
+            
             ocp_solve_time_pub_ = nh.advertise<std_msgs::Duration>(ocp_solve_time_topic_pub, 1);
+            std::string target_time_topic_pub = "target_time";
+            target_time_pub_ = nh.advertise<std_msgs::Duration>(target_time_topic_pub, 1);
             
             // Subscribers
             sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_robot_state, this);
@@ -470,8 +473,7 @@ namespace panda_torque_mpc
                     us_init.push_back(tau_grav);
                 }
                 xs_init.push_back(current_x);
-
-                first_solve_ = false;
+                
             }
             else
             {
@@ -509,7 +511,14 @@ namespace panda_torque_mpc
             croco_reaching_.set_posture_ref(x_init);
 
             TicTac tt_solve;
-            bool ok = croco_reaching_.solve(xs_init, us_init);
+            bool ok;
+            if (first_solve_){
+                ok = croco_reaching_.solve(xs_init, us_init,50);
+            }else{
+                ok = croco_reaching_.solve(xs_init, us_init);
+            }
+            
+            first_solve_ = false;
             const auto duration = tt_solve.tac();
             //std::cout << std::setprecision(9) << "n_iter, dt_solve (ms): " << croco_reaching_.ocp_->get_iter() << ", " << duration << std::endl;
             std_msgs::Duration time;
@@ -526,6 +535,10 @@ namespace panda_torque_mpc
             ctrl_eig.feedforward = croco_reaching_.get_tau_ff();
             ctrl_eig.feedback_gain = croco_reaching_.get_ricatti_mat();
             lfc_msgs::Control ctrl_msg;
+            std_msgs::Duration target_time;
+            target_time.data = ros::Duration(time_sensor-start_time);
+            target_time_pub_.publish(target_time);
+            
             lfc_msgs::controlEigenToMsg(ctrl_eig, ctrl_msg);
             control_pub_.publish(ctrl_msg);
         }
@@ -577,6 +590,7 @@ namespace panda_torque_mpc
         ros::Publisher cam_pose_error_pub_;
         ros::Publisher ee_pose_error_pub_;
         ros::Publisher ocp_solve_time_pub_;
+        ros::Publisher target_time_pub_;
 
         // Subscriber to robot sensor from linearized ctrl
         ros::Subscriber sensor_sub_;

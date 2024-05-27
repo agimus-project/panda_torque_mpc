@@ -136,7 +136,7 @@ def plotting():
                 # label=f"tau{i}",
                 markersize=MSIZE,
             )
-
+        ax_it_dur.set_title("FDDP iteration duration")
         ax_dq[0].set_title(field)
         ax_xyz[0].set_title(field)
         ax_err_xyz[0].set_title(field)

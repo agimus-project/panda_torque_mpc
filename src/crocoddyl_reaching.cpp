@@ -94,28 +94,22 @@ namespace panda_torque_mpc
 
         }
 
-        // Frame translation
-        auto frame_translation_cost = boost::make_shared<crocoddyl::CostModelResidual>(
-            state,
-            boost::make_shared<crocoddyl::ResidualModelFrameTranslation>(state, end_effector_frame_id, dummy_translation_reference, actuation->get_nu()));
-
-        // Frame placement
-        auto frame_placement_cost = boost::make_shared<crocoddyl::CostModelResidual>(
-            state,
-            boost::make_shared<crocoddyl::ResidualModelFramePlacement>(state, end_effector_frame_id, dummy_placement_reference, actuation->get_nu()));
+        
 
         // Frame velocity
         Eigen::Matrix<double, 6, 1> frame_velocity_reference = Eigen::Matrix<double, 6, 1>::Zero();
-        auto frame_velocity_cost = boost::make_shared<crocoddyl::CostModelResidual>(
-            state,
-            boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(_config.diag_frame_vel),
-            boost::make_shared<crocoddyl::ResidualModelFrameVelocity>(state, end_effector_frame_id, pin::Motion(frame_velocity_reference), pin::ReferenceFrame::LOCAL_WORLD_ALIGNED, actuation->get_nu()));
 
         auto running_IAMs = std::vector<boost::shared_ptr<crocoddyl::ActionModelAbstract>>(_config.T);
 
 
         for (int i = 0; i < _config.T; i++)
         {
+            // velocity reg
+            auto frame_velocity_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+            state,
+            boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(_config.diag_frame_vel),
+            boost::make_shared<crocoddyl::ResidualModelFrameVelocity>(state, end_effector_frame_id, pin::Motion(frame_velocity_reference), pin::ReferenceFrame::LOCAL_WORLD_ALIGNED, actuation->get_nu()));
+
             // State reg
             auto state_reg_cost = boost::make_shared<crocoddyl::CostModelResidual>(
                 state,
@@ -129,6 +123,15 @@ namespace panda_torque_mpc
                 boost::make_shared<crocoddyl::ResidualModelControlGrav>(state, actuation->get_nu()));
 
             auto runningCostModel = boost::make_shared<crocoddyl::CostModelSum>(state);
+            // Frame translation
+            auto frame_translation_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+                state,
+                boost::make_shared<crocoddyl::ResidualModelFrameTranslation>(state, end_effector_frame_id, dummy_translation_reference, actuation->get_nu()));
+
+            // Frame placement
+            auto frame_placement_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+                state,
+                boost::make_shared<crocoddyl::ResidualModelFramePlacement>(state, end_effector_frame_id, dummy_placement_reference, actuation->get_nu()));
             runningCostModel.get()->addCost(cost_state_reg_name_,   state_reg_cost, _config.w_x_reg_running);
             runningCostModel.get()->addCost(cost_ctrl_reg_name_,    ctrl_reg_cost, _config.w_u_reg_running);
             runningCostModel.get()->addCost(cost_translation_name_, frame_translation_cost, _config.w_frame_running); // TODO: weight schedule
@@ -146,7 +149,21 @@ namespace panda_torque_mpc
 
             running_IAMs[i] = boost::make_shared<crocoddyl::IntegratedActionModelEuler>(running_DAM, _config.dt_ocp);
         }
+        // velocity reg
+        auto frame_velocity_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+        state,
+        boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(_config.diag_frame_vel),
+        boost::make_shared<crocoddyl::ResidualModelFrameVelocity>(state, end_effector_frame_id, pin::Motion(frame_velocity_reference), pin::ReferenceFrame::LOCAL_WORLD_ALIGNED, actuation->get_nu()));
 
+        // Frame translation
+        auto frame_translation_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+            state,
+            boost::make_shared<crocoddyl::ResidualModelFrameTranslation>(state, end_effector_frame_id, dummy_translation_reference, actuation->get_nu()));
+
+        // Frame placement
+        auto frame_placement_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+            state,
+            boost::make_shared<crocoddyl::ResidualModelFramePlacement>(state, end_effector_frame_id, dummy_placement_reference, actuation->get_nu()));
         auto terminalCostModel = boost::make_shared<crocoddyl::CostModelSum>(state);
         // State reg
         auto state_reg_cost = boost::make_shared<crocoddyl::CostModelResidual>(
@@ -205,11 +222,11 @@ namespace panda_torque_mpc
         return true;
     }
 
-    bool CrocoddylReaching::solve(std::vector<Eigen::Matrix<double, -1, 1>> xs_init, std::vector<Eigen::Matrix<double, -1, 1>> us_init)
+    bool CrocoddylReaching::solve(std::vector<Eigen::Matrix<double, -1, 1>> xs_init, std::vector<Eigen::Matrix<double, -1, 1>> us_init, double nb_iter_max)
     {
         if (!valid_pbe()) return false;
 
-        bool has_converged = ocp_->solve(xs_init, us_init, config_.nb_iterations_max, false);
+        bool has_converged = ocp_->solve(xs_init, us_init, nb_iter_max, false);
 
         // generally does not converge within 1 iteration so pointless to return it
         return true;
@@ -285,7 +302,7 @@ namespace panda_torque_mpc
             }
         }
         
-        const int current_target_idx = int(std::fmod(time,targ_config_.cycle_duration) * targ_config_.publish_frequency);
+        const int current_target_idx = int(std::fmod(time ,targ_config_.cycle_duration) * targ_config_.publish_frequency);//+ node_index* config_.dt_ocp
         int next_target_idx = (current_target_idx+1)%targ_config_.nb_target;
         pin::SE3 current_target = targ_config_.pose_targets[current_target_idx];
         pin::SE3 next_target = targ_config_.pose_targets[next_target_idx];
@@ -302,9 +319,9 @@ namespace panda_torque_mpc
         }else{
             target.translation() = next_target.translation();
         }
-        if (node_index ==0){
-            //std::cout<< "w " << weight << " targ y "<<target.translation()[1]<<" wa "<< weight_a<<" wb "<< weight_b << " time "<<time << std::endl;
-        }
+        /*if (node_index ==0 || node_index ==29 ){
+            std::cout<< "time " << time << " targ y "<<target.translation()[1] << " node idx "<<node_index << std::endl;
+        }*/
         
         return std::make_pair(weight,target);
     }
@@ -348,6 +365,15 @@ namespace panda_torque_mpc
         terminal_DAM->get_costs()->get_costs().at(cost_translation_name_)->weight =weight;
     }
 
+    void CrocoddylReaching::print_ref_for_node_idx(size_t node_idx){
+        auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_runningModels()[node_idx]);
+        auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
+        auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(running_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
+        auto real_target = frame_res_running->get_reference();
+        auto weight = running_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight;
+        std::cout<< "target y  "<<  real_target.translation()[1]<< " weight "<<weight<< " for node idx "<<node_idx<< std::endl;
+    }
+
     void CrocoddylReaching::set_ee_ref_placement(double time, bool is_active, double uniform_weight_scaling)
     {
         // Running
@@ -355,27 +381,33 @@ namespace panda_torque_mpc
         {
             auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_runningModels()[node_index]);
             auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
-            auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(running_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
+            //auto cost =  boost::static_pointer_cast<CostModelResidual>()
             std::pair<double,pin::SE3> weight_and_target =  get_weight_and_target(time, node_index);
+            double weight = weight_and_target.first;
+            running_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight =weight;
+            //auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(running_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
+            
             pin::SE3 target = weight_and_target.second;
-            frame_res_running->set_reference(target);
+            boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(running_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual())->set_reference(target);
+            //frame_res_running->set_reference(target);
+            
             if (!goal_placement_set_)
             {
                 running_DAM->get_costs()->changeCostStatus(cost_placement_name_, is_active);
             }
-
-            double weight = weight_and_target.first;
-            running_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight =weight;
+            
         }
+            
 
         // Terminal
         auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_terminalModel());
         auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
-        auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
+        //auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
         
         std::pair<double,pin::SE3> weight_and_target =  get_weight_and_target(time, config_.T);
         pin::SE3 target = weight_and_target.second;
-        frame_res_terminal->set_reference(target);
+        boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual())->set_reference(target);
+        //frame_res_terminal->set_reference(target);
         
         if (!goal_placement_set_)
         {

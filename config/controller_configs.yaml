@@ -185,7 +185,7 @@ ctrl_mpc_linearized:
     armature: [0.,0.,0.,0.,0.,0.,0.0]
     
     #### PARAMETERS FROM NYC 
-    nb_shooting_nodes: 40
+    nb_shooting_nodes: 25
     nb_iterations_max: 1
     solver_termination_tolerance: 0.0001              # Tolerance on KKT residual 
     max_qp_iter: 25    #125 
@@ -221,11 +221,11 @@ ctrl_mpc_linearized:
     # targets params
     pose_target1: [0.0, -0.35, 1.0, 0.0, 1.0, 0.0, 0.0]
     pose_target2: [0.0, 0.35, 1.0, 0.0, 1.0, 0.0, 0.0]
-    publish_frequency: 0.5
+    publish_frequency: 0.25
 
     # Parameters to modify the curve of the target weight function
-    w_slope: 15
-    max_w: 200  #
+    w_slope: 11
+    max_w: 500 
     w_cut: 1
     #w_s=18.5 max_w=115, nb_nodes=40, niter=1 freq=0.5
      #w_s=15 max_w=200, nb_nodes=60, niter=1 freq=0.33

@@ -43,7 +43,7 @@ namespace panda_torque_mpc
                                                            { return v.size() == 7; }))
             return false;
 
-        double publish_log_rate(30.0);
+        double publish_log_rate(100.0);
         if (!nh.getParam("publish_log_rate", publish_log_rate))
         {
             ROS_INFO_STREAM("CtrlMpcLinearized: publish_log_rate not found. Defaulting to " << publish_log_rate);
@@ -130,6 +130,7 @@ namespace panda_torque_mpc
         configurations_publisher_.init(nh, "joint_configurations_comparison", 10);
         velocities_publisher_.init(nh, "joint_velocities_comparison", 10);
         torques_publisher_.init(nh, "joint_torques_comparison", 10);
+
         
         // Robot sensor publisher 
         robot_state_publisher_.init(nh, "robot_sensors", 10);

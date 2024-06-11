@@ -30,6 +30,8 @@
 #include "panda_torque_mpc/obstacle_params_parser.h"
 #include "panda_torque_mpc/reduce_collision_model.h"
 
+#include "std_msgs/Float64MultiArray.h"
+
 
 #include "geometry_msgs/PoseStamped.h"
 #include "std_msgs/Duration.h"
@@ -55,7 +57,8 @@ namespace panda_torque_mpc
                           std::string cam_pose_ref_viz_topic_pub,
                           std::string cam_pose_error_topic_pub,
                           std::string ee_pose_error_topic_pub,
-                          std::string ocp_solve_time_topic_pub
+                          std::string ocp_solve_time_topic_pub,
+                          std::string xu_solution_topic_pub
                           )
         {
 
@@ -182,7 +185,8 @@ namespace panda_torque_mpc
             cam_pose_error_pub_ = nh.advertise<geometry_msgs::PoseStamped>(cam_pose_error_topic_pub, 1);
             ee_pose_error_pub_ = nh.advertise<geometry_msgs::PoseStamped>(ee_pose_error_topic_pub, 1);
             ocp_solve_time_pub_ = nh.advertise<std_msgs::Duration>(ocp_solve_time_topic_pub, 1);
-            
+            xu_solution_publisher_ = nh.advertise<std_msgs::Float64MultiArray>(xu_solution_topic_pub, 1);
+
             // Subscribers
             sensor_sub_ = nh.subscribe(robot_sensors_topic_sub, 10, &CrocoMotionServer::callback_robot_state, this);
             pose_absolute_sub_ = nh.subscribe(absolute_pose_ref_topic_sub, 10, &CrocoMotionServer::callback_pose_absolute, this);
@@ -429,6 +433,7 @@ namespace panda_torque_mpc
                 xs_init = croco_reaching_.ocp_->get_xs();
                 us_init = croco_reaching_.ocp_->get_us();
                 
+
                 /**
                  * Shift trajectory by 1 node <==> config_croco_.dt_ocp
                  * !!! HYP: config_croco_.dt_ocp == 1/freq_solve
@@ -459,6 +464,46 @@ namespace panda_torque_mpc
 
             TicTac tt_solve;
             bool ok = croco_reaching_.solve(xs_init, us_init);
+
+            auto US = croco_reaching_.ocp_->get_us();
+            auto XS = croco_reaching_.ocp_->get_xs();
+            std::vector<double> xu_solution;
+            for (int idx=0; idx<config_croco_.T-1;idx++){
+                Eigen::VectorXd u=  Eigen::Map<Eigen::VectorXd>(US[idx].data(), US[idx].size());
+                std::vector<double> u_vec = std::vector<double>(u.data(),u.data() + u.size());
+                Eigen::VectorXd x=  Eigen::Map<Eigen::VectorXd>(XS[idx].data(), XS[idx].size());
+                std::vector<double> x_vec = std::vector<double>(x.data(),x.data() + x.size());
+                
+                xu_solution.insert( xu_solution.end(), x_vec.begin(), x_vec.end() );
+                xu_solution.insert( xu_solution.end(), u_vec.begin(), u_vec.end() );
+
+            }
+            Eigen::VectorXd x=  Eigen::Map<Eigen::VectorXd>(XS[config_croco_.T-1].data(), XS[config_croco_.T-1].size());
+            std::vector<double> x_vec = std::vector<double>(x.data(),x.data() + x.size());
+            xu_solution.insert( xu_solution.end(), x_vec.begin(), x_vec.end() );
+
+            std_msgs::Float64MultiArray xu_solution_msg;
+            std_msgs::MultiArrayLayout layout_msg;
+            // publish the solution and prediction
+            std_msgs::MultiArrayDimension dim_sol;
+            dim_sol.label = "sol";
+            dim_sol.size = xu_solution.size();
+            dim_sol.stride = config_croco_.T * xu_solution.size();
+
+            std_msgs::MultiArrayDimension dim_T;
+            dim_T.label = "T";
+            dim_T.size = config_croco_.T;
+            dim_T.stride = config_croco_.T;
+
+            // Add dimensions to the layout
+            xu_solution_msg.layout.dim.push_back(dim_sol);
+            xu_solution_msg.layout.dim.push_back(dim_T);
+            xu_solution_msg.layout.data_offset = 0;
+
+            xu_solution_msg.data = std::vector<double>(xu_solution.data(), xu_solution.data() + xu_solution.size());
+            // Publish the message
+            xu_solution_publisher_.publish(xu_solution_msg);
+
             const auto duration = tt_solve.tac();
             std::cout << std::setprecision(9) << "n_iter, dt_solve (ms): " << croco_reaching_.ocp_->get_iter() << ", " << duration << std::endl;
             std_msgs::Duration time;
@@ -525,6 +570,7 @@ namespace panda_torque_mpc
         ros::Publisher cam_pose_error_pub_;
         ros::Publisher ee_pose_error_pub_;
         ros::Publisher ocp_solve_time_pub_;
+        ros::Publisher xu_solution_publisher_;
 
         // Subscriber to robot sensor from linearized ctrl
         ros::Subscriber sensor_sub_;
@@ -564,6 +610,7 @@ int main(int argc, char **argv)
     std::string cam_pose_error_topic_pub = "cam_pose_error";
     std::string ee_pose_error_topic_pub = "ee_pose_error";
     std::string ocp_solve_time_topic_pub = "ocp_solve_time";
+    std::string xu_solution_topic_pub = "xu_solution";
 
     auto motion_server = panda_torque_mpc::CrocoMotionServer(
                             nh, 
@@ -578,7 +625,8 @@ int main(int argc, char **argv)
                             cam_pose_ref_viz_topic_pub,
                             cam_pose_error_topic_pub,
                             ee_pose_error_topic_pub,
-                            ocp_solve_time_topic_pub
+                            ocp_solve_time_topic_pub,
+                            xu_solution_topic_pub
                             );
 
     int freq_solve;

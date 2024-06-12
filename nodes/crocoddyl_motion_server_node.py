@@ -14,7 +14,7 @@ class CrocoMotionServer:
     def __init__(self) -> None:
         self.croco_reaching, self.params, self.robot_model = get_croco_reaching()
         self.robot_data = pin.Data(self.robot_model)
-        self.rate = rospy.Rate(self.params["publish_rate"])  # 10hz
+        self.rate = rospy.Rate(self.params["freq_solve"])  # 10hz
         self.mutex = Lock()
         self.sensor_msg = Sensor()
         self.control_msg = Control()

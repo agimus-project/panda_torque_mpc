@@ -46,6 +46,8 @@ add_message_files(
   TaskTwistComparison.msg
 )
 
+catkin_python_setup()
+
 generate_messages(DEPENDENCIES geometry_msgs)
 
 catkin_package(
@@ -71,6 +73,8 @@ catkin_package(
   DEPENDS Franka pinocchio tsid crocoddyl
 )
 
+
+
 ###############
 # Utils library
 ###############
@@ -92,7 +96,7 @@ target_link_libraries(panda_torque_mpc_utils PUBLIC
   pinocchio::pinocchio_headers
   crocoddyl::crocoddyl
   mim_solvers::mim_solvers
-  colmpc::colmpc_cpp
+  colmpc::colmpc
   example-robot-data::example-robot-data
   tsid::tsid  
 )
@@ -148,9 +152,17 @@ target_include_directories(crocoddyl_motion_server_node SYSTEM PUBLIC
   include
 )
 
-
 # Make sure that the messages are built before this target
 add_dependencies(crocoddyl_motion_server_node panda_torque_mpc_generate_messages_cpp)
+
+#################
+# Bindings Python
+#################
+add_subdirectory(bindings)
+
+##########
+# Installs
+##########
 
 # Install launch files
 install(FILES
@@ -178,19 +190,21 @@ install(FILES
   )
 
 # Install python nodes
-install(PROGRAMS
+catkin_install_python(PROGRAMS
   nodes/move_to_start.py
   nodes/pose_publisher.py
+  nodes/pose_publisher_simulated_object_mvt.py
+  nodes/crocoddyl_motion_server_node.py
   DESTINATION
-  ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts
-  )
+  ${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME}
+)
 
 # Install C++ nodes
 install(TARGETS
   crocoddyl_motion_server_node
   DESTINATION
- ${CATKIN_PACKAGE_SHARE_DESTINATION} 
-  )
+  ${CATKIN_PACKAGE_LIB_DESTINATION} 
+)
   
 # Install plugin description
 install(FILES
@@ -229,10 +243,3 @@ install(FILES
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/meshes
 )
-
-FINDPYTHON()
-set(PY_NAME "${PROJECT_NAME}_pywrap")
-set(${PY_NAME}_INSTALL_DIR ${PYTHON_SITELIB}/${PY_NAME})
-SEARCH_FOR_BOOST_PYTHON()
-
-add_subdirectory(bindings)

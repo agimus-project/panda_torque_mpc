@@ -92,7 +92,9 @@ namespace panda_torque_mpc
            ":param time: time\n"
            ":param is_active: is_active\n"
            ":param uniform_weight_scaling: uniform_weight_scaling")
-        .add_property("solver", &CrocoddylReaching::get_solver);
+        .add_property("solver", &CrocoddylReaching::get_solver)
+        .add_property("tau_ff", &CrocoddylReaching::get_tau_ff)
+        .add_property("ricatti_mat", &CrocoddylReaching::get_ricatti_mat);
     }
 
 } // namespace panda_torque_mpc

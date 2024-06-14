@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="spawn_in_gz" default="true" />
+    <node pkg="panda_torque_mpc" type="obstacle_visualizer.py" name="obstacle_visualizer_node"
+        required="true" output="screen">
+        <param name="spawn_in_gz" value="$(arg spawn_in_gz)"/>
+        <rosparam command="load" file="$(find panda_torque_mpc)/config/obstacle_params.yaml" />
+    </node>
+</launch>

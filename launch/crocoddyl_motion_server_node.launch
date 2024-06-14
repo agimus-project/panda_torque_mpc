@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="panda_torque_mpc" type="crocoddyl_motion_server_node" name="crocoddyl_motion_server_node" ns="ctrl_mpc_linearized"
+        required="true" output="screen">
+        <rosparam command="load" file="$(find panda_torque_mpc)/config/obstacle_params.yaml" />
+    </node>
+</launch>

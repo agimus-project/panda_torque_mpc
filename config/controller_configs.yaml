@@ -174,26 +174,34 @@ ctrl_mpc_linearized:
     ####################
     freq_solve: 100
     # OCP motion server configs
-    nb_shooting_nodes: 50
+    # nb_shooting_nodes: 20
+
     dt_ocp: 0.05
-    nb_iterations_max: 1
+    # nb_iterations_max: 1
     reference_is_placement: true   # otherwise, translation
     keep_original_ee_rotation: false
-    armature: [0.01,0.01,0.01,0.01,0.01,0.01,0.01]
+    # armature: [0.01,0.01,0.01,0.01,0.01,0.01,0.01]
     # armature: [0.001,0.001,0.001,0.001,0.001,0.001,0.001]
-    # armature: [0.,0.,0.,0.,0.,0.,0.0]
+    armature: [0.,0.,0.,0.,0.,0.,0.0]
     
+    #### PARAMETERS FROM NYC 
+    nb_shooting_nodes: 15
+    nb_iterations_max: 1
+    solver_termination_tolerance: 0.0001              # Tolerance on KKT residual 
+    max_qp_iter: 100    #125 
+    qp_termination_tol_abs: 0.00001
+    qp_termination_tol_rel: 0.00001
 
     ####################
     # frame pose/position
     # w_frame_running:  50
     # w_frame_terminal: 50
-    w_frame_running:  10
-    w_frame_terminal: 400
+    w_frame_running:  10.0
+    w_frame_terminal: 100.0
 
     # frame vel regularization
-    w_frame_vel_running:  0.01
-    w_frame_vel_terminal: 0.01
+    w_frame_vel_running:  0.0
+    w_frame_vel_terminal: 0.0
     diag_frame_vel: [
         1.,1.,1.,
         1.,1.,1.,
@@ -209,6 +217,19 @@ ctrl_mpc_linearized:
     # Control regularization
     w_u_reg_running: 0.001
     diag_u_reg_running: [1.,1.,1.,1.,1.,1.,1.]
+
+    ##### WEIGHTS FROM THEO
+    # targets params
+    changing_weights: false
+    pose_target1: [0.0, -0.35, 1.0, 0.0, 1.0, 0.0, 0.0]
+    pose_target2: [0.0, 0.35, 1.0, 0.0, 1.0, 0.0, 0.0]
+    publish_frequency: 0.25
+
+    # Parameters to modify the curve of the target weight function
+    w_slope: 13
+    max_w: 1000 
+    w_cut: 1
+    #w_s=18.5 max_w=115, nb_nodes=40, niter=1 freq=0.5
 
     ################################
     # Visual servoing mode reference

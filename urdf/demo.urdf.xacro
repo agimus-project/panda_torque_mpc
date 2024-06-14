@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="panda">
+  <xacro:include filename="$(find panda_torque_mpc)/urdf/franka_robot.xacro"/>
+  <xacro:include filename="$(find panda_torque_mpc)/urdf/support.urdf.xacro"/>
+
+  <xacro:support/>
+  <xacro:franka_robot arm_id="panda"
+                      joint_limits="${xacro.load_yaml('$(find franka_description)/robots/panda/joint_limits.yaml')}">
+  </xacro:franka_robot>
+
+  <!-- wall behind the table -->
+</robot>

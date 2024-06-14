@@ -17,6 +17,8 @@
 
   <depend>controller_interface</depend>
   <depend>crocoddyl</depend>
+  <depend>mim_solvers</depend>
+  <depend>colmpc</depend>
   <depend>dynamic_reconfigure</depend>
   <depend>eigen_conversions</depend>
   <depend>franka_hw</depend>
@@ -33,6 +35,9 @@
   <depend>geometry_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>linear_feedback_controller_msgs</depend>
+  <depend>realsense2_description</depend>
+  <depend>tsid</depend>
+
 
   <exec_depend>franka_control</exec_depend>
   <exec_depend>franka_description</exec_depend>

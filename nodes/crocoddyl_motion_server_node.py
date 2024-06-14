@@ -65,6 +65,7 @@ class CrocoMotionServer:
         return xs, us, nb_iteration
 
     def solve_and_send(self):
+        start_compute_time = rospy.Time.now()
         with self.mutex:
             sensor_msg = deepcopy(self.sensor_msg)
 
@@ -99,7 +100,7 @@ class CrocoMotionServer:
         self.control_msg.initial_state = sensor_msg
         self.control_publisher.publish(self.control_msg)
         
-        self.ocp_solve_time.data = self.control_msg.header.stamp - sensor_msg.header.stamp
+        self.ocp_solve_time.data = rospy.Time.now() - start_compute_time
         self.ocp_solve_time_pub.publish(self.ocp_solve_time)
         
 

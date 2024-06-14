@@ -86,6 +86,14 @@ roslaunch panda_torque_mpc real_controllers.launch controller:=ctrl_mpc_lineariz
 ROS_NAMESPACE=/ctrl_mpc_linearized rosrun panda_torque_mpc crocoddyl_motion_server_node
 ``` -->
 
+### Log data
+
+```bash
+rosbag record -a -o ~/ros_ws/rosbags/crocoddyl_motion_server_node_cpp
+# or
+rosbag record -a -o ~/ros_ws/rosbags/crocoddyl_motion_server_node_py
+```
+
 ### Follow absolute end effector reference with asynchronous MPC (simu)
 ```bash
 roslaunch panda_torque_mpc simulation.launch arm_id:=panda simulate_camera:=false

@@ -3,31 +3,31 @@
  <tabbed_widget name="Main Window" parent="main_window">
   <Tab containers="1" tab_name="Sensor: joints">
    <Container>
-    <DockSplitter orientation="-" sizes="0.500568;0.499432" count="2">
+    <DockSplitter orientation="-" count="2" sizes="0.5;0.5">
      <DockArea name="...">
-      <plot mode="TimeSeries" flip_y="false" flip_x="false" style="Lines">
-       <range right="12.642000" bottom="-3.076322" top="3.919337" left="7.642000"/>
+      <plot style="Lines" flip_y="false" flip_x="false" mode="TimeSeries">
+       <range left="3.546000" right="8.546000" bottom="-2.212782" top="1.948532"/>
        <limitY/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[0]" color="#d62728"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[1]" color="#1ac938"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[2]" color="#ff7f0e"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[3]" color="#f14cc1"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[4]" color="#9467bd"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[5]" color="#17becf"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[6]" color="#bcbd22"/>
+       <curve color="#d62728" name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[0]"/>
+       <curve color="#1ac938" name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[1]"/>
+       <curve color="#ff7f0e" name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[2]"/>
+       <curve color="#f14cc1" name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[3]"/>
+       <curve color="#9467bd" name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[4]"/>
+       <curve color="#17becf" name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[5]"/>
+       <curve color="#bcbd22" name="/ctrl_mpc_linearized/robot_sensors/joint_state/position[6]"/>
       </plot>
      </DockArea>
      <DockArea name="...">
-      <plot mode="TimeSeries" flip_y="false" flip_x="false" style="Lines">
-       <range right="12.642000" bottom="-66.441320" top="49.908208" left="7.642000"/>
+      <plot style="Lines" flip_y="false" flip_x="false" mode="TimeSeries">
+       <range left="3.546000" right="8.546000" bottom="-2.289938" top="2.028235"/>
        <limitY/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[0]" color="#1f77b4"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[1]" color="#d62728"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[2]" color="#1ac938"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[3]" color="#ff7f0e"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[4]" color="#f14cc1"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[5]" color="#9467bd"/>
-       <curve name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[6]" color="#17becf"/>
+       <curve color="#1f77b4" name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[0]"/>
+       <curve color="#d62728" name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[1]"/>
+       <curve color="#1ac938" name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[2]"/>
+       <curve color="#ff7f0e" name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[3]"/>
+       <curve color="#f14cc1" name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[4]"/>
+       <curve color="#9467bd" name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[5]"/>
+       <curve color="#17becf" name="/ctrl_mpc_linearized/robot_sensors/joint_state/velocity[6]"/>
       </plot>
      </DockArea>
     </DockSplitter>
@@ -35,31 +35,31 @@
   </Tab>
   <Tab containers="1" tab_name="Control: joints">
    <Container>
-    <DockSplitter orientation="-" sizes="0.500568;0.499432" count="2">
+    <DockSplitter orientation="-" count="2" sizes="0.5;0.5">
      <DockArea name="...">
-      <plot mode="TimeSeries" flip_y="false" flip_x="false" style="Lines">
-       <range right="12.325000" bottom="-3.064312" top="3.918931" left="7.336000"/>
+      <plot style="Lines" flip_y="false" flip_x="false" mode="TimeSeries">
+       <range left="3.549000" right="8.546000" bottom="-2.212696" top="1.945933"/>
        <limitY/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[0]" color="#bcbd22"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[1]" color="#1f77b4"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[2]" color="#d62728"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[3]" color="#1ac938"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[4]" color="#ff7f0e"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[5]" color="#f14cc1"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[6]" color="#9467bd"/>
+       <curve color="#bcbd22" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[0]"/>
+       <curve color="#1f77b4" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[1]"/>
+       <curve color="#d62728" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[2]"/>
+       <curve color="#1ac938" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[3]"/>
+       <curve color="#ff7f0e" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[4]"/>
+       <curve color="#f14cc1" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[5]"/>
+       <curve color="#9467bd" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/position[6]"/>
       </plot>
      </DockArea>
      <DockArea name="...">
-      <plot mode="TimeSeries" flip_y="false" flip_x="false" style="Lines">
-       <range right="12.325000" bottom="-13.596087" top="10.809166" left="7.336000"/>
+      <plot style="Lines" flip_y="false" flip_x="false" mode="TimeSeries">
+       <range left="3.549000" right="8.546000" bottom="-2.266182" top="1.948294"/>
        <limitY/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[0]" color="#17becf"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[1]" color="#bcbd22"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[2]" color="#1f77b4"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[3]" color="#d62728"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[4]" color="#1ac938"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[5]" color="#ff7f0e"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[6]" color="#f14cc1"/>
+       <curve color="#17becf" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[0]"/>
+       <curve color="#bcbd22" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[1]"/>
+       <curve color="#1f77b4" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[2]"/>
+       <curve color="#d62728" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[3]"/>
+       <curve color="#1ac938" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[4]"/>
+       <curve color="#ff7f0e" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[5]"/>
+       <curve color="#f14cc1" name="/ctrl_mpc_linearized/motion_server_control/initial_state/joint_state/velocity[6]"/>
       </plot>
      </DockArea>
     </DockSplitter>
@@ -67,31 +67,44 @@
   </Tab>
   <Tab containers="1" tab_name="Control: FF">
    <Container>
-    <DockSplitter orientation="-" sizes="1" count="1">
+    <DockSplitter orientation="-" count="1" sizes="1">
      <DockArea name="...">
-      <plot mode="TimeSeries" flip_y="false" flip_x="false" style="Lines">
-       <range right="12.325000" bottom="-101.161198" top="96.563879" left="7.336000"/>
+      <plot style="Lines" flip_y="false" flip_x="false" mode="TimeSeries">
+       <range left="3.549000" right="8.546000" bottom="-49.732477" top="4.093404"/>
        <limitY/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[0]" color="#9467bd"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[1]" color="#1f77b4"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[2]" color="#d62728"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[3]" color="#1ac938"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[4]" color="#ff7f0e"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[5]" color="#f14cc1"/>
-       <curve name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[6]" color="#9467bd"/>
+       <curve color="#9467bd" name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[0]"/>
+       <curve color="#1f77b4" name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[1]"/>
+       <curve color="#d62728" name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[2]"/>
+       <curve color="#1ac938" name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[3]"/>
+       <curve color="#ff7f0e" name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[4]"/>
+       <curve color="#f14cc1" name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[5]"/>
+       <curve color="#9467bd" name="/ctrl_mpc_linearized/motion_server_control/feedforward/data[6]"/>
       </plot>
      </DockArea>
     </DockSplitter>
    </Container>
   </Tab>
-  <currentTabIndex index="2"/>
+  <Tab containers="1" tab_name="SolveTime">
+   <Container>
+    <DockSplitter orientation="-" count="1" sizes="1">
+     <DockArea name="...">
+      <plot style="Lines" flip_y="false" flip_x="false" mode="TimeSeries">
+       <range left="2.974000" right="7.951000" bottom="-0.001025" top="0.084025"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/ctrl_mpc_linearized/ocp_solve_time/data"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <currentTabIndex index="3"/>
  </tabbed_widget>
  <use_relative_time_offset enabled="1"/>
  <!-- - - - - - - - - - - - - - - -->
  <!-- - - - - - - - - - - - - - - -->
  <Plugins>
   <plugin ID="DataLoad CSV">
-   <parameters delimiter="0" time_axis=""/>
+   <parameters time_axis="" delimiter="0"/>
   </plugin>
   <plugin ID="DataLoad MCAP"/>
   <plugin ID="DataLoad ROS bags">
@@ -109,7 +122,7 @@
    <max_array_size value="100"/>
    <boolean_strings_to_number value="true"/>
    <remove_suffix_from_strings value="true"/>
-   <selected_topics value="/ctrl_mpc_linearized/motion_server_control;/ctrl_mpc_linearized/robot_sensors"/>
+   <selected_topics value="/ctrl_mpc_linearized/motion_server_control;/ctrl_mpc_linearized/robot_sensors;/ctrl_mpc_linearized/ocp_solve_time"/>
   </plugin>
   <plugin ID="UDP Server"/>
   <plugin ID="WebSocket Server"/>

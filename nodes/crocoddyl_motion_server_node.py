@@ -6,7 +6,7 @@ from copy import deepcopy
 from threading import Lock
 from panda_torque_mpc.initialize_croco_reaching import get_croco_reaching
 from panda_torque_mpc.ros_np_multiarray import to_multiarray_f64
-from std_msgs.msg import Header, Float64MultiArray
+from std_msgs.msg import Header, Duration
 from linear_feedback_controller_msgs.msg import Control, Sensor
 
 
@@ -18,6 +18,7 @@ class CrocoMotionServer:
         self.mutex = Lock()
         self.sensor_msg = Sensor()
         self.control_msg = Control()
+        self.ocp_solve_time = Duration()
         self.x0 = np.zeros(self.robot_model.nq + self.robot_model.nv)
         self.x_guess = np.zeros(self.robot_model.nq + self.robot_model.nv)
         self.u_guess = np.zeros(self.robot_model.nv)
@@ -29,6 +30,7 @@ class CrocoMotionServer:
         self.control_publisher = rospy.Publisher(
             "motion_server_control", Control, queue_size=1
         )
+        self.ocp_solve_time_pub = rospy.Publisher("ocp_solve_time", Duration, 1);
         self.start_time = 0.0
         self.first_solve = False
         self.first_robot_sensor_msg_received = False
@@ -58,7 +60,7 @@ class CrocoMotionServer:
         else:
             xs = [np.array(x) for x in self.croco_reaching.solver.xs]
             us = [np.array(x) for x in self.croco_reaching.solver.us]
-            nb_iteration = 500  # 1
+            nb_iteration = 1
 
         return xs, us, nb_iteration
 
@@ -96,6 +98,10 @@ class CrocoMotionServer:
         self.control_msg.feedforward = to_multiarray_f64(self.croco_reaching.tau_ff)
         self.control_msg.initial_state = sensor_msg
         self.control_publisher.publish(self.control_msg)
+        
+        self.ocp_solve_time.data = self.control_msg.header.stamp - sensor_msg.header.stamp
+        self.ocp_solve_time_pub.publish(self.ocp_solve_time)
+        
 
     def run(self):
         while not rospy.is_shutdown():

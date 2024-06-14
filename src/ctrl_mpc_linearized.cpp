@@ -20,7 +20,7 @@ namespace panda_torque_mpc
     bool CtrlMpcLinearized::init(hardware_interface::RobotHW *robot_hw,
                                  ros::NodeHandle &nh)
     {
-        control_solve_time_rtbox_.set(ros::Duration(0.0))
+        control_solve_time_rtbox_.set(ros::Duration(0.0));
         ///////////////////
         // Load parameters
         ///////////////////

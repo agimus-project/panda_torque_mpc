@@ -103,7 +103,7 @@ for i in range(sim_data["N_sim"]):
     if i % int(sim_params["sim_freq"] / sim_params["mpc_freq"]) == 0:
         # Set x0 to measured state
 
-        x0 = np.concatenate([data["q"]["measured"][i], data["dq"]["measured"][i]])
+        x0 = np.concatenate([data["xu_solution"]["q"][i, :, :], data["xu_solution"]["v"][i, :, :]])
 
         # Warm start using previous solution
         xs = np.concatenate(

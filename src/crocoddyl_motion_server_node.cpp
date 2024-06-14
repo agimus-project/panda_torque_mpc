@@ -71,10 +71,12 @@ namespace panda_torque_mpc
 
             // Croco params
             int nb_shooting_nodes, nb_iterations_max, max_qp_iter;
-            double dt_ocp,solver_termination_tolerance,qp_termination_tol_abs , qp_termination_tol_rel, w_frame_running, w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running;
+            double dt_ocp,solver_termination_tolerance,qp_termination_tol_abs , qp_termination_tol_rel, w_frame_running,
+            w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running, publish_frequency, w_slope, w_cut, max_w;
             std::vector<double> diag_frame_vel, diag_q_reg_running, diag_v_reg_running, diag_u_reg_running, armature;
-            std::vector<double> pose_e_c, pose_c_o_ref;  // px,py,pz, qx,qy,qz,qw
-            bool reference_is_placement;
+            std::vector<double> pose_e_c, pose_c_o_ref, pose_target1, pose_target2;  // px,py,pz, qx,qy,qz,qw
+            std::vector<pin::SE3> pose_targets;  // px,py,pz, qx,qy,qz,qw
+            bool reference_is_placement, changing_weights;
 
             params_success = get_param_error_tpl<int>(nh, nb_shooting_nodes, "nb_shooting_nodes") && params_success;
             params_success = get_param_error_tpl<double>(nh, dt_ocp, "dt_ocp") && params_success;
@@ -92,7 +94,10 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<double>(nh, w_x_reg_running,  "w_x_reg_running") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_x_reg_terminal, "w_x_reg_terminal") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_u_reg_running,  "w_u_reg_running") && params_success;
-
+            params_success = get_param_error_tpl<double>(nh, publish_frequency,  "publish_frequency") && params_success;
+            params_success = get_param_error_tpl<double>(nh, w_slope,  "w_slope") && params_success;
+            params_success = get_param_error_tpl<double>(nh, w_cut,  "w_cut") && params_success;
+            params_success = get_param_error_tpl<double>(nh, max_w,  "max_w") && params_success;
             params_success = get_param_error_tpl<std::vector<double>>(nh, diag_frame_vel, "diag_frame_vel",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 6; }) && params_success;
@@ -115,7 +120,15 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<std::vector<double>>(nh, pose_c_o_ref, "pose_c_o_ref",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 7; }) && params_success;
+            params_success = get_param_error_tpl<std::vector<double>>(nh, pose_target1, "pose_target1",
+                                                                      [](std::vector<double> v)
+                                                                      { return v.size() == 7; }) && params_success;
+            params_success = get_param_error_tpl<std::vector<double>>(nh, pose_target2, "pose_target2",
+                                                                      [](std::vector<double> v)
+                                                                      { return v.size() == 7; }) && params_success; 
             params_success = get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name") && params_success;
+
+            params_success = get_param_error_tpl<bool>(nh, changing_weights, "changing_weights") && params_success;
 
             
             if (!params_success)
@@ -148,6 +161,10 @@ namespace panda_torque_mpc
 
             // Define corresponding frame id for pinocchio and Franka (see ctrl_model_pinocchio_vs_franka)
             ee_frame_id_ = model_pin_.getFrameId(ee_frame_name_);
+
+            // add targets pose to vector of targets pose
+            pose_targets.push_back(panda_torque_mpc::XYZQUATToSE3(pose_target1));
+            pose_targets.push_back(panda_torque_mpc::XYZQUATToSE3(pose_target2));
             
             /////////////////////////////////////////////////
             //                MPC CONFIG                   //
@@ -173,9 +190,22 @@ namespace panda_torque_mpc
             config_croco_.w_u_reg_running = w_u_reg_running;
             config_croco_.diag_u_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_u_reg_running.data());
             config_croco_.armature = Eigen::Map<Eigen::Matrix<double, 7, 1>>(armature.data());
+            config_croco_.changing_weights = changing_weights;
+
+            // For the changing weights
+            TargetsConfig targ_config_;
+            targ_config_.pose_targets = pose_targets;
+            targ_config_.publish_frequency = publish_frequency;
+            targ_config_.nb_target = pose_targets.size();
+            targ_config_.cycle_duration = targ_config_.nb_target/publish_frequency;
+            targ_config_.cycle_duration_2 = targ_config_.cycle_duration /2;
+            targ_config_.cycle_nb_nodes = targ_config_.cycle_duration / dt_ocp;
+            targ_config_.w_slope = w_slope;
+            targ_config_.w_cut = w_cut;
+            targ_config_.max_w = max_w;
 
             // croco_reaching_ = CrocoddylReaching(model_pin_ ,config_croco_);
-            croco_reaching_ = CrocoddylReaching(model_pin_, collision_model ,config_croco_);
+            croco_reaching_ = CrocoddylReaching(model_pin_, collision_model ,config_croco_, targ_config_);
             /////////////////////////////////////////////////
 
             // Publishers
@@ -391,6 +421,8 @@ namespace panda_torque_mpc
             // Do nothing if no pose reference and sensor state has been received
             if (!(first_robot_sensor_msg_received_ && first_pose_ref_msg_received_))
             {
+                croco_reaching_.simulation_time.tic();
+                start_time = t_sensor_.sec + t_sensor_.nsec*1e-9;
                 return;
             }
 
@@ -452,13 +484,29 @@ namespace panda_torque_mpc
             // Deactivating reaching task would requires to re-equilibrate the OCP weights
             // -> easier to track last known reference active
             bool reaching_task_is_active = true;
+            double time_sensor = t_sensor_.sec + t_sensor_.nsec*1e-9;
             if (config_croco_.reference_is_placement)
             {
-                croco_reaching_.set_ee_ref_placement(T_b_e_ref, reaching_task_is_active, 1.0);
+                if (config_croco_.changing_weights){
+                    croco_reaching_.set_ee_ref_placement_changing_weights(time_sensor-start_time, reaching_task_is_active);
+                }
+                else
+                {
+                    croco_reaching_.set_ee_ref_placement_constant_weights(T_b_e_ref, reaching_task_is_active);
+
+                }
+
             }
             else
             {
-                croco_reaching_.set_ee_ref_translation(T_b_e_ref.translation(), reaching_task_is_active);
+                if (config_croco_.changing_weights){
+                    croco_reaching_.set_ee_ref_translation_changing_weights(time_sensor-start_time, reaching_task_is_active);
+                }
+                else
+                {
+                    croco_reaching_.set_ee_ref_translation_constant_weights(T_b_e_ref.translation(), reaching_task_is_active);
+
+                }            
             }
             croco_reaching_.set_posture_ref(x_init);
 
@@ -526,6 +574,7 @@ namespace panda_torque_mpc
 
         // sensor callback
         ros::Time t_sensor_;
+        double start_time = 0.0;
         Vector7d q_init_rtbox_;
         Eigen::Matrix<double, 14, 1> current_x_rtbox_;
         pin::SE3 T_b_e0_;

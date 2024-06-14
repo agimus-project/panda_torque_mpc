@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include <Eigen/Dense>
+#include <cmath>
 
 #include <pinocchio/fwd.hpp>
 #include <pinocchio/multibody/model.hpp>
@@ -38,8 +39,9 @@
 namespace panda_torque_mpc
 {
     CrocoddylReaching::CrocoddylReaching(const pin::Model model_pin, const boost::shared_ptr<pin::GeometryModel>& collision_model ,
-        CrocoddylConfig config) :
-    config_(config)
+        CrocoddylConfig config,  TargetsConfig targ_config) :
+    config_(config),  targ_config_(targ_config)
+    
     {
 
         const std::size_t end_effector_frame_id = model_pin.getFrameId(config.ee_frame_name);
@@ -94,27 +96,42 @@ namespace panda_torque_mpc
         }
 
         // Frame translation
-        auto frame_translation_cost = boost::make_shared<crocoddyl::CostModelResidual>(
-            state,
-            boost::make_shared<crocoddyl::ResidualModelFrameTranslation>(state, end_effector_frame_id, dummy_translation_reference, actuation->get_nu()));
+        // auto frame_translation_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+        //     state,
+        //     boost::make_shared<crocoddyl::ResidualModelFrameTranslation>(state, end_effector_frame_id, dummy_translation_reference, actuation->get_nu()));
 
-        // Frame placement
-        auto frame_placement_cost = boost::make_shared<crocoddyl::CostModelResidual>(
-            state,
-            boost::make_shared<crocoddyl::ResidualModelFramePlacement>(state, end_effector_frame_id, dummy_placement_reference, actuation->get_nu()));
+        // // Frame placement
+        // auto frame_placement_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+        //     state,
+        //     boost::make_shared<crocoddyl::ResidualModelFramePlacement>(state, end_effector_frame_id, dummy_placement_reference, actuation->get_nu()));
 
-        // Frame velocity
+        // // Frame velocity
         Eigen::Matrix<double, 6, 1> frame_velocity_reference = Eigen::Matrix<double, 6, 1>::Zero();
-        auto frame_velocity_cost = boost::make_shared<crocoddyl::CostModelResidual>(
-            state,
-            boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(config.diag_frame_vel),
-            boost::make_shared<crocoddyl::ResidualModelFrameVelocity>(state, end_effector_frame_id, pin::Motion(frame_velocity_reference), pin::ReferenceFrame::LOCAL_WORLD_ALIGNED, actuation->get_nu()));
+        // auto frame_velocity_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+        //     state,
+        //     boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(config.diag_frame_vel),
+        //     boost::make_shared<crocoddyl::ResidualModelFrameVelocity>(state, end_effector_frame_id, pin::Motion(frame_velocity_reference), pin::ReferenceFrame::LOCAL_WORLD_ALIGNED, actuation->get_nu()));
 
         auto running_IAMs = std::vector<boost::shared_ptr<crocoddyl::ActionModelAbstract>>(config.T);
 
 
         for (int i = 0; i < config.T; i++)
         {
+            // velocity reg
+            auto frame_velocity_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+            state,
+            boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(config.diag_frame_vel),
+            boost::make_shared<crocoddyl::ResidualModelFrameVelocity>(state, end_effector_frame_id, pin::Motion(frame_velocity_reference), pin::ReferenceFrame::LOCAL_WORLD_ALIGNED, actuation->get_nu()));
+
+            // Frame translation
+            auto frame_translation_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+                state,
+                boost::make_shared<crocoddyl::ResidualModelFrameTranslation>(state, end_effector_frame_id, dummy_translation_reference, actuation->get_nu()));
+
+            // Frame placement
+            auto frame_placement_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+                state,
+                boost::make_shared<crocoddyl::ResidualModelFramePlacement>(state, end_effector_frame_id, dummy_placement_reference, actuation->get_nu()));
             // State reg
             auto state_reg_cost = boost::make_shared<crocoddyl::CostModelResidual>(
                 state,
@@ -135,7 +152,6 @@ namespace panda_torque_mpc
             runningCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost, config.w_frame_vel_running); // TODO: weight schedule
             
             auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel, runningConstraintModelManager);
-            // auto running_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, runningCostModel);
             running_DAM->set_armature(config.armature);
 
             // Deactivate goal cost by default until a proper reference is set
@@ -146,6 +162,22 @@ namespace panda_torque_mpc
             running_IAMs[i] = boost::make_shared<crocoddyl::IntegratedActionModelEuler>(running_DAM, config.dt_ocp);
         }
 
+        // velocity reg
+        auto frame_velocity_terminal_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+        state,
+        boost::make_shared<crocoddyl::ActivationModelWeightedQuad>(config.diag_frame_vel),
+        boost::make_shared<crocoddyl::ResidualModelFrameVelocity>(state, end_effector_frame_id, pin::Motion(frame_velocity_reference), pin::ReferenceFrame::LOCAL_WORLD_ALIGNED, actuation->get_nu()));
+
+        // Frame translation
+        auto frame_translation_terminal_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+            state,
+            boost::make_shared<crocoddyl::ResidualModelFrameTranslation>(state, end_effector_frame_id, dummy_translation_reference, actuation->get_nu()));
+
+        // Frame placement
+        auto frame_placement_terminal_cost = boost::make_shared<crocoddyl::CostModelResidual>(
+            state,
+            boost::make_shared<crocoddyl::ResidualModelFramePlacement>(state, end_effector_frame_id, dummy_placement_reference, actuation->get_nu()));
+
         auto terminalCostModel = boost::make_shared<crocoddyl::CostModelSum>(state);
         // State reg
         auto state_reg_cost = boost::make_shared<crocoddyl::CostModelResidual>(
@@ -155,12 +187,11 @@ namespace panda_torque_mpc
 
         // terminal gains have to be multiplied by dt in order to be up to scale with running costs
         terminalCostModel.get()->addCost(cost_state_reg_name_,   state_reg_cost,         config.w_x_reg_terminal*config.dt_ocp);
-        terminalCostModel.get()->addCost(cost_translation_name_, frame_translation_cost, config.w_frame_terminal*config.dt_ocp);
-        terminalCostModel.get()->addCost(cost_placement_name_,   frame_placement_cost,   config.w_frame_terminal*config.dt_ocp);
-        terminalCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_cost,    config.w_frame_vel_terminal*config.dt_ocp);
+        terminalCostModel.get()->addCost(cost_translation_name_, frame_translation_terminal_cost, config.w_frame_terminal*config.dt_ocp);
+        terminalCostModel.get()->addCost(cost_placement_name_,   frame_placement_terminal_cost,   config.w_frame_terminal*config.dt_ocp);
+        terminalCostModel.get()->addCost(cost_velocity_name_,    frame_velocity_terminal_cost,    config.w_frame_vel_terminal*config.dt_ocp);
 
         auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel, terminalConstraintModelManager);
-        // auto terminal_DAM = boost::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state, actuation, terminalCostModel);
         terminal_DAM->set_armature(config.armature);
 
         // Deactivate goal cost by default until a proper reference is set
@@ -221,7 +252,119 @@ namespace panda_torque_mpc
         return ocp_->get_K()[0];
     }
 
-    void CrocoddylReaching::set_ee_ref_translation(Eigen::Vector3d trans, bool is_active)
+    std::pair<double,double> CrocoddylReaching::get_targets_weights(const double& time,const int& node_index){
+            double cycle_start_time =double(int(time/targ_config_.cycle_duration) * targ_config_.cycle_duration);  // Date of cycle start in ms
+
+            // Compute the absolute time of the shooting interval, modulo the cycle time,
+            // so that 0<=time_a0<cycle_duration and 0<time_a1<=cycle_duration
+            double time_a0 = time + node_index * config_.dt_ocp - cycle_start_time; // absolute data of the time of the start of the shooting interval
+            double time_a1 = time + (node_index + 1) * config_.dt_ocp - cycle_start_time; // absolute data of the time of the start of the shooting interval
+            if (time_a0 > targ_config_.cycle_duration){
+                time_a0 -= targ_config_.cycle_duration;
+                time_a1 -= targ_config_.cycle_duration;
+            }
+            double time_b0, time_b1; 
+            // Compute the absolute time of the shooting interval for the second task, modulo the cycle time,
+            // so that 0<=time_b0<cycle_duration and 0<time_b1<=cycle_duration and [time_a0,time_a1] is in antiphase with [time_b0,time_b1].
+            if (time_a0 < targ_config_.cycle_duration_2){
+                time_b0 = time_a0 + targ_config_.cycle_duration_2;
+                if (time_a1 <= targ_config_.cycle_duration_2){
+                    time_b1 = time_a1 + targ_config_.cycle_duration_2;
+                }else{
+                    time_b1 = targ_config_.cycle_duration;
+                }
+            }
+            else{
+                time_b0 = time_a0 - targ_config_.cycle_duration_2;
+                time_b1 = time_a1 - targ_config_.cycle_duration_2;
+            }
+
+            if (time_a1 > targ_config_.cycle_duration){
+                time_a1 =targ_config_.cycle_duration;
+            }
+
+            // Compute the weights for the first task, as \integral_time_a0^time_a1 weight(s) ds.
+            double weight_a = targ_config_.max_w*std::exp(-targ_config_.w_slope*(targ_config_.cycle_duration-time_a0)/targ_config_.cycle_duration);
+
+            // Compute the weights for the second task, as \integral_time_b0^time_b1 weight(s) ds.
+            double weight_b = targ_config_.max_w*std::exp(-targ_config_.w_slope*(targ_config_.cycle_duration-time_b0)/targ_config_.cycle_duration);
+
+            return std::make_pair(weight_a,weight_b);
+        }
+
+    std::pair<double,pin::SE3> CrocoddylReaching::get_weight_and_target(const double& time,const int& node_index){
+        std::pair<double,double> weights = get_targets_weights(time, node_index);
+        double weight_a = weights.first;
+        double weight_b = weights.second;
+        if (node_index == 0){
+            if (weight_a > weight_b){
+                targ_config_.weight_a_is_target= true;
+            }else{
+                targ_config_.weight_a_is_target= false;
+            }
+        }
+
+        const int current_target_idx = int(std::fmod(time ,targ_config_.cycle_duration) * targ_config_.publish_frequency);
+        int next_target_idx = (current_target_idx+1)%targ_config_.nb_target;
+        pin::SE3 current_target = targ_config_.pose_targets[current_target_idx];
+        pin::SE3 next_target = targ_config_.pose_targets[next_target_idx];
+        pin::SE3 target;
+        double weight;
+        if (weight_a > weight_b){
+            weight = weight_a;
+        }else{
+            weight = weight_b;
+        }
+        target.rotation() = current_target.rotation();
+        if ((targ_config_.weight_a_is_target && weight_a > weight_b) || (!targ_config_.weight_a_is_target && weight_b > weight_a)){
+            target.translation() = current_target.translation();
+        }else{
+            target.translation() = next_target.translation();
+        }
+        return std::make_pair(weight,target);
+    }
+
+    void CrocoddylReaching::set_ee_ref_translation_changing_weights(double time, bool is_active)
+    {
+        // Running
+        for (size_t node_index = 0; node_index < config_.T; node_index++)
+        {
+            auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_runningModels()[node_index]);
+            auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
+            auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(running_DAM->get_costs()->get_costs().at(cost_translation_name_)->cost->get_residual());
+            std::pair<double,pin::SE3> weight_and_target =  get_weight_and_target(time, node_index);
+            pin::SE3 target = weight_and_target.second;
+            frame_res_running->set_reference(target.translation());
+            if (!goal_translation_set_)
+            {
+                running_DAM->get_costs()->changeCostStatus(cost_translation_name_, is_active);
+            }
+
+            double weight = weight_and_target.first;
+            running_DAM->get_costs()->get_costs().at(cost_translation_name_)->weight =weight;
+        }
+
+        // Terminal
+        auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_terminalModel());
+        auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
+        auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFrameTranslation>(terminal_DAM->get_costs()->get_costs().at(cost_translation_name_)->cost->get_residual());
+        std::pair<double,pin::SE3> weight_and_target =  get_weight_and_target(time, config_.T);
+        pin::SE3 target = weight_and_target.second;
+        frame_res_terminal->set_reference(target.translation());
+        if (!goal_translation_set_)
+        {
+            terminal_DAM->get_costs()->changeCostStatus(cost_translation_name_, is_active);
+
+            // No need to activate again
+            goal_translation_set_ = is_active;
+        }
+
+
+        double weight = weight_and_target.first;
+        terminal_DAM->get_costs()->get_costs().at(cost_translation_name_)->weight =weight;
+    }
+
+    void CrocoddylReaching::set_ee_ref_translation_constant_weights(Eigen::Vector3d trans, bool is_active)
     {
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)
@@ -250,7 +393,51 @@ namespace panda_torque_mpc
         }
     }
 
-    void CrocoddylReaching::set_ee_ref_placement(pin::SE3 placement, bool is_active, double uniform_weight_scaling)
+    void CrocoddylReaching::set_ee_ref_placement_changing_weights(double time, bool is_active, double uniform_weight_scaling)
+    {
+        // Running
+        for (size_t node_index = 0; node_index < config_.T; node_index++)
+        {
+            auto running_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_runningModels()[node_index]);
+            auto running_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(running_IAM->get_differential());
+            
+             //auto cost =  boost::static_pointer_cast<CostModelResidual>()
+            std::pair<double,pin::SE3> weight_and_target =  get_weight_and_target(time, node_index);
+            double weight = weight_and_target.first;
+            running_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight =weight;
+            auto frame_res_running = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(running_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
+            pin::SE3 target = weight_and_target.second;
+            frame_res_running->set_reference(target);
+
+            if (!goal_placement_set_)
+            {
+                running_DAM->get_costs()->changeCostStatus(cost_placement_name_, is_active);
+            }
+        }
+
+        // Terminal
+        auto terminal_IAM = boost::static_pointer_cast<crocoddyl::IntegratedActionModelEuler>(ocp_->get_problem()->get_terminalModel());
+        auto terminal_DAM = boost::static_pointer_cast<crocoddyl::DifferentialActionModelFreeFwdDynamics>(terminal_IAM->get_differential());
+        auto frame_res_terminal = boost::static_pointer_cast<crocoddyl::ResidualModelFramePlacement>(terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->cost->get_residual());
+        
+        
+        std::pair<double,pin::SE3> weight_and_target =  get_weight_and_target(time, config_.T);
+        pin::SE3 target = weight_and_target.second;
+
+        frame_res_terminal->set_reference(target);
+        if (!goal_placement_set_)
+        {
+            terminal_DAM->get_costs()->changeCostStatus(cost_placement_name_, is_active);
+
+            // No need to activate again
+            goal_placement_set_ = is_active;
+        }
+
+        double weight = weight_and_target.first;
+        terminal_DAM->get_costs()->get_costs().at(cost_placement_name_)->weight =weight;
+    }
+
+    void CrocoddylReaching::set_ee_ref_placement_constant_weights(pin::SE3 placement, bool is_active, double uniform_weight_scaling)
     {
         // Running
         for (size_t node_index = 0; node_index < config_.T; node_index++)

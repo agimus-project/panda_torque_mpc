@@ -99,6 +99,9 @@ namespace panda_torque_mpc
         void set_posture_ref(Eigen::VectorXd x0);
 
         void change_obstacle_pose(const pin::SE3& pose, const std::string& geom_name);
+        boost::shared_ptr<mim_solvers::SolverCSQP> get_solver(){
+            return ocp_;
+        }
 
         // boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
         // boost::shared_ptr<mim_solvers::SolverSQP> ocp_;

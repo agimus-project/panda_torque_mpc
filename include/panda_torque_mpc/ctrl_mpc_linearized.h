@@ -26,6 +26,7 @@
 
 #include "panda_torque_mpc/common.h"
 
+#include <std_msgs/Duration.h>
 #include <linear_feedback_controller_msgs/Sensor.h>
 #include <linear_feedback_controller_msgs/Control.h>
 
@@ -79,14 +80,17 @@ namespace panda_torque_mpc
 
         // Publishers for motion server
         realtime_tools::RealtimePublisher<linear_feedback_controller_msgs::Sensor> robot_state_publisher_;
+        realtime_tools::RealtimePublisher<std_msgs::Duration> control_time_publisher_;
         
         // Subscribers to motion server
         ros::Subscriber motion_server_control_topic_sub_;
 
         // Controller State Machine
+        bool new_control_message_ = false;
         bool control_ref_from_ddp_node_received_ = false;
         ros::Time t0_mpc_first_msg_;
         double dt_transition_jsid_to_mpc_;
+        realtime_tools::RealtimeBox<ros::Duration> control_solve_time_rtbox_;
         realtime_tools::RealtimeBox<Eigen::Matrix<double, 14, 1>> x0_mpc_rtbox_;
         realtime_tools::RealtimeBox<Eigen::Matrix<double, 7, 1>> u0_mpc_rtbox_;
         realtime_tools::RealtimeBox<Eigen::Matrix<double, 7, 14>> K_ricatti_rtbox_;

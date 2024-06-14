@@ -20,6 +20,7 @@ namespace panda_torque_mpc
     bool CtrlMpcLinearized::init(hardware_interface::RobotHW *robot_hw,
                                  ros::NodeHandle &nh)
     {
+        control_solve_time_rtbox_.set(ros::Duration(0.0))
         ///////////////////
         // Load parameters
         ///////////////////
@@ -133,6 +134,7 @@ namespace panda_torque_mpc
         
         // Robot sensor publisher 
         robot_state_publisher_.init(nh, "robot_sensors", 10);
+        control_time_publisher_.init(nh, "control_duration", 10);
 
         std::string motion_server_sub_topic = "motion_server_control";
         motion_server_control_topic_sub_ = nh.subscribe(motion_server_sub_topic, 10, &CtrlMpcLinearized::callback_motion_server, this);
@@ -285,13 +287,16 @@ namespace panda_torque_mpc
                 torques_publisher_.msg_.measured[i] = tau_m[i];
                 torques_publisher_.msg_.error[i] = tau_error[i];
             }
-
             configurations_publisher_.unlockAndPublish();
             velocities_publisher_.unlockAndPublish();
             torques_publisher_.unlockAndPublish();
         }
-
-
+        if(new_control_message_)
+        {
+            control_solve_time_rtbox_.get(control_time_publisher_.msg_.data);
+            control_time_publisher_.unlockAndPublish();
+            new_control_message_ = false;
+        }
         // Store previous desired/reference values
         last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 
@@ -346,6 +351,7 @@ namespace panda_torque_mpc
         lfc_msgs::jointStateMsgToEigen(ctrl_msg.initial_state.joint_state, js_eig);
         x0_mpc << js_eig.position, js_eig.velocity;
 
+        control_solve_time_rtbox_.set(ctrl_msg.initial_state.header.stamp - ros::Time::now());
         x0_mpc_rtbox_.set(x0_mpc);
         u0_mpc_rtbox_.set(u0_mpc);
         K_ricatti_rtbox_.set(K_ricatti);
@@ -356,6 +362,7 @@ namespace panda_torque_mpc
             t0_mpc_first_msg_ = ros::Time::now();
         }
         control_ref_from_ddp_node_received_ = true;
+        new_control_message_ = true;
     }
 
     void CtrlMpcLinearized::publish_robot_state(const Eigen::VectorXd &q_m, const Eigen::VectorXd &dq_m, ros::Time t)

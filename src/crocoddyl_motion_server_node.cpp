@@ -435,6 +435,7 @@ namespace panda_torque_mpc
 
         void solve_and_send()
         {
+            TicTac tt_solve;
             // Do nothing if no pose reference and sensor state has been received
             if (!(first_robot_sensor_msg_received_ && first_pose_ref_msg_received_))
             {
@@ -510,7 +511,6 @@ namespace panda_torque_mpc
             }
             croco_reaching_.set_posture_ref(x_init);
 
-            TicTac tt_solve;
             bool ok;
             if (first_solve_){
                 ok = croco_reaching_.solve(xs_init, us_init,50);
@@ -519,11 +519,7 @@ namespace panda_torque_mpc
             }
             
             first_solve_ = false;
-            const auto duration = tt_solve.tac();
             //std::cout << std::setprecision(9) << "n_iter, dt_solve (ms): " << croco_reaching_.ocp_->get_iter() << ", " << duration << std::endl;
-            std_msgs::Duration time;
-            time.data = ros::Duration(duration * 0.001);
-            ocp_solve_time_pub_.publish(time);
             // if problem not ready or no good solution, don't send a solution
             if (!ok) return;
             //////////////////////////////////////
@@ -541,6 +537,11 @@ namespace panda_torque_mpc
             
             lfc_msgs::controlEigenToMsg(ctrl_eig, ctrl_msg);
             control_pub_.publish(ctrl_msg);
+
+            const auto duration = tt_solve.tac();
+            std_msgs::Duration time;
+            time.data = ros::Duration(duration * 0.001);
+            ocp_solve_time_pub_.publish(time);
         }
 
         // sensor callback

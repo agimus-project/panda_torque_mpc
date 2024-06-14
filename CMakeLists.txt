@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
 project(panda_torque_mpc)
-set(CMAKE_CXX_STANDARD 14)
-
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -22,7 +20,6 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   tf
   tf_conversions
-
   )
 
 find_package(Eigen3 REQUIRED)

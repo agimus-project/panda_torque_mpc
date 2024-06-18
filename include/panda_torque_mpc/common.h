@@ -11,8 +11,6 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
 
-#include <urdf_parser/urdf_parser.h>
-
 #include <pinocchio/spatial/se3.hpp>
 #include <pinocchio/spatial/motion.hpp>
 #include <pinocchio/spatial/explog.hpp>
@@ -43,8 +41,7 @@ namespace panda_torque_mpc {
         // Load panda model with pinocchio and example-robot-data
         std::string srdf_path = ros::package::getPath("panda_torque_mpc") + "/srdf/demo.srdf";
         pinocchio::Model model_pin_full;
-        const auto urdf_tree = urdf::parseURDF(robot_description);
-        pinocchio::urdf::buildModel(urdf_tree, model_pin_full);
+        pinocchio::urdf::buildModelFromXML(robot_description, model_pin_full, false);
         pinocchio::srdf::loadReferenceConfigurations(model_pin_full, srdf_path, false);
         // pinocchio::srdf::loadRotorParameters(model_pin_full, srdf_path, false);
         Eigen::VectorXd q0_full = model_pin_full.referenceConfigurations["default"];

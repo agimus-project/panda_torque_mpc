@@ -6,6 +6,7 @@ BOOST_PYTHON_MODULE(panda_torque_mpc_pywrap) {
 
   bp::import("pinocchio");
   bp::import("crocoddyl");
+  bp::import("mim_solvers");
   // Enabling eigenpy support, i.e. numpy/eigen compatibility.
   ENABLE_SPECIFIC_MATRIX_TYPE(Eigen::VectorXi);
   ENABLE_SPECIFIC_MATRIX_TYPE(panda_torque_mpc::Vector7d);

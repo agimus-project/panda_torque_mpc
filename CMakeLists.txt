@@ -173,6 +173,7 @@ install(FILES
   config/pose_publisher_params.yaml
   config/start_joint_pose.yaml
   config/obstacle_params.yaml
+  config/default_controllers.yaml
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
   )

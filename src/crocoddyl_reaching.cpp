@@ -40,7 +40,7 @@ namespace panda_torque_mpc
 {
     CrocoddylReaching::CrocoddylReaching(const pin::Model model_pin, const boost::shared_ptr<pin::GeometryModel>& collision_model ,
         CrocoddylConfig config,  TargetsConfig targ_config) :
-    config_(config),  targ_config_(targ_config)
+    config_(config), collision_model_(collision_model), targ_config_(targ_config)
     
     {
 
@@ -223,6 +223,11 @@ namespace panda_torque_mpc
         std::cout << "shooting pronlem:   " << *shooting_problem<< std::endl;
 
         std::cout << "ddp problem set up " << std::endl;
+    }
+
+    void CrocoddylReaching::change_obstacle_pose(const pin::SE3& pose, const std::string& geom_name)
+    {
+        collision_model_->geometryObjects[collision_model_->getGeometryId(geom_name)].placement = pose;
     }
 
     bool CrocoddylReaching::valid_pbe()

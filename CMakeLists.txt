@@ -89,7 +89,7 @@ target_link_libraries(panda_torque_mpc_utils PUBLIC
   pinocchio::pinocchio_headers
   crocoddyl::crocoddyl
   mim_solvers::mim_solvers
-  colmpc::colmpc_cpp
+  colmpc::colmpc
   example-robot-data::example-robot-data
   tsid::tsid  
 )
@@ -173,6 +173,7 @@ install(FILES
   config/pose_publisher_params.yaml
   config/start_joint_pose.yaml
   config/obstacle_params.yaml
+  config/default_controllers.yaml
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
   )

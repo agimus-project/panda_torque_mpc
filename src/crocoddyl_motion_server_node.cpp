@@ -133,17 +133,22 @@ namespace panda_torque_mpc
 
             params_success = get_param_error_tpl<bool>(nh, changing_weights, "changing_weights") && params_success;
 
+
+            std::string robot_description;
+            params_success = get_param_error_tpl<std::string>(nh, robot_description, "/robot_description") && params_success;
+        
+
             if (!params_success)
             {
                 throw std::invalid_argument("CrocoMotionServer: check the your ROS parameters");
             }
 
-            model_pin_ = loadPandaPinocchio();
+            model_pin_ = loadPandaPinocchio(robot_description);
             data_pin_ = pin::Data(model_pin_);
 
             // Building the GeometryModel
             auto collision_model_full = boost::make_shared<pinocchio::GeometryModel>();
-            collision_model_full = loadPandaGeometryModel(model_pin_);
+            collision_model_full = loadPandaGeometryModel(model_pin_, robot_description);
 
             auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
             collision_model = reduce_capsules_robot(collision_model_full);

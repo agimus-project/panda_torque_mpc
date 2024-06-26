@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="hand">
   <!-- safety_distance: Minimum safety distance in [m] by which the collision volumes are expanded and which is enforced during robot motions -->
-  <xacro:macro name="franka_hand" params="connected_to:='' arm_id rpy:='0 0 0' xyz:='0 0 0' tcp_xyz:='0 0 0.1034' tcp_rpy:='0 0 0' safety_distance:=0 gazebo:=false description_pkg:=franka_description">
+  <xacro:macro name="franka_hand" params="connected_to:='' arm_id rpy:='0 0 0' xyz:='0 0 0' tcp_xyz:='0 0 0.1034' tcp_rpy:='0 0 0' safety_distance:=0 gazebo:=false pinocchio_colisions:=false description_pkg:=franka_description">
     <xacro:unless value="${connected_to == ''}">
       <joint name="${arm_id}_hand_joint" type="fixed">
         <parent link="${connected_to}" />
@@ -16,7 +16,13 @@
     </xacro:link_with_sc>
 
     <!-- Define the hand_tcp frame -->
-    <link name="${arm_id}_hand_tcp" />
+    <link name="${arm_id}_hand_tcp">
+      <inertial>
+        <mass value="0"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+      </inertial>
+    </link>
     <joint name="${arm_id}_hand_tcp_joint" type="fixed">
       <origin xyz="${tcp_xyz}" rpy="${tcp_rpy}" />
       <parent link="${arm_id}_hand" />
@@ -28,16 +34,42 @@
           <mesh filename="package://${description_pkg}/meshes/visual/finger.dae" />
         </geometry>
       </visual>
-      <!-- approx sphere -->
+      <!-- screw mount -->
       <collision>
-        <origin rpy="0 0 0" xyz="0 18.5e-3 11e-3"/>
+        <origin xyz="0 18.5e-3 11e-3" rpy="0 0 0" />
         <geometry>
-          <sphere radius=".03"/>
+          <xacro:if value="${pinocchio_colisions}">
+            <sphere radius=".03"/>
+          </xacro:if>
+          <xacro:unless value="${pinocchio_colisions}">
+            <box size="22e-3 15e-3 20e-3" />
+          </xacro:unless>
         </geometry>
       </collision>
-      <xacro:if value="${gazebo}">
-        <xacro:inertial_props name="leftfinger" />
-      </xacro:if>
+      <xacro:unless value="${pinocchio_colisions}">
+        <!-- cartriage sledge -->
+        <collision>
+          <origin xyz="0 6.8e-3 2.2e-3" rpy="0 0 0" />
+          <geometry>
+            <box size="22e-3 8.8e-3 3.8e-3" />
+          </geometry>
+        </collision>
+        <!-- diagonal finger -->
+        <collision>
+          <origin xyz="0 15.9e-3 28.35e-3" rpy="${pi/6} 0 0" />
+          <geometry>
+            <box size="17.5e-3 7e-3 23.5e-3" />
+          </geometry>
+        </collision>
+        <!-- rubber tip with which to grasp -->
+        <collision>
+          <origin xyz="0 7.58e-3 45.25e-3" rpy="0 0 0" />
+          <geometry>
+            <box size="17.5e-3 15.2e-3 18.5e-3" />
+          </geometry>
+        </collision>
+      </xacro:unless>
+      <xacro:inertial_props name="leftfinger" />
     </link>
     <link name="${arm_id}_rightfinger">
       <visual>
@@ -46,16 +78,42 @@
           <mesh filename="package://${description_pkg}/meshes/visual/finger.dae" />
         </geometry>
       </visual>
-      <!-- approx sphere -->
+      <!-- screw mount -->
       <collision>
-        <origin rpy="0 0 0" xyz="0 -18.5e-3 11e-3"/>
+        <origin xyz="0 -18.5e-3 11e-3" rpy="0 0 0" />
         <geometry>
-          <sphere radius=".03"/>
+          <xacro:if value="${pinocchio_colisions}">
+            <sphere radius=".03"/>
+          </xacro:if>
+          <xacro:unless value="${pinocchio_colisions}">
+            <box size="22e-3 15e-3 20e-3" />
+          </xacro:unless>
         </geometry>
       </collision>
-      <xacro:if value="${gazebo}">
-        <xacro:inertial_props name="rightfinger" />
-      </xacro:if>
+      <xacro:unless value="${pinocchio_colisions}">
+      <!-- cartriage sledge -->
+      <collision>
+        <origin xyz="0 -6.8e-3 2.2e-3" rpy="0 0 0" />
+        <geometry>
+          <box size="22e-3 8.8e-3 3.8e-3" />
+        </geometry>
+      </collision>
+      <!-- diagonal finger -->
+      <collision>
+        <origin xyz="0 -15.9e-3 28.35e-3" rpy="${-pi/6} 0 0" />
+        <geometry>
+          <box size="17.5e-3 7e-3 23.5e-3" />
+        </geometry>
+      </collision>
+      <!-- rubber tip with which to grasp -->
+      <collision>
+        <origin xyz="0 -7.58e-3 45.25e-3" rpy="0 0 0" />
+        <geometry>
+          <box size="17.5e-3 15.2e-3 18.5e-3" />
+        </geometry>
+        </collision>
+      </xacro:unless>
+      <xacro:inertial_props name="rightfinger" />
     </link>
     <joint name="${arm_id}_finger_joint1" type="prismatic">
       <parent link="${arm_id}_hand" />

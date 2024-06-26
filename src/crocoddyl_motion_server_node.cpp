@@ -135,7 +135,7 @@ namespace panda_torque_mpc
 
 
             std::string robot_description;
-            params_success = get_param_error_tpl<std::string>(nh, robot_description, "/robot_description") && params_success;
+            params_success = get_param_error_tpl<std::string>(nh, robot_description, "/pinocchio_robot_description") && params_success;
         
 
             if (!params_success)

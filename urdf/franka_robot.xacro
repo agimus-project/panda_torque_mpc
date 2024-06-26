@@ -8,13 +8,18 @@
     <xacro:arg name="tcp_rpy" default="0 0 0" />
     <!-- Is the robot being simulated in gazebo?" -->
     <xacro:arg name="gazebo" default="false" />
+    <xacro:arg name="pinocchio_colisions" default="false" />
     <xacro:arg name="simulate_camera" default="false" />
 
     <xacro:include filename="$(find panda_torque_mpc)/urdf/utils.xacro" />
     <xacro:include filename="$(find panda_torque_mpc)/urdf/franka_arm.xacro" />
     <xacro:include filename="$(find panda_torque_mpc)/urdf/franka_hand.xacro"/>
 
-    <xacro:franka_arm arm_id="${arm_id}" safety_distance="0.03" gazebo="$(arg gazebo)" joint_limits="${joint_limits}"/>
+    <xacro:franka_arm arm_id="${arm_id}"
+                      safety_distance="0.03"
+                      gazebo="$(arg gazebo)"
+                      pinocchio_colisions="$(arg pinocchio_colisions)"
+                      joint_limits="${joint_limits}"/>
 
     <xacro:franka_hand
         arm_id="${arm_id}"
@@ -24,6 +29,7 @@
         connected_to="${arm_id}_link8"
         safety_distance="0.03"
         gazebo="$(arg gazebo)"
+        pinocchio_colisions="$(arg pinocchio_colisions)"
         />
 
     <!-- D435 camera -->

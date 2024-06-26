@@ -35,7 +35,7 @@
   <!-- rpy:   Rotation of the *_sc link relative to parent [rad]  -->
   <!-- self_collision_geometries:  self <collision> models        -->
   <!-- ========================================================== -->
-  <xacro:macro name="link_with_sc" params="name prefix=${arm_id}_ rpy:='0 0 0' **self_collision_geometries gazebo:=false">
+  <xacro:macro name="link_with_sc" params="name prefix=${arm_id}_ rpy:='0 0 0' **self_collision_geometries gazebo:=false pinocchio_colisions:=false">
     <!-- sub-link defining detailed meshes for collision with environment -->
     <link name="${prefix}${name}">
       <visual>
@@ -45,17 +45,17 @@
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://franka_description/meshes/collision/${name}.stl" />
+          <mesh filename="package://${description_pkg}/meshes/collision/${name}.stl" />
         </geometry>
       </collision>
-      <xacro:if value="${gazebo}">
-        <xacro:inertial_props name="${name}" />
-      </xacro:if>
+      <xacro:inertial_props name="${name}" />
     </link>
     <!-- sub-link defining coarse geometries of real robot's internal self-collision -->
     <link name="${prefix}${name}_sc">
       <xacro:unless value="${gazebo}">
-        <xacro:insert_block name="self_collision_geometries" />
+        <xacro:if value="${pinocchio_colisions}">
+          <xacro:insert_block name="self_collision_geometries" />
+        </xacro:if>
       </xacro:unless>
     </link>
     <!-- fixed joint between both sub-links -->

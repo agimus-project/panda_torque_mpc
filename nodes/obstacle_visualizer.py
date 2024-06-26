@@ -14,7 +14,7 @@ from gazebo_msgs.srv import SpawnModel, SpawnModelRequest
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA, Header
 
-from panda_torque_mpc.SDFGenerator import SDFGenerator
+from panda_torque_mpc.sdf_generator import SDFGenerator
 
 
 class ObstaclesVisualizer:

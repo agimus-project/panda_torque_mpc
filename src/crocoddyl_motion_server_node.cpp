@@ -1,6 +1,9 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <string>
 #include <cassert>
+
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
  
 #include <pinocchio/fwd.hpp>
 #include <pinocchio/multibody/data.hpp>
@@ -37,7 +40,6 @@
 #include "std_msgs/Duration.h"
 
 
-
 namespace panda_torque_mpc
 {
     namespace lfc_msgs = linear_feedback_controller_msgs;
@@ -53,6 +55,7 @@ namespace panda_torque_mpc
                           std::string motion_capture_pose_ref_topic_sub,
                           std::string pose_camera_object_topic_sub, 
                           std::string pose_object_rel_topic_sub, 
+                          std::string obstacle_pose_topic_sub_base,
                           std::string cam_pose_viz_topic_pub,
                           std::string cam_pose_ref_viz_topic_pub,
                           std::string cam_pose_error_topic_pub,
@@ -224,6 +227,15 @@ namespace panda_torque_mpc
             pose_mocap_sub_ = nh.subscribe(motion_capture_pose_ref_topic_sub, 10, &CrocoMotionServer::callback_pose_mocap, this);
             pose_camera_object_sub_ = nh.subscribe(pose_camera_object_topic_sub, 10, &CrocoMotionServer::callback_pose_camera_object, this);
             pose_body_object_rel_sub_ = nh.subscribe(pose_object_rel_topic_sub, 10, &CrocoMotionServer::callback_pose_object0_object, this);
+            
+
+            for (const auto &obstacle_name: obstacle_parser.getObstaclesNames()){
+                const std::string topic_name = obstacle_pose_topic_sub_base + "/" + obstacle_name;
+                boost::function<void (const geometry_msgs::PoseStamped &)> callback = boost::bind(
+                    &CrocoMotionServer::callback_pose_collision, this, boost::placeholders::_1, obstacle_name);
+                auto sub = nh.subscribe<geometry_msgs::PoseStamped>(topic_name, 10, callback); 
+                collision_pose_subs_.push_back(sub);
+            }
 
             // State machine variables
             first_robot_sensor_msg_received_ = false;
@@ -234,6 +246,12 @@ namespace panda_torque_mpc
             T_c_e_ = T_e_c_.inverse();
             T_c_o_ref_ = XYZQUATToSE3(pose_c_o_ref);
             T_o_c_ref_ = T_c_o_ref_.inverse();
+        }
+
+        void callback_pose_collision(const geometry_msgs::PoseStamped &msg, const std::string &obstacle_name)
+        {
+            pin::SE3 pose = posemsg2SE3(msg.pose);
+            croco_reaching_.change_obstacle_pose(pose, obstacle_name);
         }
 
         void callback_pose_absolute(const geometry_msgs::PoseStamped &msg)
@@ -630,6 +648,7 @@ namespace panda_torque_mpc
         ros::Subscriber pose_mocap_sub_;
         ros::Subscriber pose_camera_object_sub_;
         ros::Subscriber pose_body_object_rel_sub_;
+        std::vector<ros::Subscriber> collision_pose_subs_;
 
         // Simulated object
         pin::SE3 T_b_o_init_;
@@ -655,6 +674,7 @@ int main(int argc, char **argv)
     std::string motion_capture_pose_ref_topic_sub = "motion_capture_pose_ref";  // MOCAP DEMO
     std::string pose_camera_object_topic_sub = "pose_camera_object";  // VISUAL SERVOING DEMO 
     std::string pose_object_rel_topic_sub = "pose_object_rel";  // SIMULATION OF VIRTUAL OBJECT
+    std::string obstacle_pose_topic_sub_base = "obstacle";
     std::string cam_pose_viz_topic_pub = "cam_pose_viz";
     std::string cam_pose_ref_viz_topic_pub = "cam_pose_ref_viz";
     std::string cam_pose_error_topic_pub = "cam_pose_error";
@@ -671,6 +691,7 @@ int main(int argc, char **argv)
                             motion_capture_pose_ref_topic_sub,
                             pose_camera_object_topic_sub,
                             pose_object_rel_topic_sub,
+                            obstacle_pose_topic_sub_base,
                             cam_pose_viz_topic_pub,
                             cam_pose_ref_viz_topic_pub,
                             cam_pose_error_topic_pub,

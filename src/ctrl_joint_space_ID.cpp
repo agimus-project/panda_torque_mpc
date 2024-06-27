@@ -70,10 +70,7 @@ namespace panda_torque_mpc
         if(!get_param_error_tpl<double>(nh, alpha_dq_filter_, "alpha_dq_filter")) return false;
         if(!get_param_error_tpl<bool>(nh, saturate_dtau_, "saturate_dtau")) return false;
 
-        std::string robot_description;
-        if(!get_param_error_tpl<std::string>(nh, robot_description, "/robot_description")) return false;
-
-        model_pin_ = loadPandaPinocchio(robot_description);
+        model_pin_ = loadPandaPinocchio();
         data_pin_ = pin::Data(model_pin_);
 
         if ((model_pin_.nq != 7) || (model_pin_.name != "panda"))

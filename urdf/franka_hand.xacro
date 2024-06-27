@@ -28,11 +28,32 @@
           <mesh filename="package://${description_pkg}/meshes/visual/finger.dae" />
         </geometry>
       </visual>
-      <!-- approx sphere -->
+      <!-- screw mount -->
       <collision>
-        <origin rpy="0 0 0" xyz="0 18.5e-3 11e-3"/>
+        <origin xyz="0 18.5e-3 11e-3" rpy="0 0 0" />
         <geometry>
-          <sphere radius=".03"/>
+          <box size="22e-3 15e-3 20e-3" />
+        </geometry>
+      </collision>
+      <!-- cartriage sledge -->
+      <collision>
+        <origin xyz="0 6.8e-3 2.2e-3" rpy="0 0 0" />
+        <geometry>
+          <box size="22e-3 8.8e-3 3.8e-3" />
+        </geometry>
+      </collision>
+      <!-- diagonal finger -->
+      <collision>
+        <origin xyz="0 15.9e-3 28.35e-3" rpy="${pi/6} 0 0" />
+        <geometry>
+          <box size="17.5e-3 7e-3 23.5e-3" />
+        </geometry>
+      </collision>
+      <!-- rubber tip with which to grasp -->
+      <collision>
+        <origin xyz="0 7.58e-3 45.25e-3" rpy="0 0 0" />
+        <geometry>
+          <box size="17.5e-3 15.2e-3 18.5e-3" />
         </geometry>
       </collision>
       <xacro:if value="${gazebo}">
@@ -46,11 +67,32 @@
           <mesh filename="package://${description_pkg}/meshes/visual/finger.dae" />
         </geometry>
       </visual>
-      <!-- approx sphere -->
+      <!-- screw mount -->
       <collision>
-        <origin rpy="0 0 0" xyz="0 -18.5e-3 11e-3"/>
+        <origin xyz="0 -18.5e-3 11e-3" rpy="0 0 0" />
         <geometry>
-          <sphere radius=".03"/>
+          <box size="22e-3 15e-3 20e-3" />
+        </geometry>
+      </collision>
+      <!-- cartriage sledge -->
+      <collision>
+        <origin xyz="0 -6.8e-3 2.2e-3" rpy="0 0 0" />
+        <geometry>
+          <box size="22e-3 8.8e-3 3.8e-3" />
+        </geometry>
+      </collision>
+      <!-- diagonal finger -->
+      <collision>
+        <origin xyz="0 -15.9e-3 28.35e-3" rpy="${-pi/6} 0 0" />
+        <geometry>
+          <box size="17.5e-3 7e-3 23.5e-3" />
+        </geometry>
+      </collision>
+      <!-- rubber tip with which to grasp -->
+      <collision>
+        <origin xyz="0 -7.58e-3 45.25e-3" rpy="0 0 0" />
+        <geometry>
+          <box size="17.5e-3 15.2e-3 18.5e-3" />
         </geometry>
       </collision>
       <xacro:if value="${gazebo}">

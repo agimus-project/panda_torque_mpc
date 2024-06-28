@@ -9,7 +9,7 @@
 
   <rosparam command="load" file="$(find panda_torque_mpc)/config/controller_configs.yaml" subst_value="true" />
 
-  <param name="pinocchio_robot_description" command="$(find xacro)/xacro $(find panda_torque_mpc)/urdf/demo.urdf.xacro hand:=true arm_id:=panda gazebo:=false pinocchio_colisions:=true"/>
+  <param name="pinocchio_robot_description" command="$(find xacro)/xacro $(find panda_torque_mpc)/urdf/demo.urdf.xacro hand:=true arm_id:=panda gazebo:=false pinocchio_collisions:=true"/>
   
   <!-- <include file="$(find franka_gazebo)/launch/panda.launch">
     <arg name="arm_id" value="$(arg arm_id)"/>

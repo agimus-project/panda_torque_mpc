@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="hand">
   <!-- safety_distance: Minimum safety distance in [m] by which the collision volumes are expanded and which is enforced during robot motions -->
-  <xacro:macro name="franka_hand" params="connected_to:='' arm_id rpy:='0 0 0' xyz:='0 0 0' tcp_xyz:='0 0 0.1034' tcp_rpy:='0 0 0' safety_distance:=0 gazebo:=false pinocchio_colisions:=false description_pkg:=franka_description">
+  <xacro:macro name="franka_hand" params="connected_to:='' arm_id rpy:='0 0 0' xyz:='0 0 0' tcp_xyz:='0 0 0.1034' tcp_rpy:='0 0 0' safety_distance:=0 gazebo:=false pinocchio_collisions:=false description_pkg:=franka_description">
     <xacro:unless value="${connected_to == ''}">
       <joint name="${arm_id}_hand_joint" type="fixed">
         <parent link="${connected_to}" />
@@ -38,15 +38,15 @@
       <collision>
         <origin xyz="0 18.5e-3 11e-3" rpy="0 0 0" />
         <geometry>
-          <xacro:if value="${pinocchio_colisions}">
+          <xacro:if value="${pinocchio_collisions}">
             <sphere radius=".03"/>
           </xacro:if>
-          <xacro:unless value="${pinocchio_colisions}">
+          <xacro:unless value="${pinocchio_collisions}">
             <box size="22e-3 15e-3 20e-3" />
           </xacro:unless>
         </geometry>
       </collision>
-      <xacro:unless value="${pinocchio_colisions}">
+      <xacro:unless value="${pinocchio_collisions}">
         <!-- cartriage sledge -->
         <collision>
           <origin xyz="0 6.8e-3 2.2e-3" rpy="0 0 0" />
@@ -82,15 +82,15 @@
       <collision>
         <origin xyz="0 -18.5e-3 11e-3" rpy="0 0 0" />
         <geometry>
-          <xacro:if value="${pinocchio_colisions}">
+          <xacro:if value="${pinocchio_collisions}">
             <sphere radius=".03"/>
           </xacro:if>
-          <xacro:unless value="${pinocchio_colisions}">
+          <xacro:unless value="${pinocchio_collisions}">
             <box size="22e-3 15e-3 20e-3" />
           </xacro:unless>
         </geometry>
       </collision>
-      <xacro:unless value="${pinocchio_colisions}">
+      <xacro:unless value="${pinocchio_collisions}">
       <!-- cartriage sledge -->
       <collision>
         <origin xyz="0 -6.8e-3 2.2e-3" rpy="0 0 0" />

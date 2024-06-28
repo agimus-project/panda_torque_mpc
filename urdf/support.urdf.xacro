@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:macro name="support" params="">
-      <xacro:arg name="pinocchio_colisions" default="false" />
+      <xacro:arg name="pinocchio_collisions" default="false" />
       
       <link name="support_link">
         <inertial>
@@ -15,7 +15,7 @@
 	    <box size="1.703 0.803 0.76"/>
           </geometry>
         </visual>
-        <xacro:if value="$(arg pinocchio_colisions)">
+        <xacro:if value="$(arg pinocchio_collisions)">
           <collision>
             <origin xyz="0 0 0.38"/>
             <geometry>
@@ -41,7 +41,7 @@
             <box size="0.3 0.3 0.02"/>
           </geometry>
         </visual>
-        <xacro:if value="$(arg pinocchio_colisions)">
+        <xacro:if value="$(arg pinocchio_collisions)">
           <collision>
             <origin xyz="0.6385 -0.1655 0.77"/>
             <geometry>

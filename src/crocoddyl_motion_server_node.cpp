@@ -146,6 +146,9 @@ namespace panda_torque_mpc
             model_pin_ = loadPandaPinocchio(robot_description);
             data_pin_ = pin::Data(model_pin_);
 
+            // Creating the collision model
+            std::string urdf_path = ros::package::getPath("panda_torque_mpc") + "/urdf/robot.urdf";
+
             // Building the GeometryModel
             auto collision_model_full = boost::make_shared<pinocchio::GeometryModel>();
             collision_model_full = loadPandaGeometryModel(model_pin_, robot_description);

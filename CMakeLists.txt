@@ -212,7 +212,6 @@ install(FILES
   urdf/franka_robot.xacro
   urdf/support.urdf.xacro
   urdf/utils.xacro
-  urdf/robot.urdf
   DESTINATION
   ${CATKIN_PACKAGE_SHARE_DESTINATION}/urdf
   )

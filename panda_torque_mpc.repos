@@ -22,7 +22,7 @@ repositories:
   vcs_repos/colmpc:
     type: git
     url: https://github.com/agimus-project/colmpc
-    version: v0.1.0
+    version:  5cea558ae58b03390eddb9244c932a18c48e684a  # TODO: change to new version tag
 
   vcs_repos/mim_solvers:
     type: git

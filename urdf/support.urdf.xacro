@@ -1,6 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:macro name="support" params="">
+      <xacro:arg name="pinocchio_collisions" default="false" />
+      
       <link name="support_link">
         <inertial>
           <mass value="200"/>
@@ -13,12 +15,14 @@
 	    <box size="1.703 0.803 0.76"/>
           </geometry>
         </visual>
-        <!-- <collision>
-          <origin xyz="0 0 0.38"/>
-          <geometry>
-	    <box size="1.703 0.803 0.76"/>
-          </geometry>
-        </collision> -->
+        <xacro:if value="$(arg pinocchio_collisions)">
+          <collision>
+            <origin xyz="0 0 0.38"/>
+            <geometry>
+        <box size="1.703 0.803 0.76"/>
+            </geometry>
+          </collision>
+        </xacro:if>
         <!--visual>
           <origin xyz="-0.61 0.2215 0.77"/>
           <geometry>
@@ -37,12 +41,14 @@
             <box size="0.3 0.3 0.02"/>
           </geometry>
         </visual>
-        <!-- <collision>
-          <origin xyz="0.6385 -0.1655 0.77"/>
-          <geometry>
-            <box size="0.3 0.3 0.02"/>
-          </geometry>
-        </collision> -->
+        <xacro:if value="$(arg pinocchio_collisions)">
+          <collision>
+            <origin xyz="0.6385 -0.1655 0.77"/>
+            <geometry>
+              <box size="0.3 0.3 0.02"/>
+            </geometry>
+          </collision>
+        </xacro:if>
       </link>
 
       <link name="wall_link_1">
@@ -185,5 +191,30 @@
         <parent link="world"/>
         <child link="panda1_box"/>
       </joint>
+
+      <gazebo reference="support_link">
+        <static>true</static>
+        <kinematic>false</kinematic>
+      </gazebo>
+      <gazebo reference="wall_link_1">
+        <static>true</static>
+        <kinematic>false</kinematic>
+      </gazebo>
+      <gazebo reference="wall_link_2">
+        <static>true</static>
+        <kinematic>false</kinematic>
+      </gazebo>
+      <gazebo reference="wall_link_3">
+        <static>true</static>
+        <kinematic>false</kinematic>
+      </gazebo>
+      <gazebo reference="pedestal">
+        <static>true</static>
+        <kinematic>false</kinematic>
+      </gazebo>
+      <gazebo reference="panda1_box">
+        <static>true</static>
+        <kinematic>false</kinematic>
+      </gazebo>
   </xacro:macro>
 </robot>

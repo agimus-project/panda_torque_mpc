@@ -98,6 +98,8 @@ namespace panda_torque_mpc
         void set_ee_ref_placement_changing_weights(double time, bool is_active=true, double uniform_weight_scaling=1.0);
         void set_posture_ref(Eigen::VectorXd x0);
 
+        void change_obstacle_pose(const pin::SE3& pose, const std::string& geom_name);
+
         // boost::shared_ptr<crocoddyl::SolverFDDP> ocp_;
         // boost::shared_ptr<mim_solvers::SolverSQP> ocp_;
         boost::shared_ptr<mim_solvers::SolverCSQP> ocp_;
@@ -126,6 +128,7 @@ namespace panda_torque_mpc
     bool solve(std::vector<Eigen::Matrix<double, -1, 1>> xs_init, std::vector<Eigen::Matrix<double, -1, 1>> us_init);
     Vector7d get_tau_ff() const;
     Eigen::MatrixXd get_ricatti_mat() const;
+    boost::shared_ptr<pin::GeometryModel> collision_model_;
 
     };
 

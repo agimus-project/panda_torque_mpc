@@ -75,7 +75,7 @@ class PosePublisher:
 
     def _pose_publishing_loop_cb(self, event: rospy.timer.TimerEvent) -> None:
         ps = PoseStamped(
-            header=Header(frame_id="panda_hand", stamp=rospy.Time.now()),
+            header=Header(frame_id="world", stamp=rospy.Time.now()),
             pose=next(self._goal_cycle),
         )
         self._pose_pub.publish(ps)

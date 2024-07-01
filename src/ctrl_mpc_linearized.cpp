@@ -52,7 +52,10 @@ namespace panda_torque_mpc
 
         if (!get_param_error_tpl<std::string>(nh, ee_frame_name_, "ee_frame_name")) return false;
 
-        model_pin_ = loadPandaPinocchio();
+        std::string robot_description;
+        if(!get_param_error_tpl<std::string>(nh, robot_description, "/pinocchio_robot_description")) return false;
+
+        model_pin_ = loadPandaPinocchio(robot_description);
         data_pin_ = pin::Data(model_pin_);
 
         std::cout << " ee_frame_name_ : " << ee_frame_name_ << std::endl;

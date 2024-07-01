@@ -30,6 +30,7 @@ public:
   */
 
   void addCollisions();
+  std::vector<std::string> getObstaclesNames();
 
 private:
   /**
@@ -44,6 +45,7 @@ private:
 
   const boost::shared_ptr<ros::NodeHandle> pnh_;
   const boost::shared_ptr<pinocchio::GeometryModel> &collision_model_;
+  std::vector<std::string> obstacle_names_;
 };
 
 } // namespace panda_torque_mpc

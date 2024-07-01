@@ -1,6 +1,26 @@
 # Canonical
+joint_pose:
+  $(arg arm_id)_joint1: 0
+  $(arg arm_id)_joint2: -0.785398163397
+  $(arg arm_id)_joint3: 0
+  $(arg arm_id)_joint4: -2.35619449019
+  $(arg arm_id)_joint5: 0
+  $(arg arm_id)_joint6: 1.57079632679
+  $(arg arm_id)_joint7: 0.785398163397
+
+# Tilt a bit so that camera looks straight to the table
 # joint_pose:
 #   $(arg arm_id)_joint1: 0
+#   $(arg arm_id)_joint2: -0.785398163397
+#   $(arg arm_id)_joint3: 0
+#   $(arg arm_id)_joint4: -2.35619449019
+#   $(arg arm_id)_joint5: 0
+#   $(arg arm_id)_joint6: 1.97079632679
+#   $(arg arm_id)_joint7: 0.785398163397
+
+# LAAS resting pose
+# joint_pose:
+#   $(arg arm_id)_joint1: -1.570796327
 #   $(arg arm_id)_joint2: -0.785398163397
 #   $(arg arm_id)_joint3: 0
 #   $(arg arm_id)_joint4: -2.35619449019
@@ -8,13 +28,13 @@
 #   $(arg arm_id)_joint6: 1.57079632679
 #   $(arg arm_id)_joint7: 0.785398163397
 
+# LAAS RS 435 depth taring experiment
+# joint_pose:
+#   $(arg arm_id)_joint1: -8.72516892e-02 
+#   $(arg arm_id)_joint2: -6.93314821e-01 
+#   $(arg arm_id)_joint3: -3.49927276e-01 
+#   $(arg arm_id)_joint4: -2.25467349e+00
+#   $(arg arm_id)_joint5: -1.24668314e-01  
+#   $(arg arm_id)_joint6: 1.82791294e+00  
+#   $(arg arm_id)_joint7: 4.73578634e-01
 
-# Tilt a bit so that camera looks straight to the table
-joint_pose:
-  $(arg arm_id)_joint1: 0
-  $(arg arm_id)_joint2: -0.785398163397
-  $(arg arm_id)_joint3: 0
-  $(arg arm_id)_joint4: -2.35619449019
-  $(arg arm_id)_joint5: 0
-  $(arg arm_id)_joint6: 1.97079632679
-  $(arg arm_id)_joint7: 0.785398163397

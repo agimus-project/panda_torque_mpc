@@ -33,6 +33,7 @@ void ObstacleParamsParser::addCollisions() {
   while (pnh_->hasParam("obstacle" + std::to_string(obs_idx) + "/type")) {
 
     std::string obstacle_name = "obstacle" + std::to_string(obs_idx);
+    obstacle_names_.push_back(obstacle_name);
 
     std::string type;
     pnh_->getParam(obstacle_name + "/type", type);
@@ -204,4 +205,9 @@ void ObstacleParamsParser::addCollisionPair(const std::string &name_object1,
   collision_model_->addCollisionPair(
       pinocchio::CollisionPair(object1Id, object2Id));
 }
+
+std::vector<std::string> ObstacleParamsParser::getObstaclesNames() {
+  return obstacle_names_;
+}
+
 }; // namespace panda_torque_mpc

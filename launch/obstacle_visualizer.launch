@@ -1,9 +1,18 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="spawn_in_gz" default="true" />
+    <arg name="spawn_in_gz" default="false" />
+    <arg name="use_mocap" default="false" />
     <node pkg="panda_torque_mpc" type="obstacle_visualizer.py" name="obstacle_visualizer_node"
         required="true" output="screen">
         <param name="spawn_in_gz" value="$(arg spawn_in_gz)"/>
+        <param name="use_mocap" value="$(arg use_mocap)"/>
         <rosparam command="load" file="$(find panda_torque_mpc)/config/obstacle_params.yaml" />
+        <!-- Example remapping from visualized to mocap type -->
+        <!-- <remap freom="/ctrl_mpc_linearized/obstacle/obstacle1/mocap" to="/natnet_ros/Helmet_4/pose"/> -->
     </node>
+
+    <group if="$(arg use_mocap)">
+        <node pkg="tf2_ros" type="static_transform_publisher" name="natnet_to_world_broadcaster"
+            args="-0.76 -0.865 0.30 0.0 3.14 -1.57 calibration_square world" />
+    </group>
 </launch>

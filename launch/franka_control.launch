@@ -7,7 +7,7 @@
   <arg name="xacro_args" default="" />
   <arg name="use_safety_limits" default="true" />
 
-  <param name="robot_description" command="$(find xacro)/xacro $(find panda_torque_mpc)/urdf/demo.urdf.xacro hand:=$(arg load_gripper) arm_id:=$(arg arm_id) $(arg xacro_args)"/>
+  <param name="robot_description" command="$(find xacro)/xacro $(find panda_torque_mpc)/urdf/demo.urdf.xacro hand:=$(arg load_gripper) arm_id:=$(arg arm_id) gazebo:=true $(arg xacro_args)"/>
 
   <include file="$(find franka_gripper)/launch/franka_gripper.launch" if="$(arg load_gripper)">
     <arg name="robot_ip" value="$(arg robot_ip)" />
@@ -21,13 +21,15 @@
     <rosparam unless="$(arg use_safety_limits)" command="load" file="$(find panda_torque_mpc)/config/collision_config_unsafe.yaml" subst_value="true" />
     <param name="robot_ip" value="$(arg robot_ip)" />
   </node>
-  
-  <rosparam command="load" file="$(find franka_control)/config/default_controllers.yaml" subst_value="true" />
+
+  <rosparam command="load" file="$(find panda_torque_mpc)/config/default_controllers.yaml" subst_value="true" />
   <node name="state_controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="franka_state_controller"/>
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen"/>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+    <rosparam param="publish_frequency">250.0</rosparam>
+  </node>
   <node name="joint_state_publisher" type="joint_state_publisher" pkg="joint_state_publisher" output="screen">
     <rosparam if="$(arg load_gripper)" param="source_list">[franka_state_controller/joint_states, franka_gripper/joint_states] </rosparam>
     <rosparam unless="$(arg load_gripper)" param="source_list">[franka_state_controller/joint_states] </rosparam>
-    <param name="rate" value="30"/>
+    <param name="rate" value="250.0"/>
   </node>
 </launch>

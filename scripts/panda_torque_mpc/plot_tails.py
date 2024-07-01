@@ -1,8 +1,6 @@
 import os
 import numpy as np
-import pandas as pd
 
-import matplotlib.pyplot as plt
 import mpc_utils
 import pin_utils
 import example_robot_data
@@ -103,7 +101,9 @@ for i in range(sim_data["N_sim"]):
     if i % int(sim_params["sim_freq"] / sim_params["mpc_freq"]) == 0:
         # Set x0 to measured state
 
-        x0 = np.concatenate([data["xu_solution"]["q"][i, :, :], data["xu_solution"]["v"][i, :, :]])
+        x0 = np.concatenate(
+            [data["xu_solution"]["q"][i, :, :], data["xu_solution"]["v"][i, :, :]]
+        )
 
         # Warm start using previous solution
         xs = np.concatenate(

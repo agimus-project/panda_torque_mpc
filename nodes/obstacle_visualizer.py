@@ -97,6 +97,7 @@ class ObstaclesVisualizer:
             self._obstacle_markers[obstacle_name] = m
 
         if rospy.get_param("~spawn_in_gz", default=False):
+            rospy.loginfo(f"Waiting for /gazebo/spawn_urdf_model service")
             rospy.wait_for_service("/gazebo/spawn_urdf_model")
             try:
                 model_spawner = rospy.ServiceProxy(

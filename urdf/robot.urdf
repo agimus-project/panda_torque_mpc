@@ -23,16 +23,16 @@
       </geometry>
     </collision>
     <!--visual>
-        <origin xyz="-0.61 0.2215 0.77"/>
-        <geometry>
-	<box size="0.363 0.252 0.02"/>
-        </geometry>
+          <origin xyz="-0.61 0.2215 0.77"/>
+          <geometry>
+	    <box size="0.363 0.252 0.02"/>
+          </geometry>
         </visual>
         <collision>
-        <origin xyz="-0.61 0.2215 0.77"/>
-        <geometry>
-	<box size="0.363 0.252 0.02"/>
-        </geometry>
+          <origin xyz="-0.61 0.2215 0.77"/>
+          <geometry>
+	    <box size="0.363 0.252 0.02"/>
+          </geometry>
         </collision-->
     <visual>
       <origin xyz="0.6385 -0.1655 0.77"/>
@@ -186,6 +186,30 @@
     <parent link="world"/>
     <child link="panda1_box"/>
   </joint>
+  <gazebo reference="support_link">
+    <static>true</static>
+    <kinematic>false</kinematic>
+  </gazebo>
+  <gazebo reference="wall_link_1">
+    <static>true</static>
+    <kinematic>false</kinematic>
+  </gazebo>
+  <gazebo reference="wall_link_2">
+    <static>true</static>
+    <kinematic>false</kinematic>
+  </gazebo>
+  <gazebo reference="wall_link_3">
+    <static>true</static>
+    <kinematic>false</kinematic>
+  </gazebo>
+  <gazebo reference="pedestal">
+    <static>true</static>
+    <kinematic>false</kinematic>
+  </gazebo>
+  <gazebo reference="panda1_box">
+    <static>true</static>
+    <kinematic>false</kinematic>
+  </gazebo>
   <!-- sub-link defining detailed meshes for collision with environment -->
   <link name="panda_link0">
     <visual>
@@ -715,27 +739,6 @@
         <sphere radius=".03"/>
       </geometry>
     </collision>
-    <!-- cartriage sledge -->
-    <!-- <collision>
-      <origin rpy="0 0 0" xyz="0 6.8e-3 2.2e-3"/>
-      <geometry>
-        <box size="22e-3 8.8e-3 3.8e-3"/>
-      </geometry>
-    </collision> -->
-    <!-- diagonal finger -->
-    <!-- <collision>
-      <origin rpy="0.5235987755982988 0 0" xyz="0 15.9e-3 28.35e-3"/>
-      <geometry>
-        <box size="17.5e-3 7e-3 23.5e-3"/>
-      </geometry>
-    </collision> -->
-    <!-- rubber tip with which to grasp -->
-    <!-- <collision>
-      <origin rpy="0 0 0" xyz="0 7.58e-3 45.25e-3"/>
-      <geometry>
-        <box size="17.5e-3 15.2e-3 18.5e-3"/>
-      </geometry>
-    </collision> -->
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="0.015"/>
@@ -756,27 +759,6 @@
         <sphere radius=".03"/>
       </geometry>
     </collision>
-    <!-- cartriage sledge -->
-    <!-- <collision>
-      <origin rpy="0 0 0" xyz="0 -6.8e-3 2.2e-3"/>
-      <geometry>
-        <box size="22e-3 8.8e-3 3.8e-3"/>
-      </geometry>
-    </collision> -->
-    <!-- diagonal finger -->
-    <!-- <collision>
-      <origin rpy="-0.5235987755982988 0 0" xyz="0 -15.9e-3 28.35e-3"/>
-      <geometry>
-        <box size="17.5e-3 7e-3 23.5e-3"/>
-      </geometry>
-    </collision> -->
-    <!-- rubber tip with which to grasp -->
-    <!-- <collision>
-      <origin rpy="0 0 0" xyz="0 -7.58e-3 45.25e-3"/>
-      <geometry>
-        <box size="17.5e-3 15.2e-3 18.5e-3"/>
-      </geometry>
-    </collision> -->
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="0.015"/>
@@ -924,4 +906,3 @@
   </joint>
   <!-- wall behind the table -->
 </robot>
-

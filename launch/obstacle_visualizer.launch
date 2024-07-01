@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="spawn_in_gz" default="true" />
+    <arg name="spawn_in_gz" default="false" />
     <arg name="use_mocap" default="false" />
     <node pkg="panda_torque_mpc" type="obstacle_visualizer.py" name="obstacle_visualizer_node"
         required="true" output="screen">

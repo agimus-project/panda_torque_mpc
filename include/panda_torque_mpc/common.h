@@ -36,13 +36,12 @@ namespace panda_torque_mpc {
 
 
 
-    inline pinocchio::Model loadPandaPinocchio()
+    inline pinocchio::Model loadPandaPinocchio(const std::string& robot_description)
     {
         // Load panda model with pinocchio and example-robot-data
-        std::string urdf_path = ros::package::getPath("panda_torque_mpc") + "/urdf/robot.urdf";
         std::string srdf_path = ros::package::getPath("panda_torque_mpc") + "/srdf/demo.srdf";
         pinocchio::Model model_pin_full;
-        pinocchio::urdf::buildModel(urdf_path, model_pin_full);
+        pinocchio::urdf::buildModelFromXML(robot_description, model_pin_full, false);
         pinocchio::srdf::loadReferenceConfigurations(model_pin_full, srdf_path, false);
         // pinocchio::srdf::loadRotorParameters(model_pin_full, srdf_path, false);
         Eigen::VectorXd q0_full = model_pin_full.referenceConfigurations["default"];
@@ -52,11 +51,10 @@ namespace panda_torque_mpc {
         return pinocchio::buildReducedModel(model_pin_full, locked_joints_id, q0_full);
     }
 
-    inline boost::shared_ptr<pinocchio::GeometryModel> loadPandaGeometryModel(const pinocchio::Model& model_pin)
+    inline boost::shared_ptr<pinocchio::GeometryModel> loadPandaGeometryModel(const pinocchio::Model& model_pin, const std::string& robot_description)
         {
-        const std::string urdf_path = ros::package::getPath("panda_torque_mpc") + "/urdf/robot.urdf";
         auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
-        pinocchio::urdf::buildGeom(model_pin, urdf_path, pinocchio::COLLISION, *collision_model);
+        pinocchio::urdf::buildGeom(model_pin, std::istringstream(robot_description), pinocchio::COLLISION, *collision_model);
         return collision_model;
     }
     inline Vector7d saturateTorqueRate(const Vector7d &tau_d, const Vector7d &tau_d_prev, double delta_max)

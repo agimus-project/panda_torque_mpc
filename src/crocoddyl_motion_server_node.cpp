@@ -75,7 +75,7 @@ namespace panda_torque_mpc
             // Croco params
             int nb_shooting_nodes, nb_iterations_max, max_qp_iter;
             double dt_ocp,solver_termination_tolerance,qp_termination_tol_abs , qp_termination_tol_rel, w_frame_running,
-            w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running, publish_frequency, w_slope, w_cut, max_w;
+            w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running, publish_frequency, w_slope, w_cut, max_w, collision_safety_margin;
             std::vector<double> diag_frame_vel, diag_q_reg_running, diag_v_reg_running, diag_u_reg_running, armature;
             std::vector<double> pose_e_c, pose_c_o_ref, pose_target1, pose_target2;  // px,py,pz, qx,qy,qz,qw
             std::vector<pin::SE3> pose_targets;  // px,py,pz, qx,qy,qz,qw
@@ -101,6 +101,7 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<double>(nh, w_slope,  "w_slope") && params_success;
             params_success = get_param_error_tpl<double>(nh, w_cut,  "w_cut") && params_success;
             params_success = get_param_error_tpl<double>(nh, max_w,  "max_w") && params_success;
+            params_success = get_param_error_tpl<double>(nh, collision_safety_margin, "collision_safety_margin") && params_success;
             params_success = get_param_error_tpl<std::vector<double>>(nh, diag_frame_vel, "diag_frame_vel",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 6; }) && params_success;
@@ -198,6 +199,8 @@ namespace panda_torque_mpc
             config_croco_.diag_u_reg_running = Eigen::Map<Eigen::Matrix<double, 7, 1>>(diag_u_reg_running.data());
             config_croco_.armature = Eigen::Map<Eigen::Matrix<double, 7, 1>>(armature.data());
             config_croco_.changing_weights = changing_weights;
+            config_croco_.collision_safety_margin = collision_safety_margin;
+            
 
             // For the changing weights
             TargetsConfig targ_config_;

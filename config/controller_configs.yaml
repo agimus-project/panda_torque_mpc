@@ -218,6 +218,9 @@ ctrl_mpc_linearized:
     w_u_reg_running: 0.001
     diag_u_reg_running: [1.,1.,1.,1.,1.,1.,1.]
 
+    # Obstacle avoidance
+    collision_safety_margin: 0.20  # in meter 
+
     ##### WEIGHTS FROM THEO
     # targets params
     changing_weights: false

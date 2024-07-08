@@ -67,6 +67,8 @@ namespace panda_torque_mpc
         Eigen::Matrix<double, 7, 1> diag_u_reg_running = Eigen::Matrix<double, 7, 1>::Ones();
 
         Eigen::Matrix<double, 7, 1> armature;
+
+        double collision_safety_margin = 0.05;
     };
 
     class CrocoddylReaching

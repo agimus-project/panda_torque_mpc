@@ -14,7 +14,7 @@ from gazebo_msgs.srv import SpawnModel, SpawnModelRequest
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA, Header
 
-from SDFGenerator import SDFGenerator
+from panda_torque_mpc.sdf_generator import SDFGenerator
 
 
 class ObstaclesVisualizer:
@@ -127,7 +127,9 @@ class ObstaclesVisualizer:
         if self._use_mocap:
             for obstacle_name in self._obstacle_markers.keys():
                 topic_name = f"/ctrl_mpc_linearized/obstacle/{obstacle_name}"
-                self._transformed_pose_pubs[obstacle_name] = rospy.Publisher(topic_name, PoseStamped, queue_size=10)
+                self._transformed_pose_pubs[obstacle_name] = rospy.Publisher(
+                    topic_name, PoseStamped, queue_size=10
+                )
                 rospy.loginfo(f"Substrigbing to topic '{topic_name}'.")
 
         # -------------------------------
@@ -169,10 +171,12 @@ class ObstaclesVisualizer:
 
     def _obstacle_callback(self, msg: PoseStamped, obstacle_name: str) -> None:
         try:
-            transform = self._tf_buffer.lookup_transform(self._target_frame_id,
-                                       msg.header.frame_id,
-                                       msg.header.stamp,
-                                       rospy.Duration(0.1))
+            transform = self._tf_buffer.lookup_transform(
+                self._target_frame_id,
+                msg.header.frame_id,
+                msg.header.stamp,
+                rospy.Duration(0.1),
+            )
 
             converted_pose = tf2_geometry_msgs.do_transform_pose(msg, transform)
         except (

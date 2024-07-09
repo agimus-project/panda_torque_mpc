@@ -50,13 +50,13 @@ namespace panda_torque_mpc
    TargetsConfig targ_config_;
    std::vector<double> pose_target1 =  bp::extract<std::vector<double>>(mpc_params["pose_target1"]);
    std::vector<double> pose_target2 =  bp::extract<std::vector<double>>(mpc_params["pose_target2"]);
-   targ_config_.pose_targets = {panda_torque_mpc::XYZQUATToSE3(pose_target1),panda_torque_mpc::XYZQUATToSE3(pose_target2)};
+   targ_config_.pose_targets = {panda_torque_mpc::XYZQUATToSE3(pose_target1), panda_torque_mpc::XYZQUATToSE3(pose_target2)};
    targ_config_.publish_frequency = bp::extract<double>(mpc_params["publish_frequency"]);
    targ_config_.nb_target = targ_config_.pose_targets.size();
    targ_config_.cycle_duration = targ_config_.nb_target/targ_config_.publish_frequency;
    targ_config_.cycle_nb_nodes = targ_config_.cycle_duration / croco_conf.dt_ocp;
    
-   targ_config_.cycle_duration_2 = targ_config_.cycle_duration /2;
+   targ_config_.cycle_duration_2 = targ_config_.cycle_duration / 2.0;
    targ_config_.w_slope = bp::extract<double>(mpc_params["w_slope"]);
    targ_config_.max_w = bp::extract<double>(mpc_params["max_w"]);
    targ_config_.w_cut = bp::extract<double>(mpc_params["w_cut"]);

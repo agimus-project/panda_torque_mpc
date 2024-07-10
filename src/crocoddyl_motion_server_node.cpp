@@ -154,8 +154,8 @@ namespace panda_torque_mpc
             auto collision_model_full = boost::make_shared<pinocchio::GeometryModel>();
             collision_model_full = loadPandaGeometryModel(model_pin_, robot_description);
 
-            auto collision_model = boost::make_shared<pinocchio::GeometryModel>();
-            collision_model = reduce_capsules_robot(collision_model_full);
+            ReduceCollisionModel reduce_collision_model;
+            auto collision_model = boost::make_shared<pinocchio::GeometryModel>(reduce_collision_model.reduce_capsules_robot(collision_model_full));
 
             ObstacleParamsParser obstacle_parser(boost::make_shared<ros::NodeHandle>(pnh), collision_model);
             obstacle_parser.addCollisions();

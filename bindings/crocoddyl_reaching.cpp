@@ -9,6 +9,7 @@
 
 #include "panda_torque_mpc/crocoddyl_reaching.h"
 #include "panda_torque_mpc/python.h"
+#include "panda_torque_mpc/reduce_collision_model.h"
 
 namespace panda_torque_mpc
 {
@@ -16,6 +17,12 @@ namespace panda_torque_mpc
     namespace pin = pinocchio;
     namespace bp = boost::python;
     
+   void exposeReduceCollisionModel() {
+      bp::register_ptr_to_python<boost::shared_ptr<ReduceCollisionModel> >(); 
+      bp::class_<ReduceCollisionModel>("ReduceCollisionModel")
+        .def<pin::GeometryModel (ReduceCollisionModel::*)(const boost::shared_ptr<pin::GeometryModel>&)>("reduce_capsules_robot",&ReduceCollisionModel::reduce_capsules_robot);
+   }
+
    static boost::shared_ptr<CrocoddylReaching> constructor(pin::Model _model_pin, 
             const boost::shared_ptr<pin::GeometryModel>& _collision_model,bp::dict mpc_params) {
 

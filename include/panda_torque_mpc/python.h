@@ -8,4 +8,5 @@
 
 namespace panda_torque_mpc {
     void exposeCrocoddylReaching();
+    void exposeReduceCollisionModel();
 }  // namespace python

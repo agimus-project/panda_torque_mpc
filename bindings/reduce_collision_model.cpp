@@ -2,10 +2,6 @@
 
 #include <pinocchio/multibody/fwd.hpp>
 #include <boost/python.hpp>
-#include <boost/python/enum.hpp>
-#include <eigenpy/eigenpy.hpp>
-#include <boost/python/return_internal_reference.hpp>
-#include <vector>
 
 #include "panda_torque_mpc/reduce_collision_model.h"
 #include "panda_torque_mpc/python.h"

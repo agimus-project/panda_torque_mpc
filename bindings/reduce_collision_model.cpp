@@ -1,5 +1,3 @@
-
-
 #include <pinocchio/multibody/fwd.hpp>
 #include <boost/python.hpp>
 

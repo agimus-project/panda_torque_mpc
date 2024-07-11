@@ -1,1 +1,2 @@
 from .panda_torque_mpc_pywrap import CrocoddylReaching
+from .panda_torque_mpc_pywrap import reduce_capsules_robot

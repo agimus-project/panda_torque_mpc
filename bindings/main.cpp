@@ -11,5 +11,6 @@ BOOST_PYTHON_MODULE(panda_torque_mpc_pywrap) {
   ENABLE_SPECIFIC_MATRIX_TYPE(Eigen::VectorXi);
   ENABLE_SPECIFIC_MATRIX_TYPE(panda_torque_mpc::Vector7d);
   panda_torque_mpc::exposeCrocoddylReaching();
+  panda_torque_mpc::exposeReduceCollisionModel();
   
 }

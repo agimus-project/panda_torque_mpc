@@ -1,5 +1,3 @@
-#pragma once
-
 #include "panda_torque_mpc/obstacle_params_parser.h"
 
 #include <boost/shared_ptr.hpp>

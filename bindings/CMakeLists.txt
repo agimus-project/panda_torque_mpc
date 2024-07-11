@@ -3,6 +3,7 @@ set(PY_NAME_INSTALL_DIR ${CATKIN_GLOBAL_PYTHON_DESTINATION}/${PY_NAME})
 SEARCH_FOR_BOOST_PYTHON()
 
 set(${PY_NAME}_SOURCES
+  reduce_collision_model.cpp
   crocoddyl_reaching.cpp
   main.cpp
   )

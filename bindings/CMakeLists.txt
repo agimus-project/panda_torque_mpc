@@ -30,5 +30,5 @@ set(${PY_NAME}_PYTHON
 
 foreach(python ${${PY_NAME}_PYTHON})
   file(COPY ${PY_NAME}/${python} DESTINATION ${CATKIN_DEVEL_PREFIX}/${PY_NAME_INSTALL_DIR})
-  install(FILES ${python} DESTINATION ${PY_NAME_INSTALL_DIR})
+  install(FILES panda_torque_mpc_pywrap/${python} DESTINATION ${PY_NAME_INSTALL_DIR})
 endforeach()

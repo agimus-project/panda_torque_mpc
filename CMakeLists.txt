@@ -208,7 +208,7 @@ install(TARGETS
 install(FILES
   panda_torque_mpc_plugins.xml
   DESTINATION
-  ${CATKIN_PACKAGE_LIB_DESTINATION}
+  ${CATKIN_PACKAGE_SHARE_DESTINATION}
   )
 
 # Install URDF files

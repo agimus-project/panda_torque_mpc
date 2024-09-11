@@ -2,7 +2,7 @@ repositories:
   vcs_repos/crocoddyl:
     type: git
     url: https://github.com/loco-3d/crocoddyl
-    version: 5b415a16138d
+    version: v2.1.0
     
   vcs_repos/linear_feedback_controller_msgs:
     type: git
@@ -12,22 +12,22 @@ repositories:
   vcs_repos/hpp_fcl:
     type: git
     url: https://github.com/humanoid-path-planner/hpp-fcl
-    version: 65fb435b44a1bbd5059347d7a311cc7c7aa1349e
+    version: 7e3f33b7614bba363ca6f27c2730539dfa20c3ea
 
   vcs_repos/pinocchio:
     type: git
     url: https://github.com/stack-of-tasks/pinocchio
-    version: v2.7.0
+    version: v3.2.0
 
-  vcs_repos/colmpc:
-    type: git
-    url: https://github.com/agimus-project/colmpc
-    version:  5cea558ae58b03390eddb9244c932a18c48e684a  # TODO: change to new version tag
+  # vcs_repos/colmpc:
+  #   type: git
+  #   url: https://github.com/agimus-project/colmpc
+  #   version:  11a70a7e969c81a85802dc0acd085e21ac78c2d0  # TODO: change to new version tag
 
-  vcs_repos/mim_solvers:
-    type: git
-    url: https://github.com/machines-in-motion/mim_solvers
-    version: v0.0.3
+  # vcs_repos/mim_solvers:
+  #   type: git
+  #   url: https://github.com/machines-in-motion/mim_solvers
+  #   version: v0.0.5
 
   vcs_repos/franka_ros:
     type: git

@@ -208,7 +208,7 @@ namespace panda_torque_mpc
         ocp_->set_max_qp_iters(config.max_qp_iter);
         ocp_->set_eps_abs(config.qp_termination_tol_abs);
         ocp_->set_eps_rel(config.qp_termination_tol_rel);
-        ocp_->setCallbacks(true);
+        // ocp_->setCallbacks(true);
         std::cout<< "callbacks" << ocp_->getCallbacks() << std::endl;
 
         

@@ -75,8 +75,7 @@ namespace panda_torque_mpc
             // Croco params
             int nb_shooting_nodes, nb_iterations_max, max_qp_iter;
             double dt_ocp,solver_termination_tolerance,qp_termination_tol_abs , qp_termination_tol_rel, w_frame_running,
-            w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running, publish_frequency, w_slope, w_cut, max_w, collision_safety_margin, ksi, di, ds;
-            std::vector<double> diag_frame_vel, diag_q_reg_running, diag_v_reg_running, diag_u_reg_running, armature;
+w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_x_reg_terminal, w_u_reg_running, publish_frequency, w_slope, w_cut, max_w, collision_safety_margin, ksi, di, ds;            std::vector<double> diag_frame_vel, diag_q_reg_running, diag_v_reg_running, diag_u_reg_running, armature;
             std::vector<double> pose_e_c, pose_c_o_ref, pose_target1, pose_target2;  // px,py,pz, qx,qy,qz,qw
             std::vector<pin::SE3> pose_targets;  // px,py,pz, qx,qy,qz,qw
             bool reference_is_placement, changing_weights;
@@ -104,8 +103,7 @@ namespace panda_torque_mpc
             params_success = get_param_error_tpl<double>(nh, collision_safety_margin, "collision_safety_margin") && params_success;
             params_success = get_param_error_tpl<double>(nh, ksi, "ksi") && params_success;
             params_success = get_param_error_tpl<double>(nh, di, "di") && params_success;
-            params_success = get_param_error_tpl<double>(nh, ds, "ds") && params_success;
-
+            params_success = get_param_error_tpl<double>(nh, ds, "ds") && params_success;            
             params_success = get_param_error_tpl<std::vector<double>>(nh, diag_frame_vel, "diag_frame_vel",
                                                                       [](std::vector<double> v)
                                                                       { return v.size() == 6; }) && params_success;
@@ -171,8 +169,9 @@ namespace panda_torque_mpc
             Eigen::Vector3d translation(0, 0, 0);
             Eigen::Quaterniond rotation(1, 0, 0, 0);
 
-            pinocchio::GeometryObject ellips("ellips", 7, 44, geometry, model_pin_.frames[44].placement);
+            pinocchio::GeometryObject ellips("elips_rob", 7, 44, geometry, model_pin_.frames[44].placement);
             collision_model->addGeometryObject(ellips);
+
 
 
             ObstacleParamsParser obstacle_parser(boost::make_shared<ros::NodeHandle>(pnh), collision_model);
@@ -222,6 +221,9 @@ namespace panda_torque_mpc
             config_croco_.di = di;
             config_croco_.ds = ds;
 
+            config_croco_.ksi = ksi;
+            config_croco_.di = di;
+            config_croco_.ds = ds;
 
             // For the changing weights
             TargetsConfig targ_config_;

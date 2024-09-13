@@ -78,7 +78,6 @@ namespace panda_torque_mpc
 
         for (int col_idx = 0; col_idx < collision_model->collisionPairs.size(); col_idx++)
         {
-
             auto obstacle_distance_residual = boost::make_shared<colmpc::ResidualModelVelocityAvoidance>
                 (colmpc::ResidualModelVelocityAvoidance(state, collision_model, col_idx));
             auto constraint = boost::make_shared<crocoddyl::ConstraintModelResidual>(
@@ -209,7 +208,9 @@ namespace panda_torque_mpc
         ocp_->set_max_qp_iters(config.max_qp_iter);
         ocp_->set_eps_abs(config.qp_termination_tol_abs);
         ocp_->set_eps_rel(config.qp_termination_tol_rel);
-        // ocp_->setCallbacks(false);
+        ocp_->setCallbacks(true);
+        std::cout<< "callbacks" << ocp_->getCallbacks() << std::endl;
+
         
         // Callbacks from crocoddyl
         std::vector<boost::shared_ptr<crocoddyl::CallbackAbstract>> callbacks;

@@ -1,9 +1,10 @@
 obstacle1:
     type: "ellipsoid"
-    radius1: 0.175
+    radius1: 0.150
     radius2: 0.175
     radius3: 0.175
 
 collision_pairs: 
     - ["elips_rob", "obstacle1"]
+
 

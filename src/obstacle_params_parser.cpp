@@ -153,7 +153,7 @@ void ObstacleParamsParser::addCollisions() {
         return;
       }
     } else {
-      std::cerr << "No type or wrong type in the obstacle config. Try to use "
+        std::cerr << "No type or wrong type in the obstacle config. Try to use "
                    "the one implemented, such as 'sphere', 'box', 'capsule' or "
                    "'cylinder'."
                 << std::endl;

@@ -70,6 +70,12 @@ class ObstaclesVisualizer:
                 sp_req.model_xml = sdf_generator.generate_sphere(
                     key[1:], obstacle["radius"]
                 )
+            if obstacle["type"] == "ellipsoid":
+                m.scale = Vector3(**dict(zip("xyz", [obstacle["radius1"] * 2] * 3)))
+                m.type = Marker.SPHERE
+                sp_req.model_xml = sdf_generator.generate_sphere(
+                    key[1:], obstacle["radius"]
+                )
             if obstacle["type"] == "cylinder":
                 m.scale = Vector3(
                     x=obstacle["radius"], y=obstacle["radius"], z=obstacle["halfLength"]

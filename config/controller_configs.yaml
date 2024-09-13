@@ -220,6 +220,9 @@ ctrl_mpc_linearized:
 
     # Obstacle avoidance
     collision_safety_margin: 0.05  # in meter 
+    ksi: 0.1
+    di: 0.1
+    ds: 0.00000001
 
     ##### WEIGHTS FROM THEO
     # targets params

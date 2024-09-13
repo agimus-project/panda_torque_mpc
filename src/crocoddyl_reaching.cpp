@@ -73,14 +73,14 @@ namespace panda_torque_mpc
         auto terminalConstraintModelManager =  boost::make_shared<crocoddyl::ConstraintModelManager>(state);
         Eigen::VectorXd col_lower_bound(1);
         Eigen::VectorXd col_upper_bound(1);
-        col_lower_bound << config.collision_safety_margin;
+        col_lower_bound << 0;
         col_upper_bound << std::numeric_limits<double>::infinity();
 
         for (int col_idx = 0; col_idx < collision_model->collisionPairs.size(); col_idx++)
         {
 
             auto obstacle_distance_residual = boost::make_shared<colmpc::ResidualModelVelocityAvoidance>
-                (colmpc::ResidualModelVelocityAvoidance(state, 7, collision_model, col_idx));
+                (colmpc::ResidualModelVelocityAvoidance(state, collision_model, col_idx));
             auto constraint = boost::make_shared<crocoddyl::ConstraintModelResidual>(
                 state,
                 obstacle_distance_residual,

@@ -130,10 +130,30 @@ void ObstacleParamsParser::addCollisions() {
                   << std::endl;
         return;
       }
-    }
+    } else if (type == "ellipsoid") {
+      double radius1;
+      double radius2;
+      double radius3;
 
-    else {
-      std::cerr << "No type or wrong type in the obstacle config. Try to use "
+      if (pnh_->hasParam(obstacle_name + "/radius1") &&
+          pnh_->hasParam(obstacle_name + "/radius2") &&
+          pnh_->hasParam(obstacle_name + "/radius3")) {
+        pnh_->getParam(obstacle_name + "/radius1", radius1);
+        pnh_->getParam(obstacle_name + "/radius2", radius2);
+        pnh_->getParam(obstacle_name + "/radius3", radius3);
+        geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
+            new hpp::fcl::Ellipsoid(radius1, radius2, radius3));
+      } else {
+        std::cerr << "No dimension or wrong dimensions in the obstacle "
+                     "config. Try to use "
+                     "the ones for the shapes desired, such as 'radius' for "
+                     "'sphere','x', 'y', 'z' for 'box' or 'halfLength' and "
+                     "'radius' for 'cylinder' and 'capsule."
+                  << std::endl;
+        return;
+      }
+    } else {
+        std::cerr << "No type or wrong type in the obstacle config. Try to use "
                    "the one implemented, such as 'sphere', 'box', 'capsule' or "
                    "'cylinder'."
                 << std::endl;

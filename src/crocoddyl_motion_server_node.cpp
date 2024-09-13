@@ -171,8 +171,8 @@ namespace panda_torque_mpc
             Eigen::Vector3d translation(0, 0, 0);
             Eigen::Quaterniond rotation(1, 0, 0, 0);
 
-            pinocchio::GeometryObject ellips('ellips', 7, 44, geometry, model_pin_->frames[44].placement);
-            collision_model_->addGeometryObject(ellips);
+            pinocchio::GeometryObject ellips("ellips", 7, 44, geometry, model_pin_.frames[44].placement);
+            collision_model->addGeometryObject(ellips);
 
 
             ObstacleParamsParser obstacle_parser(boost::make_shared<ros::NodeHandle>(pnh), collision_model);

@@ -136,13 +136,13 @@ void ObstacleParamsParser::addCollisions() {
       double radius3;
 
       if (pnh_->hasParam(obstacle_name + "/radius1") &&
-          pnh_->hasParam(obstacle_name + "/radius2") && 
+          pnh_->hasParam(obstacle_name + "/radius2") &&
           pnh_->hasParam(obstacle_name + "/radius3")) {
         pnh_->getParam(obstacle_name + "/radius1", radius1);
         pnh_->getParam(obstacle_name + "/radius2", radius2);
         pnh_->getParam(obstacle_name + "/radius3", radius3);
         geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
-            new hpp::fcl::Ellipsoid(radius1,radius2,radius3));
+            new hpp::fcl::Ellipsoid(radius1, radius2, radius3));
       } else {
         std::cerr << "No dimension or wrong dimensions in the obstacle "
                      "config. Try to use "
@@ -151,7 +151,8 @@ void ObstacleParamsParser::addCollisions() {
                      "'radius' for 'cylinder' and 'capsule."
                   << std::endl;
         return;
-      }    else {
+      }
+    } else {
       std::cerr << "No type or wrong type in the obstacle config. Try to use "
                    "the one implemented, such as 'sphere', 'box', 'capsule' or "
                    "'cylinder'."
@@ -181,14 +182,18 @@ void ObstacleParamsParser::addCollisions() {
                   XmlRpc::XmlRpcValue::TypeString) {
             std::string name_object1 =
                 static_cast<std::string>(collision_pairs[i][0]);
-            if (!collision_model_->existGeometryName(name_object1)){
-              std::cerr << "Object " << name_object1 << " doesn't exist in the collision model." << std::endl;
+            if (!collision_model_->existGeometryName(name_object1)) {
+              std::cerr << "Object " << name_object1
+                        << " doesn't exist in the collision model."
+                        << std::endl;
               return;
             }
             std::string name_object2 =
                 static_cast<std::string>(collision_pairs[i][1]);
-            if (!collision_model_->existGeometryName(name_object2)){
-              std::cerr << "Object " << name_object2 << " doesn't exist in the collision model." << std::endl;
+            if (!collision_model_->existGeometryName(name_object2)) {
+              std::cerr << "Object " << name_object2
+                        << " doesn't exist in the collision model."
+                        << std::endl;
               return;
             }
             addCollisionPair(name_object1, name_object2);

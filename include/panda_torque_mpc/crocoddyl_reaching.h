@@ -69,6 +69,9 @@ namespace panda_torque_mpc
         Eigen::Matrix<double, 7, 1> armature;
 
         double collision_safety_margin = 0.05;
+        double ksi = 0.1;
+        double di = 0.1;
+        double ds = 1e-7;
     };
 
     class CrocoddylReaching

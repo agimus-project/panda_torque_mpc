@@ -164,14 +164,17 @@ w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_
             double radius3 = 0.04;
             pinocchio::GeometryObject::CollisionGeometryPtr geometry;
             geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
-            new hpp::fcl::Ellipsoid(radius1,radius2,radius3));
+                new hpp::fcl::Ellipsoid(radius1,radius2,radius3));
 
-            Eigen::Vector3d translation(0, 0, 0);
-            Eigen::Quaterniond rotation(1, 0, 0, 0);
 
-            pinocchio::GeometryObject ellips("elips_rob", 7, 44, geometry, model_pin_.frames[44].placement);
+            const Eigen::Vector3d translation(0.0, 0.0, 0.0);
+            const Eigen::Quaterniond rotation(0.0, 0.0, 0.0, 1.0);
+            const pinocchio::SE3 obstacle_placement(rotation, translation);
+
+            const pinocchio::Model::FrameIndex frame_idx = model_pin_.getFrameId("panda_hand_tcp");
+            const pinocchio::Model::JointIndex joint_idx = model_pin_.frames[frame_idx].parentJoint;
+            pinocchio::GeometryObject ellips("elips_rob", joint_idx, frame_idx, obstacle_placement, geometry);
             collision_model->addGeometryObject(ellips);
-
 
 
             ObstacleParamsParser obstacle_parser(boost::make_shared<ros::NodeHandle>(pnh), collision_model);

@@ -77,7 +77,6 @@ class ObstaclesVisualizer:
                 sp_req.model_xml = sdf_generator.generate_ellipsoid(
                     key[1:], *scales
                 )
-                rospy.logwarn(f"{sp_req.model_xml}")
             if obstacle["type"] == "cylinder":
                 m.scale = Vector3(
                     x=obstacle["radius"], y=obstacle["radius"], z=obstacle["halfLength"]

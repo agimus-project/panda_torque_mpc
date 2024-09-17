@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import rospkg
 import math
 import random
 
@@ -138,7 +138,7 @@ class SDFGenerator:
             str: SDF syntax for the sphere.
         """           
         color = self._generate_random_color()
-        import rospkg
+
         rp = rospkg.RosPack()
         package_path = rp.get_path("panda_torque_mpc")
 

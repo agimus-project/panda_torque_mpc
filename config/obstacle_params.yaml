@@ -1,12 +1,21 @@
 obstacle1:
     type: "ellipsoid"
     radius: 0.175
-    radius1: 0.175
-    radius2: 0.175
-    radius3: 0.175
-    translation: [0,0,0.825]  # tx,ty,tz
-    rotation: [0, 0, 0, 1] #qx,qy,qz,qw  
+    radius1: 0.2
+    radius2: 0.06
+    radius3: 0.3
+    translation: [0,0,0.9]  # tx,ty,tz
+    rotation: [0, 0.7071068, 0, 0.7071068] #qx,qy,qz,qw  
+obstacle2:
+    type: "ellipsoid"
+    radius: 0.175
+    radius1: 0.2
+    radius2: 0.06
+    radius3: 0.3
+    translation: [0,0.4,0.9]  # tx,ty,tz
+    rotation: [0, 0.7071068, 0, 0.7071068] #qx,qy,qz,qw  
 collision_pairs: 
     - ["elips_rob", "obstacle1"]
+    - ["elips_rob", "obstacle2"]
 
 

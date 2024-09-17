@@ -166,14 +166,14 @@ w_frame_terminal, w_frame_vel_running, w_frame_vel_terminal, w_x_reg_running, w_
             geometry = pinocchio::GeometryObject::CollisionGeometryPtr(
                 new hpp::fcl::Ellipsoid(radius1,radius2,radius3));
 
+            const pinocchio::Model::FrameIndex frame_idx = model_pin_.getFrameId("panda_link7_sc");
+            const pinocchio::Model::JointIndex joint_idx = model_pin_.frames[frame_idx].parentJoint;
 
-            const Eigen::Vector3d translation(0.0, 0.0, 0.0);
-            const Eigen::Quaterniond rotation(0.0, 0.0, 0.0, 1.0);
+            const Eigen::Vector3d translation(model_pin_.frames[frame_idx].placement.translation() );
+            const Eigen::Quaterniond rotation(model_pin_.frames[frame_idx].placement.rotation());
             const pinocchio::SE3 obstacle_placement(rotation, translation);
 
-            const pinocchio::Model::FrameIndex frame_idx = model_pin_.getFrameId("panda_hand_tcp");
-            const pinocchio::Model::JointIndex joint_idx = model_pin_.frames[frame_idx].parentJoint;
-            pinocchio::GeometryObject ellips("elips_rob", joint_idx, frame_idx, obstacle_placement, geometry);
+            pinocchio::GeometryObject ellips("elips_rob", joint_idx, frame_idx, model_pin_.frames[frame_idx].placement, geometry);
             collision_model->addGeometryObject(ellips);
 
 

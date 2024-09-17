@@ -74,9 +74,10 @@ class ObstaclesVisualizer:
                 scales = [obstacle[f"radius{i}"] * 2.0 for i in range(1, 4)]
                 m.scale = Vector3(**dict(zip("xyz", scales)))
                 m.type = Marker.SPHERE
-                sp_req.model_xml = sdf_generator.generate_sphere(
-                    key[1:], obstacle["radius"]
+                sp_req.model_xml = sdf_generator.generate_ellipsoid(
+                    key[1:], *scales
                 )
+                rospy.logwarn(f"{sp_req.model_xml}")
             if obstacle["type"] == "cylinder":
                 m.scale = Vector3(
                     x=obstacle["radius"], y=obstacle["radius"], z=obstacle["halfLength"]

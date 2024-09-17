@@ -121,6 +121,59 @@ class SDFGenerator:
         """
         return sdf
 
+    def generate_ellipsoid(self, name: str, radius1: float, radius2: float,  radius3: float) -> str:
+        """
+        Generates SDF syntax for a ellipsoid mesh.
+
+        Parameters:
+            name (str): Name of the sphere.
+            radius1 (float): Radius 1 of the ellipsoid.
+            radius2 (float): Radius 2 of the ellipsoid.
+            radius3 (float): Radius 3 of the ellipsoid.
+            translation (tuple): Translation of the sphere in (x, y, z).
+            rotation (tuple): Rotation of the sphere in (roll, pitch, yaw) (if quaternion is not provided).
+            quaternion (tuple): Quaternion array in (x, y, z, w) format (if rotation is not provided).
+
+        Returns:
+            str: SDF syntax for the sphere.
+        """           
+        color = self._generate_random_color()
+        import rospkg
+        rp = rospkg.RosPack()
+        package_path = rp.get_path("panda_torque_mpc")
+
+        sdf = f"""
+        <sdf version='1.4'>
+        <model name="{name}">
+            <static>true</static>
+            <link name="{name}_link">
+                <pose>0 0 0 0 0 0</pose>
+                <visual name="visual">
+                    <geometry>
+                        <mesh>
+                            <uri>{package_path}/meshes/unit-sphere.stl</uri>
+                            <scale> {radius1} {radius2} {radius3} </scale>
+                        </mesh>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>{color}</name>
+                        </script>
+                    </material>
+                </visual>
+                <collision name="collision">
+                    <geometry>
+                        <mesh>
+                            <uri>{package_path}/meshes/unit-sphere.stl</uri>
+                            <scale> {radius1} {radius2} {radius3} </scale>
+                        </mesh>
+                    </geometry>
+                </collision>
+            </link>
+        </model>
+        """
+        return sdf
     def generate_cylinder(self, name: str, radius: float, halfLength: float) -> str:
         """
         Generates SDF syntax for a cylinder.

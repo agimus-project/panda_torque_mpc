@@ -4,6 +4,7 @@ import math
 
 import rospy
 import tf2_ros
+import tf2_geometry_msgs
 
 from geometry_msgs.msg import Point, Pose, PoseStamped, Vector3, Quaternion
 from std_msgs.msg import ColorRGBA, Duration, Header
@@ -46,7 +47,9 @@ class MoCapRelay:
         self._motion_axis = rospy.get_param("~motion_generator/motion/axis", "x")
         self._motion_mag = rospy.get_param("~motion_generator/motion/mag", 0.1)
         self._motion_freq = rospy.get_param("~motion_generator/motion/frequency", 1.0)
-        self._publish_frequency = rospy.get_param("~motion_generator/publish_frequency", 120.0)
+        self._publish_frequency = rospy.get_param(
+            "~motion_generator/publish_frequency", 120.0
+        )
 
         # -------------------------------
         #   TF2 subscribers
@@ -99,15 +102,21 @@ class MoCapRelay:
 
     def _mocap_subscription_cb(self, data: PoseStamped) -> None:
         try:
-            converted_pose = self._tf_buffer.transform(
-                data,
+            transform = self._tf_buffer.lookup_transform(
                 self._target_frame_id,
-                rospy.Duration(0.1)
+                data.header.frame_id,
+                data.header.stamp,
             )
-            self._publish_pose(converted_pose)
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            rospy.logerr(f"[{rospy.get_name()}] Failed to transform from frame"
-            f" {data.header.frame_id} to frame {self._target_frame_id}. Reason: {str(e)}")
+            self._publish_pose(tf2_geometry_msgs.do_transform_pose(data, transform))
+        except (
+            tf2_ros.LookupException,
+            tf2_ros.ConnectivityException,
+            tf2_ros.ExtrapolationException,
+        ) as e:
+            rospy.logerr(
+                f"[{rospy.get_name()}] Failed to transform from frame"
+                f" {data.header.frame_id} to frame {self._target_frame_id}. Reason: {str(e)}"
+            )
 
     def _publish_pose(self, pose: PoseStamped) -> None:
         m = Marker(

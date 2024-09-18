@@ -1,4 +1,4 @@
-sphere_radious: 0.35
+sphere_radious: 0.30
 frame_id: world
 motion_generator:
   offset:

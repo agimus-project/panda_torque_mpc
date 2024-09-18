@@ -106,6 +106,7 @@ class MoCapRelay:
                 self._target_frame_id,
                 data.header.frame_id,
                 data.header.stamp,
+                rospy.Duration(0.01)
             )
             self._publish_pose(tf2_geometry_msgs.do_transform_pose(data, transform))
         except (

@@ -1,0 +1,12 @@
+sphere_radious: 0.35
+frame_id: world
+motion_generator:
+  offset:
+    x: 0.0
+    y: 0.0
+    z: 0.8
+  motion:
+    axis: x
+    mag: 0.4
+    frequency: 0.5
+  publish_frequency: 120.0

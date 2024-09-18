@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="relay" default="false" doc="Act as a motion capture relay"/>
+    <arg name="tracked_object" default="sphere" doc="Name of the tracked object"/>
+    <node pkg="panda_torque_mpc" type="motion_capture_relay.py" name="motion_capture_relay_node"
+        required="true" output="screen">
+        <param name="relay" value="$(arg relay)"/>
+        <rosparam command="load" file="$(find panda_torque_mpc)/config/motion_capture_params.yaml" />
+        <remap from="mocap_pose" to="/natnet_ros/$(arg tracked_object)/pose"/>
+    </node>
+    
+    <node pkg="tf2_ros" type="static_transform_publisher" name="natnet_to_world_broadcaster"
+        args="-0.76 -0.865 0.30 0.0 3.14 -1.57 calibration_square world" />
+
+    <include file="$(find natnet_ros_cpp)/launch/natnet_ros.launch">
+        <arg name="clientIP" value="140.93.97.153"/>
+        <arg name="serverIP" value="140.93.16.94"/>
+        <arg name="serverType" value="unicast"/>
+        <arg name="globalFrame" value="natnet_link"/>
+    </include>
+</launch>

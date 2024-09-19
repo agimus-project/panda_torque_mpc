@@ -185,10 +185,10 @@ ctrl_mpc_linearized:
     armature: [0.,0.,0.,0.,0.,0.,0.0]
     
     #### PARAMETERS FROM NYC 
-    nb_shooting_nodes: 30
-    nb_iterations_max: 3
+    nb_shooting_nodes: 20
+    nb_iterations_max: 2
     solver_termination_tolerance: 0.0001              # Tolerance on KKT residual 
-    max_qp_iter: 50    #125 
+    max_qp_iter: 100    #125 
     qp_termination_tol_abs: 0.00001
     qp_termination_tol_rel: 0.00001
 
@@ -196,8 +196,8 @@ ctrl_mpc_linearized:
     # frame pose/position
     # w_frame_running:  50
     # w_frame_terminal: 50
-    w_frame_running:  5.0
-    w_frame_terminal: 100.0
+    w_frame_running:  1.0
+    w_frame_terminal: 50.0
 
     # frame vel regularization
     w_frame_vel_running:  0.0
@@ -208,7 +208,7 @@ ctrl_mpc_linearized:
     ]
 
     # State regularization
-    w_x_reg_running:  0.01
+    w_x_reg_running:  0.1
     w_x_reg_terminal: 0.01
     # High penalty on first joint -> tendancy to switch to 180 deg config
     diag_q_reg_running: [5., 1., 1., 1., 1., 1., 1.]
@@ -219,15 +219,18 @@ ctrl_mpc_linearized:
     diag_u_reg_running: [1.,1.,1.,1.,1.,1.,1.]
 
     # Obstacle avoidance
-    collision_safety_margin: 0.05  # in meter 
-    ksi: 0.1
+    collision_safety_margin: 0.001  # in meter 
+    ksi: 0.001
     di: 0.1
     ds: 0.00000001
     ##### WEIGHTS FROM THEO
     # targets params
-    changing_weights: false
-    pose_target1: [0.0, -0.35, 1.0, 0.0, 1.0, 0.0, 0.0]
-    pose_target2: [0.0, 0.35, 1.0, 0.0, 1.0, 0.0, 0.0]
+    changing_weights: true
+    # pose_target1: [0, -0.35, 1.2, 0.0, 1.0, 0.0, 0.0]
+    # pose_target2: [-0.1, -0.35, 0.95, 0.0, 1.0, 0.0, 0.0]
+    # pose_target2: [0, 0.25, 1.2, 0.0, 1.0, 0.0, 0.0]
+    pose_target1: [0.15, 0.3, 1.0, 0.0, 1.0, 0.0, 0.0]
+    pose_target2: [0.15, -0.3,1.0, 0.0, 1.0, 0.0, 0.0]
     publish_frequency: 0.25
 
     # Parameters to modify the curve of the target weight function

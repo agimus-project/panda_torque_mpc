@@ -13,7 +13,7 @@
 
 #include <colmpc/fwd.hpp>
 #include <colmpc/residual-velocity-avoidance.hpp>
-
+#include <colmpc/residual-distance-collision.hpp>
 #include <mim_solvers/csqp.hpp>
 #include <mim_solvers/sqp.hpp>
 

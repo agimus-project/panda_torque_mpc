@@ -73,11 +73,15 @@ namespace panda_torque_mpc
         auto terminalConstraintModelManager =  boost::make_shared<crocoddyl::ConstraintModelManager>(state);
         Eigen::VectorXd col_lower_bound(1);
         Eigen::VectorXd col_upper_bound(1);
-        col_lower_bound << 0;
+        col_lower_bound << config.collision_safety_margin;
+        // col_lower_bound << 0.0;
         col_upper_bound << std::numeric_limits<double>::infinity();
 
         for (int col_idx = 0; col_idx < collision_model->collisionPairs.size(); col_idx++)
         {
+            // auto obstacle_distance_residual = boost::make_shared<colmpc::ResidualDistanceCollision>
+            //     (colmpc::ResidualDistanceCollision(state,7, collision_model, col_idx));
+
             auto obstacle_distance_residual = boost::make_shared<colmpc::ResidualModelVelocityAvoidance>
                 (colmpc::ResidualModelVelocityAvoidance(state, collision_model, col_idx));
             auto constraint = boost::make_shared<crocoddyl::ConstraintModelResidual>(
@@ -92,6 +96,23 @@ namespace panda_torque_mpc
             terminalConstraintModelManager->addConstraint(terminal_constraint_name, constraint);
 
         }
+
+        // Eigen::VectorXd col_lower_bound_dist(1);
+        // col_lower_bound << 0.05;
+        // auto obstacle_distance_residual = boost::make_shared<colmpc::ResidualDistanceCollision>
+        //     (colmpc::ResidualDistanceCollision(state,7, collision_model, collision_model->collisionPairs.size()-1));
+
+        // auto constraint = boost::make_shared<crocoddyl::ConstraintModelResidual>(
+        //         state,
+        //         obstacle_distance_residual,
+        //         col_lower_bound_dist,
+        //         col_upper_bound
+        //     );
+        //     std::string running_constraint_name = "col_floor" ;
+        //     std::string terminal_constraint_name = "col_term_floor";
+        //     runningConstraintModelManager->addConstraint(running_constraint_name, constraint);
+        //     terminalConstraintModelManager->addConstraint(terminal_constraint_name, constraint);
+
 
         // Frame translation
         // auto frame_translation_cost = boost::make_shared<crocoddyl::CostModelResidual>(

@@ -200,13 +200,13 @@ namespace panda_torque_mpc
         
         if (!control_ref_from_ddp_node_received_)
         {
-            std::cout << "control_ref_from_ddp_node_received_ == false" << std::endl;
+            // std::cout << "control_ref_from_ddp_node_received_ == false" << std::endl;
             Vector7d dq_ref = Vector7d::Zero();
             tau_d = compute_torque_jsid(q_m, dq_m, q_init_, dq_ref);
         }
         else if ((t - t0_mpc_first_msg_).toSec() < dt_transition_jsid_to_mpc_)
         {
-            std::cout << "TRANSITION: " << (t - t0_mpc_first_msg_).toSec() << " < " << dt_transition_jsid_to_mpc_ << std::endl;
+            // std::cout << "TRANSITION: " << (t - t0_mpc_first_msg_).toSec() << " < " << dt_transition_jsid_to_mpc_ << std::endl;
             Vector7d dq_ref = Vector7d::Zero();
             Vector7d tau_jsid = compute_torque_jsid(q_m, dq_m, q_init_, dq_ref);
 
@@ -217,7 +217,7 @@ namespace panda_torque_mpc
         }
         else
         {
-            std::cout << "STEADY STATE" << std::endl;
+            // std::cout << "STEADY STATE" << std::endl;
             tau_d = compute_torque_mpc_linear_feedback(q_m, dq_m, u0_mpc, x0_mpc, K_ricatti);
         }
 
@@ -225,7 +225,7 @@ namespace panda_torque_mpc
         tau_d -= pin::computeGeneralizedGravity(model_pin_, data_pin_, q_m);
 
         // std::cout << "Sent tau_d: " << tau_d.transpose() << std::endl;
-        tictac_comp.print_tac("compute_desired_torque took (ms): ");
+        // tictac_comp.print_tac("compute_desired_torque took (ms): ");
         /////////////////////////////////////////////////////////////
         /////////////////////////////////////////////////////////////
         /////////////////////////////////////////////////////////////
@@ -299,7 +299,7 @@ namespace panda_torque_mpc
         // Store previous desired/reference values
         last_tau_d_ = tau_d_saturated + Eigen::Map<Vector7d>(franka_model_handle_->getGravity().data());
 
-        tictac.print_tac("update() took (ms): ");
+        // tictac.print_tac("update() took (ms): ");
     }
 
     Vector7d CtrlMpcLinearized::compute_torque_jsid(const Vector7d &q_m, const Vector7d &dq_m, const Vector7d &q_ref, const Vector7d &dq_ref)

@@ -1,59 +1,76 @@
 obstacle1:
     type: "ellipsoid"
-    radius1: 0.5
-    radius2: 0.09
-    radius3: 0.18
-    translation: [-0.1,-0.05,0.81]  # tx,ty,tz
+    radius1: 2.0
+    radius2: 2.0
+    radius3: 0.1
+    translation: [0.0,0.0,0.675]  # tx,ty,tz
     rotation: [0, 0, 0, 1] #qx,qy,qz,qw  
+
 obstacle2:
     type: "ellipsoid"
-    radius1: 0.5
-    radius2: 0.09
-    radius3: 0.18
-    translation: [-0.1,0.55,0.8]  # tx,ty,tz
-    rotation: [0, 0, 0, 1] #qx,qy,qz,qw  
-obstacle3:
-    type: "ellipsoid"
-    radius1: 0.09
-    radius2: 0.5
-    radius3: 0.18
-    translation: [-0.3,0.45,0.8]  # tx,ty,tz
-    rotation: [0, 0, 0, 1] #qx,qy,qz,qw  
-obstacle4:
-    type: "ellipsoid"
-    radius1: 0.09
-    radius2: 0.5
-    radius3: 0.18
-    translation: [0.3,0.45,0.8]  # tx,ty,tz
+    radius1: 2.0
+    radius2: 0.1
+    radius3: 2.0
+    translation: [0.0,0.498,0.775]  # tx,ty,tz
     rotation: [0, 0, 0, 1] #qx,qy,qz,qw  
 
 
+collision_pairs: 
+    - ["panda_rightfinger_0", "obstacle1"]
+    - ["panda_leftfinger_0", "obstacle1"]
+    - ["panda_rightfinger_0", "obstacle2"]
+    - ["panda_leftfinger_0", "obstacle2"]
 
+
+### BOX
 
 # obstacle1:
-#     type: "sphere"
+#     type: "ellipsoid"
+#     radius1: 0.5
+#     radius2: 0.09
+#     radius3: 0.18
+#     translation: [-0.1,-0.05,0.81]  # tx,ty,tz
+#     rotation: [0, 0, 0, 1] #qx,qy,qz,qw  
+# obstacle2:
+#     type: "ellipsoid"
+#     radius1: 0.5
+#     radius2: 0.09
+#     radius3: 0.18
+#     translation: [-0.1,0.55,0.8]  # tx,ty,tz
+#     rotation: [0, 0, 0, 1] #qx,qy,qz,qw  
+# obstacle3:
+#     type: "ellipsoid"
+#     radius1: 0.09
+#     radius2: 0.5
+#     radius3: 0.18
+#     translation: [-0.3,0.45,0.8]  # tx,ty,tz
+#     rotation: [0, 0, 0, 1] #qx,qy,qz,qw  
+# obstacle4:
+#     type: "ellipsoid"
+#     radius1: 0.09
+#     radius2: 0.5
+#     radius3: 0.18
+#     translation: [0.3,0.45,0.8]  # tx,ty,tz
+#     rotation: [0, 0, 0, 1] #qx,qy,qz,qw  
+# collision_pairs: 
+#     - ["panda_rightfinger_0", "obstacle1"]
+#     - ["panda_leftfinger_0", "obstacle1"]
+#     - ["panda_rightfinger_0", "obstacle2"]
+#     - ["panda_rightfinger_0", "obstacle3"]
+#     - ["panda_rightfinger_0", "obstacle4"]
+
+### balloon
+# obstacle1:
+#     type: "ellipsoid"
 #     radius: 0.30
 #     # radius1: 0.14
 #     # radius2: 0.095
 #     # radius3: 0.095
 #     translation: [-0.1,-0.05,0.86]  # tx,ty,tz
 #     rotation: [0, 0, 0, 1] #qx,qy,qz,qw  
-# obstacle2:
-#     type: "ellipsoid"
-#     radius: 0.175
-#     radius1: 0.2
-#     radius2: 0.06
-#     radius3: 0.3
-#     translation: [0,0.4,0.9]  # tx,ty,tz
-#     rotation: [0, 0.7071068, 0, 0.7071068] #qx,qy,qz,qw  
-collision_pairs: 
-    - ["panda_rightfinger_0", "obstacle1"]
-    - ["panda_leftfinger_0", "obstacle1"]
-    - ["panda_rightfinger_0", "obstacle2"]
-    - ["panda_rightfinger_0", "obstacle3"]
-    - ["panda_rightfinger_0", "obstacle4"]
+# collision_pairs: 
     # - ["panda_rightfinger_0", "obstacle1"]
-    # - ["panda_rightfinger_0", "support_link_0"]
+ 
 
-    # - ["elips_rob", "obstacle2"]
+
 
